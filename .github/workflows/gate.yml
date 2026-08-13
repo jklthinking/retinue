@@ -1,0 +1,99 @@
+name: gate
+
+# The handoff gate that AGENTS.md rule 8 describes, run on a machine nobody has
+# configured. That matters more than it sounds: the most expensive defect found in
+# this repository so far was that the install command both readmes print could not
+# run the suite, and it survived because every contributor installs the test and
+# server extras together. A clean runner is the only thing that notices.
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # scripts/check.sh scans the change rather than the tree, and needs the
+          # parent commit to diff against.
+          fetch-depth: 2
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install exactly what the readmes tell a newcomer to install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[test]'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: webui/package-lock.json
+
+      - name: Install panel dependencies
+        # Present so the gate's frontend step type-checks rather than reporting
+        # itself skipped. A change that touches the panel must not pass untested.
+        working-directory: webui
+        run: npm ci --no-audit --no-fund
+
+      - name: Handoff gate
+        run: bash scripts/check.sh
+
+      - name: Whole-tree identifier and credential sweep
+        # Rule 4 applies to the tree, not only to the diff. This step is expected
+        # to pass; if it starts failing, something was committed that should not
+        # have been.
+        run: bash scripts/check.sh --all
+
+  minimum-supported-python:
+    # pyproject declares support from 3.10. Nothing checked it, and the fleet
+    # already contains interpreters from 3.10 to 3.14.
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[test]'
+      - run: python -m pytest -q
+
+  node-only-install:
+    # A managed node must not need the server stack. This asserts the claim on a
+    # clean machine instead of trusting a local virtual environment.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install the node extra alone
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[node]'
+      - name: The server stack must be absent
+        run: |
+          for pkg in fastapi sqlalchemy; do
+            if pip show "$pkg" >/dev/null 2>&1; then
+              echo "$pkg present in a node install"; exit 1
+            fi
+          done
+          echo "server stack absent"
+      - name: A node must be able to scan and to report what it would send
+        run: |
+          retinue scan
+          retinue-node whoami --node ci-node

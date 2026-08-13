@@ -1,0 +1,25 @@
+RETINUE
+Copyright 2026 JKL Thinking
+
+This Software is licensed under the Functional Source License, Version 1.1,
+Apache 2.0 Future License (SPDX: FSL-1.1-Apache-2.0; official abbreviation
+FSL-1.1-ALv2). See LICENSE.md.
+
+Each published version of the Software is licensed under FSL-1.1 from the
+date that version is made available. On the second anniversary of that date,
+that same version is also licensed under the Apache License, Version 2.0.
+This conversion is irrevocable and is the public commitment of the licensor.
+
+RETINUE and the RETINUE marks — the name, wordmark, logo, and related brand
+identifiers — are trademarks or trade names of JKL Thinking. The license
+does not grant permission to use those marks except as required for
+reasonable attribution of origin. Official container images and official
+support channels will be named in the public repository when they are
+published. Unofficial forks, images, and hosted services must not present
+themselves as official RETINUE.
+
+A competing commercial hosted service, SaaS offering, or product resale
+based on RETINUE requires a separate authorization from JKL Thinking during
+the two-year restricted period of the relevant version. Self-hosting,
+forking, internal use, and paid installation or consulting for a licensee
+remain permitted purposes.

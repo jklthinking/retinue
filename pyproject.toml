@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "retinue"
+version = "0.2.0a1"
+description = "Local control and observability for heterogeneous AI agents"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "Apache-2.0"}
+dependencies = ["PyYAML>=6.0"]
+
+[project.optional-dependencies]
+# The suite covers the server too: fifteen test modules import it. Declaring
+# only pytest here made the README install path the one path nobody walks --
+# contributors install test and server together, so pytest failed to collect
+# for anyone who followed the documented command.
+test = [
+    "pytest>=8.0",
+    "retinue[server]",
+    # Test-only and conditional. The suite inspects the manifest, which needs a
+    # TOML parser, and the standard library gained one in 3.11 while this project
+    # supports 3.10. It touches no base, node, or server install.
+    "tomli>=2.0; python_version < '3.11'",
+]
+# A managed node carries no web framework, ORM, ASGI server, or crypto
+# library; the node duties run on the standard library plus PyYAML, the only
+# base dependency. Base is lean enough that a node can even run the duties
+# from a copied checkout with PYTHONPATH pointed at it -- no pip or venv.
+node = []
+# The MCP surfaces (core/mcp_server.py, server/mcp_bridge.py) are the only
+# importers of the mcp package, which itself pulls in an ASGI server, a
+# crypto library, and an HTTP client. No node duty touches them, so mcp is
+# an extra; without it the surfaces refuse with a message naming this extra.
+mcp = ["mcp>=1.12,<2"]
+# The server install keeps the MCP bridge: it is a server-side surface
+# (server mcp) and the ASGI server and crypto library are already here, so
+# bundling costs this install class nothing. Base and node stay lean.
+server = ["fastapi>=0.115", "uvicorn[standard]>=0.30", "SQLAlchemy>=2.0", "cryptography>=42", "retinue[mcp]"]
+
+[project.scripts]
+retinue = "core.cli.main:main"
+retinue-node = "node.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["core*", "adapters*", "server*", "node*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

@@ -1,0 +1,15 @@
+# SECURITY: keep the host-side port on 127.0.0.1. The panel has no auth.
+# Wider exposure requires an authenticated reverse proxy and network allowlist.
+services:
+  retinue:
+    build:
+      context: .
+    command: ["panel", "/data", "--host", "0.0.0.0", "--port", "8787"]
+    ports:
+      - "127.0.0.1:8787:8787"
+    volumes:
+      - retinue-data:/data
+    restart: unless-stopped
+
+volumes:
+  retinue-data:
