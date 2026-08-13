@@ -1,0 +1,19 @@
+# SECURITY: keep the host-side port on 127.0.0.1. Login is not a substitute
+# for TLS at the edge. Wider exposure requires an authenticated reverse
+# proxy and a network allowlist.
+services:
+  retinue:
+    build:
+      context: .
+    ports:
+      - "127.0.0.1:9219:9219"
+    volumes:
+      - retinue-data:/data
+    environment:
+      RETINUE_DATA_DIR: /data
+      RETINUE_ADMIN_USERNAME: ${RETINUE_ADMIN_USERNAME:-operator}
+      RETINUE_ADMIN_PASSWORD: ${RETINUE_ADMIN_PASSWORD:-}
+    restart: unless-stopped
+
+volumes:
+  retinue-data:
