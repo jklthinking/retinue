@@ -1,0 +1,73 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Retinue task card
+type: object
+required: [id, title, created_by, status, holder, chain, refs]
+properties:
+  id:
+    type: string
+    pattern: '^task-[0-9]{8}-[0-9]{3}$'
+  title:
+    type: string
+    minLength: 1
+  created_by:
+    type: string
+    pattern: '^(boss|[a-z0-9]+(?:-[a-z0-9]+)*)$'
+  dept:
+    type: [string, 'null']
+    pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'
+  priority:
+    enum: [urgent, high, medium, low, none]
+  acceptance:
+    type: array
+    items: {type: string, minLength: 1}
+  depends_on:
+    type: array
+    uniqueItems: true
+    items:
+      type: string
+      pattern: '^task-[0-9]{8}-[0-9]{3}$'
+  status:
+    enum: [queued, doing, handoff, blocked, done, cancelled]
+  holder:
+    type: string
+    pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'
+  blocked_reason:
+    type: [string, 'null']
+  progress:
+    type: integer
+    minimum: 0
+    maximum: 100
+  chain:
+    type: array
+    items:
+      type: object
+      required: [who, did, at]
+      properties:
+        who: {type: string}
+        did: {type: string}
+        at: {type: string, format: date-time}
+        from_status: {type: ['string', 'null']}
+        to_status: {type: ['string', 'null']}
+        from_holder: {type: ['string', 'null']}
+        to_holder: {type: ['string', 'null']}
+        payload:
+          type: object
+          required: [state_version, changes]
+          properties:
+            state_version: {const: 1}
+            changes:
+              type: object
+              additionalProperties:
+                type: object
+                required: [before, after]
+                properties:
+                  before: {}
+                  after: {}
+                additionalProperties: false
+          additionalProperties: false
+  next:
+    type: [string, 'null']
+    pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'
+  refs:
+    type: array
+    items: {type: string}

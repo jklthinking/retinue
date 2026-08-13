@@ -1,0 +1,69 @@
+name: release
+
+# Build the installable artifacts for a version tag: wheel, sdist, and the
+# container image. Checksums land in SHA256SUMS next to those files.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build wheel and sdist
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build
+          ls -l dist
+
+      - name: Checksums for wheel and sdist
+        run: |
+          cd dist
+          sha256sum retinue-*.whl retinue-*.tar.gz > SHA256SUMS
+          sha256sum -c SHA256SUMS
+          cat SHA256SUMS
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: webui/package-lock.json
+
+      - name: CycloneDX SBOMs
+        run: |
+          python -m pip install 'cyclonedx-bom>=6,<8'
+          bash scripts/generate_sbom.sh
+
+      - name: Build container image
+        run: |
+          tag="${GITHUB_REF_NAME:-local}"
+          docker build -t "retinue:${tag}" .
+          docker save "retinue:${tag}" | gzip > "dist/retinue-image-${tag}.tar.gz"
+          cd dist
+          sha256sum retinue-image-*.tar.gz > SHA256SUMS.image
+          sha256sum -c SHA256SUMS.image
+
+      - name: Install smoke against the wheel
+        run: |
+          wheel=$(ls dist/retinue-*.whl)
+          bash scripts/smoke_install.sh "$wheel"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: retinue-release
+          path: |
+            dist/*.whl
+            dist/*.tar.gz
+            dist/SHA256SUMS
+            dist/SHA256SUMS.image
+            dist/sbom-*.cdx.json
