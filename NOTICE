@@ -1,0 +1,25 @@
+RETINUE (Chinese name: 众卿)
+Copyright 2026 JKL Thinking
+
+This Software is licensed under the PolyForm Noncommercial License 1.0.0
+(SPDX: PolyForm-Noncommercial-1.0.0). See LICENSE.md.
+
+The license permits use, modification, and distribution for noncommercial
+purposes only, as defined by the license text. Any commercial use of the
+Software — including commercial hosted services, SaaS offerings, product
+resale, paid installation for a customer, or use inside a for-profit
+organization's operations — requires a separate commercial license from
+JKL Thinking. Commercial rights are reserved exclusively to JKL Thinking;
+ask through the public repository's issue tracker.
+
+Versions previously published under FSL-1.1-Apache-2.0 remain governed by
+the license they were published with. All later versions are published
+under PolyForm-Noncommercial-1.0.0 only.
+
+RETINUE, 众卿, and the RETINUE marks — the name, wordmark, logo, and related
+brand identifiers — are trademarks or trade names of JKL Thinking. The
+license does not grant permission to use those marks except as required for
+reasonable attribution of origin. Official container images and official
+support channels will be named in the public repository when they are
+published. Unofficial forks, images, and hosted services must not present
+themselves as official RETINUE.

@@ -1,0 +1,16 @@
+{
+  "generator": "retinue-static-demo",
+  "seed": 42,
+  "network_required": false,
+  "pages": [
+    "index.html",
+    "ready.html",
+    "overview.html",
+    "tasks/task-20260720-101.html",
+    "tasks/task-20260720-102.html",
+    "tasks/task-20260720-103.html",
+    "tasks/task-20260720-104.html",
+    "tasks/task-20260720-105.html",
+    "tasks/task-20260720-106.html"
+  ]
+}

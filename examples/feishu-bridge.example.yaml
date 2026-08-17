@@ -1,0 +1,39 @@
+# Feishu inbound bridge — deployment config TEMPLATE.
+#
+# Copy to <data-dir>/feishu-bridge.yaml at deploy time and fill in the env
+# var names / file paths that operations injects. Never paste real
+# credentials into this file or into the copy that gets committed anywhere;
+# every secret below is an indirection. See docs/feishu-bridge-runbook.md.
+
+# Hub the bridge opens cards on, and the channel identity it authenticates
+# with (the channel token is minted by an admin via /api/admin/channel-tokens).
+server_url: http://127.0.0.1:9219
+channel_id: feishu
+channel_token_file: /path/to/data-dir/feishu-channel.token
+# channel_token_env: RETINUE_FEISHU_CHANNEL_TOKEN   # alternative to the file
+
+# Event-callback HTTP listener (local only; expose through a reverse proxy
+# or tunnel and point the Feishu console's event subscription at it).
+listen:
+  host: 127.0.0.1
+  port: 9221
+
+# Feishu application credentials. Inbound events require an app with event
+# subscription (im.message.receive_v1) configured in the console; the app id
+# is not secret, the secret and verification token are.
+feishu:
+  app_id: cli_xxxxxxxxxxxxxxxx
+  app_secret_env: RETINUE_FEISHU_APP_SECRET
+  verification_token_env: RETINUE_FEISHU_VERIFICATION_TOKEN
+  # api_base defaults to the public open platform; override only for tests.
+
+# Receipt delivery fallback: a group custom-bot webhook. Used only when app
+# credentials are absent; it can post into its one group but cannot receive
+# events, so inbound is unavailable in a webhook-only deployment.
+reply:
+  webhook_url_env: RETINUE_FEISHU_GROUP_WEBHOOK
+
+# Sent to senders whose Feishu open_id is not bound in channel_users.
+registration_guide: >-
+  你还不能在这里开卡:你的飞书身份尚未绑定板上账号。
+  请把这条消息截图发给板管理员,请其在 channel_users 中登记你的 open_id。

@@ -1,0 +1,20 @@
+# Node health watermark policy (M0).
+# Copy this file to <data-dir>/watermarks.yaml on the deployment host and edit
+# values there. Do not put real hostnames, paths, or credentials in the repository.
+#
+# enabled: master switch; when false classification still works for API display
+#   but no ops cards are opened.
+# actor: roster agent that publishes watermark cards (must exist, or cards are skipped).
+# disk: percent thresholds (defaults match the former disk alert script).
+# load: optional load[0] thresholds; omit the whole block to leave load unknown.
+
+enabled: false
+actor: retinue-watch
+disk:
+  warn: 80
+  high: 90
+  critical: 95
+# load:
+#   warn: 4.0
+#   high: 8.0
+#   critical: 16.0

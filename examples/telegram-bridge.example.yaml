@@ -1,0 +1,33 @@
+# Telegram inbound bridge — deployment config TEMPLATE.
+#
+# Copy to <data-dir>/telegram-bridge.yaml at deploy time and fill in the env
+# var names / file paths that operations injects. Never paste real
+# credentials into this file or into the copy that gets committed anywhere;
+# every secret below is an indirection. See docs/telegram-bridge-runbook.md.
+
+# Hub the bridge posts to, and the channel identity it authenticates with
+# (the channel token is minted by an admin via /api/admin/channel-tokens).
+server_url: http://127.0.0.1:9219
+channel_id: telegram
+channel_token_file: /path/to/data-dir/telegram-channel.token
+# channel_token_env: RETINUE_TG_CHANNEL_TOKEN   # alternative to the file
+
+# Bot token comes only from an environment variable (preferred) or a file
+# path — never inline. Create the bot with BotFather; put the token in the
+# named env var on the host that runs the bridge.
+telegram:
+  bot_token_env: RETINUE_TG_BOT_TOKEN
+  # bot_token_file: /path/to/data-dir/telegram-bot.token
+  # Optional chat allowlist (decimal chat ids as strings or numbers). Empty
+  # means every chat the bot can see is accepted.
+  # allowed_chat_ids:
+  #   - -1001234567890
+  #   - 424242424
+  # Long-poll seconds for getUpdates (0–50; default 25).
+  # poll_timeout: 25
+  # api_base defaults to https://api.telegram.org; override only for tests.
+
+# Sent to senders whose Telegram user id is not bound in channel_users.
+registration_guide: >-
+  你还不能在这里开卡:你的电报身份尚未绑定板上账号。
+  请把这条消息截图发给板管理员,请其在 channel_users 中登记你的 Telegram 用户 id。

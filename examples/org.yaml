@@ -1,0 +1,37 @@
+org: acme-inc
+departments:
+  - id: ops
+    name: Operations
+    lead: ops-captain
+  - id: eng
+    name: Engineering
+agents:
+  - id: ops-captain
+    dept: ops
+    runtime: runtime-a
+    model: model-small
+    node: office-node
+    im:
+      feishu:
+        mention_id_env: RETINUE_OPS_CAPTAIN_MENTION_ID
+  - id: coder-1
+    dept: eng
+    runtime: runtime-b
+    model: model-large
+    node: build-node
+    on_claim: ["/usr/bin/true"]
+    im:
+      feishu:
+        mention_id_env: RETINUE_CODER_MENTION_ID
+nodes:
+  - id: office-node
+  - id: build-node
+adapters:
+  feishu:
+    enabled: false
+    chat_id_env: RETINUE_FEISHU_CHAT_ID
+    profile_env: RETINUE_FEISHU_PROFILE
+    self_mention_id_env: RETINUE_FEISHU_SELF_MENTION_ID
+    allow_from_env: RETINUE_FEISHU_ALLOW_FROM
+    dispatch_url_env: RETINUE_SERVER_URL
+    dispatch_senders_env: RETINUE_FEISHU_PUBLISHERS

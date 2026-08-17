@@ -1,0 +1,12 @@
+# QC completion hook (M0).
+# Copy to <data-dir>/qc_hook.yaml on the deployment host and edit values there.
+# The repository must not contain a real webhook URL; only the environment
+# variable *name* is recorded here.
+#
+# enabled: master switch; when false the hook is a no-op.
+# url_env: name of the environment variable that holds the webhook URL.
+# timeout_seconds: short outbound budget; failures are logged only.
+
+enabled: false
+url_env: RETINUE_QC_HOOK_URL
+timeout_seconds: 3

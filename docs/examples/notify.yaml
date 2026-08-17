@@ -1,0 +1,25 @@
+# Notifier plugin config (M0). Copy to <data-dir>/notify.yaml.
+# Secrets are named by environment variable; this file holds no credentials.
+
+# Active channel when callers do not pass an explicit one.
+# group_webhook | tenant_app | log
+default_channel: group_webhook
+
+channels:
+  group_webhook:
+    enabled: true
+    # Legacy default matches RETINUE_FEISHU_WEBHOOK used by the board today.
+    webhook_url_env: RETINUE_FEISHU_WEBHOOK
+    timeout_seconds: 10
+
+  tenant_app:
+    enabled: false
+    # App id is not secret; the secret is always an env indirection.
+    app_id: ""
+    app_secret_env: RETINUE_FEISHU_APP_SECRET
+    api_base: https://open.feishu.cn
+    receive_id_type: chat_id
+    timeout_seconds: 10
+
+  log:
+    enabled: true

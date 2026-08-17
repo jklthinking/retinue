@@ -1,0 +1,690 @@
+sites:
+- file: server/engine.py
+  entity: Task
+  contexts:
+  - create_task
+  decider: scoped-credential
+  reason: The single funnel for card creation. Every caller is an authenticated surface
+    (task router, sessions router, dispatch) where the principal's token or session
+    names created_by, the publisher must be a roster actor, and the first chain event
+    attributes the publication to them. Publishing a card is that credential-holder's
+    decision.
+- file: server/main.py
+  entity: Actor
+  contexts:
+  - cmd_import_yaml
+  - cmd_init_admin
+  decider: operator-command
+  reason: init-admin and import-yaml run only when an operator types the command against
+    a chosen data directory; creating the admin's actor row or the actors named by
+    legacy YAML cards is the content of that command, not a side effect of some other
+    activity.
+- file: server/main.py
+  entity: ApiToken
+  contexts:
+  - cmd_issue_token
+  decider: operator-command
+  reason: issue-token runs only at an operator's shell, requires the target actor
+    to exist already, and prints the token exactly once; issuing the credential is
+    the decision the command exists to record.
+- file: server/main.py
+  entity: Node
+  contexts:
+  - cmd_issue_node_token
+  decider: operator-command
+  reason: issue-node-token runs only at an operator's shell and records the admission
+    decision (admitted_by) alongside the credential; admitting the machine is the
+    explicit purpose of the command.
+- file: server/main.py
+  entity: NodeToken
+  contexts:
+  - cmd_issue_node_token
+  decider: operator-command
+  reason: 'Same command, same decision: the operator names the node and the credential
+    is written once to an operator-chosen file with owner-only permissions.'
+- file: server/main.py
+  entity: Task
+  contexts:
+  - cmd_import_yaml
+  decider: operator-command
+  reason: import-yaml runs only when an operator points it at a directory of legacy
+    file-bus cards; importing those cards, with their chains preserved, is the decision
+    the command exists to carry out.
+- file: server/main.py
+  entity: User
+  contexts:
+  - cmd_init_admin
+  decider: operator-command
+  reason: init-admin runs only at an operator's shell and refuses an existing username;
+    creating the first administrator account is the explicit purpose of typing it.
+- file: server/routers/actors.py
+  entity: Actor
+  contexts:
+  - create_actor
+  decider: administrator-session
+  reason: POST /api/actors is guarded by require_admin, so an authenticated administrator
+    session decides every roster addition, and the route refuses duplicates rather
+    than upserting behind anyone's back.
+- file: server/routers/admin.py
+  entity: Actor
+  contexts:
+  - admin_prepare_onboarding
+  decider: administrator-session
+  reason: The onboarding route is guarded by require_admin; registering the new agent's
+    actor row is the decision an administrator makes when they prepare an onboarding,
+    and the route refuses an existing actor id.
+- file: server/routers/admin.py
+  entity: ApiToken
+  contexts:
+  - admin_create_token
+  - admin_prepare_onboarding
+  - admin_rotate_token
+  decider: administrator-session
+  reason: All three routes are guarded by require_admin and show the token exactly
+    once; an administrator session decides each credential issuance, and rotation
+    additionally disables the credential it replaces in the same decision.
+- file: server/routers/admin.py
+  entity: NodeToken
+  contexts:
+  - admin_create_node_token
+  decider: administrator-session
+  reason: Guarded by require_admin and refused for retired nodes; an administrator
+    session decides each node credential.
+- file: server/routers/admin.py
+  entity: User
+  contexts:
+  - admin_create_user
+  - admin_prepare_onboarding
+  decider: administrator-session
+  reason: Both routes are guarded by require_admin and refuse existing usernames;
+    an administrator session decides each account creation.
+- file: server/routers/knowledge.py
+  entity: KnowledgeSource
+  contexts:
+  - post_knowledge
+  decider: administrator-session
+  reason: POST /api/knowledge is guarded by require_admin; cataloguing a knowledge
+    asset is an administrator's decision, and the route updates in place rather than
+    duplicating an existing name.
+- file: server/routers/auth.py
+  entity: WebSession
+  contexts:
+  - login
+  decider: scoped-credential
+  reason: A session row is created only after the account's own password verifies,
+    under the login throttle; the credential presented is scoped to exactly the account
+    the session record belongs to.
+- file: server/routers/auth.py
+  entity: WebSession
+  contexts:
+  - demo_login
+  decider: operator-command
+  reason: Demo login exists only when the operator has set demo_user in the site configuration,
+    and it can only open sessions for that one configured account; the operator's
+    configuration is the decision.
+- file: server/routers/skills.py
+  entity: Skill
+  contexts:
+  - post_skill
+  decider: scoped-credential
+  reason: POST /api/skills requires an authenticated principal; an agent caller is
+    recorded as the skill's owner and only owners may update it later, so the credential
+    that creates the skill is scoped to what it creates.
+- file: tests/test_skills_sync_m0.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_skills_sync_m0.py
+  entity: ApiToken
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_skills_sync_m0.py
+  entity: User
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: server/skill_ops.py
+  entity: Skill
+  contexts:
+  - import_runtime_skill
+  decider: scoped-credential
+  reason: Runtime import records the calling principal as imported_by and keeps a
+    sanitized source snapshot; only that authenticated identity may create or refresh
+    the catalog row.
+- file: server/skill_ops.py
+  entity: SkillBinding
+  contexts:
+  - bind_skill
+  decider: scoped-credential
+  reason: bind_skill is the single funnel for actor-skill assignments. Callers are
+    an administrator session, the demo seeder, or the pilot-binding route, and the
+    write identity is stored on the binding and on the append-only event chain.
+- file: server/seed.py
+  entity: Actor
+  contexts:
+  - seed_demo
+  decider: operator-command
+  reason: seed_demo runs only under the explicit seed-demo subcommand against an operator-chosen
+    data directory, and writes clearly-labelled synthetic demo actors; the operator
+    typing the command decides.
+- file: server/seed.py
+  entity: KnowledgeSource
+  contexts:
+  - seed_demo
+  decider: operator-command
+  reason: 'Same command, same decision: synthetic demo knowledge assets exist only
+    because an operator ran seed-demo.'
+- file: server/seed.py
+  entity: Node
+  contexts:
+  - seed_demo
+  decider: operator-command
+  reason: 'Same command, same decision: demo nodes are admitted_by ''seed-demo'' and
+    exist only because an operator ran seed-demo.'
+- file: server/seed.py
+  entity: Skill
+  contexts:
+  - seed_demo
+  decider: operator-command
+  reason: 'Same command, same decision: synthetic demo skills exist only because an
+    operator ran seed-demo.'
+- file: server/seed.py
+  entity: User
+  contexts:
+  - seed_demo
+  decider: operator-command
+  reason: 'Same command, same decision: demo accounts exist only because an operator
+    ran seed-demo against a data directory they chose.'
+- file: tools/teacher_worker.py
+  entity: ApiToken
+  contexts:
+  - bootstrap_tokens
+  decider: operator-command
+  reason: bootstrap_tokens runs only under the worker's explicit --bootstrap-tokens
+    flag, requires each teacher actor to exist already, and writes one owner-only
+    token file per actor; the operator running the pilot decides.
+- file: tests/test_agent_card.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_agent_card.py
+  entity: Skill
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_agent_discovery.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_agent_discovery.py
+  entity: User
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_agent_dispatch_limits.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_agent_dispatch_limits.py
+  entity: ApiToken
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_agent_dispatch_limits.py
+  entity: User
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_agent_matching.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_agent_matching.py
+  entity: Node
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_agent_matching.py
+  entity: Skill
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_agent_matching.py
+  entity: User
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_attempts.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_attempts.py
+  entity: ApiToken
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_attempts.py
+  entity: Node
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_attempts.py
+  entity: NodeToken
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_attempts.py
+  entity: User
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_claim_concurrency.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_closed_loop.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_closed_loop.py
+  entity: User
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_cookie_secure.py
+  entity: User
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_dependencies.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_due_dates.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_due_dates.py
+  entity: ApiToken
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_dispatch_contract.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_dispatch_contract.py
+  entity: User
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_dispatch_v2.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_dispatch_v2.py
+  entity: Skill
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_dispatch_v2.py
+  entity: SkillBinding
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_dispatch_v2.py
+  entity: User
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_export_cards.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_export_cards.py
+  entity: ApiToken
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_export_cards.py
+  entity: Node
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_export_cards.py
+  entity: NodeToken
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_export_cards.py
+  entity: User
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_export_cards.py
+  entity: WebSession
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_feishu.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_feishu.py
+  entity: ApiToken
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_flow_api.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_flow_api.py
+  entity: User
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_pipeline_v2.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_pipeline_v2.py
+  entity: User
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_node_inventory.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_node_inventory.py
+  entity: User
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_orchestration_lease.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_orchestration_lease.py
+  entity: ApiToken
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_orchestration_lease.py
+  entity: User
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_runtime_pins.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_runtime_pins.py
+  entity: User
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_schema_versions.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_schema_versions.py
+  entity: Node
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_schema_versions.py
+  entity: ApiToken
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_schema_versions.py
+  entity: User
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_sequence_concurrency.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_server_api.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_server_api.py
+  entity: NodeToken
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_server_api.py
+  entity: User
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_session_sync.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_session_sync.py
+  entity: User
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_skill_bindings.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_skill_bindings.py
+  entity: Skill
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_skill_bindings.py
+  entity: User
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_task_folding.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_task_timestamps.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_token_lifecycle.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_token_lifecycle.py
+  entity: ApiToken
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_token_lifecycle.py
+  entity: User
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: server/membership.py
+  entity: Node
+  contexts:
+  - admit_node
+  decider: administrator-session
+  reason: admit_node is the single place a node joins the roster, reached from the
+    administrative admission route and from proposal approval. Both require an administrator
+    session, and the row records who admitted it and when. Every other path was removed
+    so this one could be the only one.
+- file: tests/test_summary.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_summary.py
+  entity: ApiToken
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: server/routers/enroll.py
+  entity: Actor
+  contexts:
+  - decide_enroll_application
+  decider: administrator-session
+  reason: The decide route is guarded by require_admin; creating the actor row is
+    the approval half of the enroll handshake, and it happens only when an administrator
+    approves a pending self-registration application.
+- file: server/routers/enroll.py
+  entity: ApiToken
+  contexts:
+  - decide_enroll_application
+  decider: administrator-session
+  reason: The decide route is guarded by require_admin; the executor token is minted
+    only as part of approving a pending enroll application and is shown exactly once,
+    matching the existing admin token-issuance flow.
+- file: tests/test_feishu_intake_bridge.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_intake_m0.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_intake_m0.py
+  entity: ApiToken
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_intake_m0.py
+  entity: User
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_intake_cmd_m1.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_intake_cmd_m1.py
+  entity: ApiToken
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_intake_cmd_m1.py
+  entity: User
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_todos_m0.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_todos_m0.py
+  entity: ApiToken
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_todos_m0.py
+  entity: User
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_reminders_m0.py
+  entity: User
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: server/distill.py
+  entity: KnowledgeSource
+  contexts:
+  - promote_candidate
+  decider: administrator-session
+  reason: Promote requires a privileged human session (admin or member); agents are
+    refused. Creating the knowledge_sources row is the explicit promote decision,
+    audited on distill_events with decided_by and promoted_entry_id.
+- file: tests/test_distill_m0.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_distill_m0.py
+  entity: ApiToken
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_distill_m0.py
+  entity: User
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_inbox.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_inbox.py
+  entity: ApiToken
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_inbox.py
+  entity: User
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_snapshot_m0.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_snapshot_m0.py
+  entity: Task
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_watermarks_m0.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_watermarks_m0.py
+  entity: User
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'
+- file: tests/test_qc_hook_m0.py
+  entity: Actor
+  decider: no-durable-change
+  reason: 'Test fixture: rows live in an empty per-test database discarded when the
+    test ends; nothing shared or durable changes.'

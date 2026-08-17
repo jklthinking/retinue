@@ -1,0 +1,26 @@
+# Reminder delivery configuration (M0).
+# Copy this file to <data-dir>/reminders.yaml on the deployment host and edit
+# values there. Do not put real webhook URLs or credentials in the repository.
+#
+# enabled: master switch; when false the scanner is a no-op.
+# max_attempts: per-slot failure budget before status becomes "abandoned".
+# default_channels: used when a reminder_deliveries.channel is the legacy
+#   registration slot "pending". Named slots ("in_app", "webhook") deliver
+#   through that plugin only.
+
+enabled: false
+max_attempts: 3
+default_channels:
+  - in_app
+  - webhook
+channels:
+  in_app:
+    enabled: true
+  webhook:
+    enabled: false
+    # Operator-only. Example shape (use a real URL only in the data directory):
+    # url: https://notify.example.invalid/hooks/retinue-reminders
+    url: ""
+    timeout_seconds: 5
+    # title = title + scheduled_for only; detail also sends notes and ids.
+    detail_level: title
