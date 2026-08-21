@@ -1,5 +1,25 @@
 ## Unreleased
 
+### Server: holder remint so the progress bar can move after a dead lease
+- **Change:** `progress` remains an explicit 0–100 field. `doing`, notes, and
+  a live lease still do not infer a percent. A holder write that omits
+  `lease_term` now heartbeats a live lease, and remints a new term when the
+  lease has expired and the card is not back on the hall
+  (`payload.lease.action: renew`). Workers that present a numeric term stay
+  fenced on stale or expired terms. After the sweeper returns the card to the
+  hall, remint is closed and the path is claim again.
+- MCP: `task_progress` documents that the bar only moves on this call;
+  `task_start` accepts optional `percent`; new `task_renew` is the explicit
+  续租 step. Bridge instructions, the retinue skill, agent onboarding, the
+  task-state protocol, and SEC-4 record the same rule.
+- **Why:** A card on the demo board (`task-20260819-001`) stayed at 0% while
+  the holder was working. Start only flipped `queued → doing` and never
+  called `task_progress`. The 3-minute lost-heartbeat window then fenced the
+  same holder (`409 lease expired; stale writer is fenced`), so they could
+  not write 20% without 续租 or 重新认领. Interactive MCP sessions omit a
+  term and never heartbeat, so this was the default path, not an operator
+  mistake.
+
 ### Legal
 
 - Relicensed from FSL-1.1-Apache-2.0 to PolyForm-Noncommercial-1.0.0.

@@ -373,6 +373,7 @@ def test_mcp_worker_surface_and_dispatch_summary():
     assert {
         "dispatch_intent",
         "task_start",
+        "task_renew",
         "task_progress",
         "task_attempt",
         "stage_done",

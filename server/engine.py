@@ -1018,7 +1018,9 @@ def update_task(
     if task.status in ("done", "cancelled"):
         raise ProtocolError(f"{task.status} is terminal; {task.id} can no longer be mutated")
     clock = _aware(now) or utcnow()
-    if not is_privileged:
+    if not is_privileged and not holder_may_remint_lease(
+        task, who=who, lease_term=lease_term, now=clock
+    ):
         assert_lease_write(task, lease_term, is_privileged=False, now=clock)
 
     old_status, old_holder = task.status, task.holder
@@ -1142,6 +1144,29 @@ def update_task(
         "status": new_status,
     }
     payload = state_payload(old_state, new_state)
+    changed = bool(payload["changes"])
+    will_event = (
+        changed or due_changed or next_holder is not None or note is not None
+    )
+    if will_event and (not note or not note.strip()):
+        raise ProtocolError("note is required for a transition or progress event")
+    lease_event: dict[str, Any] | None = None
+    if not is_privileged and will_event:
+        if holder_may_remint_lease(
+            task, who=who, lease_term=lease_term, now=clock
+        ):
+            lease_event = _activate_lease(
+                task,
+                holder=who,
+                now=clock,
+                settings=lease_settings(),
+                increment=True,
+            )
+            lease_event["action"] = "renew"
+        elif int(task.lease_term or 0) > 0 and lease_is_live(task, clock):
+            lease_event = _heartbeat_live_lease(
+                task, now=clock, settings=lease_settings()
+            )
     grant_lease = new_status == "doing" and int(task.lease_term or 0) == 0
     mark_started = new_status == "doing" and task.lease_started_at is None
     if grant_lease or mark_started:
@@ -1154,16 +1179,15 @@ def update_task(
             increment=grant_lease,
         )
         payload["lease"] = granted
+    elif lease_event is not None:
+        payload["lease"] = lease_event
     if performing_agent is not None:
         payload = add_acted_on_behalf_of(
             payload,
             authorising_identity=who,
             performing_agent=performing_agent,
         )
-    changed = bool(payload["changes"])
-    if changed or due_changed or next_holder is not None or note is not None:
-        if not note or not note.strip():
-            raise ProtocolError("note is required for a transition or progress event")
+    if will_event:
         last_seq = _next_event_seq(db, task.id)
         task.events.append(
             TaskEvent(
@@ -1515,6 +1539,50 @@ def assert_lease_write(
         raise Conflict(f"stale lease term {lease_term}; current term is {current}")
     if not live:
         raise Conflict("lease expired; stale writer is fenced")
+
+
+def holder_may_remint_lease(
+    task: Task,
+    *,
+    who: str,
+    lease_term: int | None,
+    now: dt.datetime | None = None,
+) -> bool:
+    """True when the current holder may mint a new term after expiry.
+
+    Interactive writers (MCP, chat intake) omit ``lease_term``. After the
+    lost-heartbeat window they would otherwise be fenced while the card still
+    shows ``doing`` at 0% — the bar cannot move until they remint. Workers that
+    present a numeric term stay on the fencing path: a stale or expired term is
+    never a remint token. Once the sweeper has returned the card to the hall
+    (``open_dispatch``), remint is closed and the path is claim again.
+    """
+    if lease_term is not None:
+        return False
+    if task.holder != who:
+        return False
+    if int(task.lease_term or 0) <= 0:
+        return False
+    if task.open_dispatch:
+        return False
+    if task.status in ("done", "cancelled"):
+        return False
+    return not lease_is_live(task, now)
+
+
+def _heartbeat_live_lease(
+    task: Task, *, now: dt.datetime, settings: LeaseSettings
+) -> dict[str, Any]:
+    """Extend a live lease without minting a new term."""
+    task.lease_heartbeat_at = now
+    task.lease_expires_at = now + dt.timedelta(seconds=settings.lost_seconds)
+    return {
+        "action": "heartbeat",
+        "term": int(task.lease_term or 0),
+        "expires_at": _iso(task.lease_expires_at),
+        "holder": task.holder,
+        "retry_count": int(task.retry_count or 0),
+    }
 
 
 def _activate_lease(

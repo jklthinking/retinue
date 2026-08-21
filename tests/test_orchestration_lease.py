@@ -11,17 +11,21 @@ from server.app import create_app
 from server.db import Actor, ApiToken, Task, User, WorkdirLock, make_session_factory
 from server.engine import (
     Conflict,
+    Forbidden,
     append_attempt,
     apply_reported_failure,
     claim_task,
     create_task,
     escalate_task,
     heartbeat_task,
+    holder_may_remint_lease,
+    lease_is_live,
     lease_settings,
     precheck_deliverable,
     reclaim_expired_leases,
     retry_plan,
     retry_task,
+    update_task,
 )
 from server.security import hash_password, hash_token
 
@@ -505,3 +509,127 @@ def test_http_claim_heartbeat_reclaim_and_briefing(tmp_path):
     assert swept.json()["count"] >= 1
     listed = client.get("/api/tasks/ready").json()
     assert any(item["id"] == task_id for item in listed)
+
+
+def test_progress_write_heartbeats_a_live_lease(tmp_path):
+    factory = _factory(tmp_path)
+    with factory() as db:
+        task = claim_task(db, _open_card(db), claimant="agent-one", now=NOW)
+        heartbeat_task(
+            db,
+            task,
+            who="agent-one",
+            lease_term=1,
+            started=True,
+            now=NOW + dt.timedelta(seconds=1),
+        )
+        first_expiry = task.lease_expires_at
+        later = NOW + dt.timedelta(seconds=45)
+        update_task(
+            db,
+            task,
+            who="agent-one",
+            is_privileged=False,
+            progress=20,
+            note="homepage build passed; verifying grade-8 chips",
+            now=later,
+        )
+        assert task.progress == 20
+        assert task.lease_term == 1
+        assert task.lease_heartbeat_at == later
+        assert task.lease_expires_at != first_expiry
+        payload = task.events[-1].payload_json
+        assert '"action": "heartbeat"' in payload
+        assert '"progress"' in payload
+
+
+def test_holder_without_term_remints_after_expiry_to_write_progress(tmp_path):
+    """MCP-style writers omit lease_term. After expiry they must remint.
+
+    Cause: status doing does not move the bar, and a fenced holder cannot
+    call task_progress, so a live-looking card stays at 0%.
+    """
+    factory = _factory(tmp_path)
+    with factory() as db:
+        task = claim_task(db, _open_card(db), claimant="agent-one", now=NOW)
+        heartbeat_task(
+            db,
+            task,
+            who="agent-one",
+            lease_term=1,
+            started=True,
+            now=NOW + dt.timedelta(seconds=1),
+        )
+        expired_at = NOW + dt.timedelta(minutes=4)
+        assert holder_may_remint_lease(
+            task, who="agent-one", lease_term=None, now=expired_at
+        )
+        assert not holder_may_remint_lease(
+            task, who="agent-one", lease_term=1, now=expired_at
+        )
+        with pytest.raises(Conflict, match="lease expired"):
+            update_task(
+                db,
+                task,
+                who="agent-one",
+                is_privileged=False,
+                progress=20,
+                note="stale worker still presenting term 1",
+                lease_term=1,
+                now=expired_at,
+            )
+        update_task(
+            db,
+            task,
+            who="agent-one",
+            is_privileged=False,
+            progress=20,
+            note="续租并补报进度：首页已构建通过",
+            now=expired_at,
+        )
+        assert task.progress == 20
+        assert task.status == "doing"
+        assert task.holder == "agent-one"
+        assert task.lease_term == 2
+        assert lease_is_live(task, expired_at)
+        payload = task.events[-1].payload_json
+        assert '"action": "renew"' in payload
+        assert '"term": 2' in payload
+        with pytest.raises(Conflict, match="stale lease term 1"):
+            heartbeat_task(
+                db,
+                task,
+                who="agent-one",
+                lease_term=1,
+                now=expired_at + dt.timedelta(seconds=1),
+            )
+
+
+def test_hall_return_blocks_remint_until_reclaim(tmp_path):
+    factory = _factory(tmp_path)
+    with factory() as db:
+        task = claim_task(db, _open_card(db), claimant="agent-one", now=NOW)
+        heartbeat_task(
+            db,
+            task,
+            who="agent-one",
+            lease_term=1,
+            started=True,
+            now=NOW + dt.timedelta(seconds=1),
+        )
+        reclaim_expired_leases(db, now=NOW + dt.timedelta(minutes=4))
+        db.refresh(task)
+        assert task.open_dispatch is True
+        assert not holder_may_remint_lease(
+            task, who="agent-one", lease_term=None, now=NOW + dt.timedelta(minutes=5)
+        )
+        with pytest.raises(Forbidden, match="does not hold"):
+            update_task(
+                db,
+                task,
+                who="agent-one",
+                is_privileged=False,
+                progress=20,
+                note="cannot remint after hall return",
+                now=NOW + dt.timedelta(minutes=5),
+            )

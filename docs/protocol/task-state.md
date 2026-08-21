@@ -48,6 +48,21 @@ Status and holder remain duplicated in the `from_*` and `to_*` receipt fields.
 A note-only update may append an event with an empty changes map. Existing
 events must never be edited or removed.
 
+`progress` is an integer 0–100 stored on the card. The board bar reads this
+field only. `status: doing`, a receipt note, and a live lease do not infer a
+percent: a card can look busy and still show 0% until the holder reports
+progress (MCP `task_progress`, HTTP `progress` on update, or CLI
+`--progress`). Completing the card (`done`) forces 100. Pipeline stage entry
+still resets progress to 0.
+
+Server-backed cards also carry a claim lease. A writer that presents a stale
+or expired numeric `lease_term` is fenced (`409`). Interactive writers that
+omit a term and still hold the card may remint after expiry (`payload.lease.action: renew`)
+so they can write the percent; a live write also heartbeats expiry so the
+lost-heartbeat sweeper does not fence a holder who is actually reporting.
+Once the sweeper has returned the card to the dispatch hall, remint is closed
+and the path is claim again.
+
 ```yaml
 payload:
   state_version: 1

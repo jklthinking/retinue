@@ -63,6 +63,13 @@ already-authorized event and gains no write authority. The local CLI and direct
 file access are administrative surfaces without identity authentication, so
 do not expose them to untrusted agents.
 
+A claim lease fences writers that present a stale or expired numeric term.
+Interactive holder writes that omit a term may remint after expiry while they
+still hold the card, so they can report progress instead of sitting at 0%
+behind a `409`. Once the sweeper returns the card to the dispatch hall, remint
+is closed; the next writer must claim. This does not weaken holder-only
+writes: a different actor still cannot mutate the card.
+
 Execution attempts use a separate append-only ledger and cannot mutate task
 fields or the task event chain. Actor-attributed reports require that actor's
 bearer and the actor must currently hold the card. Operator sessions remain

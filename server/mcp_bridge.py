@@ -161,6 +161,11 @@ def create_server() -> FastMCP:
             "queued -> doing -> done or handoff; doing may also become blocked; "
             "handoff/blocked return to doing. You may only mutate cards you hold. "
             "Every status or holder transition needs a receipt-quality note. "
+            "Status doing does not move the progress bar; call task_progress with "
+            "a percent and a receipt note while you work. A live lease is extended "
+            "by that write. If the lease expired and you still hold the card, call "
+            "task_renew (or task_start) to remint, then task_progress; if the card "
+            "is back on the dispatch hall, claim it first. "
             "Report each completed execution with task_attempt; this records an "
             "outcome without changing task state. "
             "For natural-language intake, dispatch_intent requires the stable source "
@@ -281,15 +286,45 @@ def create_server() -> FastMCP:
         return _summary(result["task"])
 
     @server.tool(name="task_start")
-    def task_start(task_id: str, note: str = "接棒开工") -> dict[str, Any]:
-        """Start or resume the current pipeline stage on a card you hold."""
+    def task_start(
+        task_id: str,
+        note: str = "接棒开工",
+        percent: int | None = None,
+    ) -> dict[str, Any]:
+        """Start or resume work on a card you hold.
+
+        Moving to doing does not by itself change the progress bar. Pass
+        ``percent`` to record how far you already are, or call task_progress
+        after this. If your lease expired and you still hold the card, this
+        remints a new term (续租) so later writes are not fenced.
+        """
+        body: dict[str, Any] = {"status": "doing", "note": note}
+        if percent is not None:
+            body["progress"] = percent
+        return _summary(_call("POST", f"/api/tasks/{task_id}/update", body))
+
+    @server.tool(name="task_renew")
+    def task_renew(task_id: str, note: str = "续租") -> dict[str, Any]:
+        """Remint the lease on a card you still hold after expiry.
+
+        Use this when task_progress or another write was refused with
+        ``lease expired; stale writer is fenced`` and the card has not returned
+        to the dispatch hall. After renew, call task_progress. If the card is
+        already on the hall, claim it instead (重新认领).
+        """
         return _summary(
             _call("POST", f"/api/tasks/{task_id}/update", {"status": "doing", "note": note})
         )
 
     @server.tool(name="task_progress")
     def task_progress(task_id: str, percent: int, note: str) -> dict[str, Any]:
-        """Report progress (0-100) on a card you hold, with a receipt note."""
+        """Report progress (0-100) on a card you hold, with a receipt note.
+
+        The bar reads this field only. Notes, status doing, and heartbeats do
+        not infer a percent. A live lease is extended by this write. If the
+        lease has expired and you still hold the card, the write remints a
+        new term so the percent can land.
+        """
         return _summary(
             _call("POST", f"/api/tasks/{task_id}/update", {"progress": percent, "note": note})
         )

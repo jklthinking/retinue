@@ -32,9 +32,13 @@ Use an absolute workspace path because MCP clients may start servers from a diff
 
 ```text
 Coordinate work with the Retinue MCP server. Start by calling my_tasks. For a
-card you hold, move queued or handoff to doing before work. After acceptance
-checks pass, update it to done or handoff, then return task_receipt verbatim.
-Task cards are canonical. Only the current holder writes a card.
+card you hold, move queued or handoff to doing before work. Status doing does
+not move the progress bar: call task_progress with a percent and a receipt
+note while you work. If a write is refused because the lease expired and you
+still hold the card, call task_renew then task_progress; if the card is back
+on the dispatch hall, claim it first. After acceptance checks pass, update it
+to done or handoff, then return task_receipt verbatim. Task cards are
+canonical. Only the current holder writes a card.
 ```
 
 The same behavior can be installed as an agent skill from [`../skills/retinue/SKILL.md`](../skills/retinue/SKILL.md).
@@ -49,7 +53,12 @@ The same behavior can be installed as an agent skill from [`../skills/retinue/SK
 | `task_new` | Create a queued card with priority, acceptance checks, and optional prerequisites |
 | `task_dependency_add` / `task_dependency_remove` | Change finish-to-start prerequisites on a held queued card |
 | `task_update` | Claim, record progress, edit task fields, block, hand off, or complete a held card |
+| `task_start` / `task_renew` | Start or resume `doing`. Remints an expired lease while you still hold the card (续租). Pass `percent` on start if you already have a number; start alone does not move the bar. |
+| `task_progress` | Set the 0–100 bar. Doing, notes, and heartbeats do not infer a percent. Live writes heartbeat the lease; an expired holder write remints. If the card is on the hall, claim first (重新认领). |
 | `task_receipt` | Render the latest canonical receipt |
+
+`task_start`, `task_renew`, and `task_progress` belong to the server MCP
+bridge. File-mode MCP records progress through `task_update`.
 
 `task_update` enforces holder-only writes at the MCP boundary. Protocol transition rules still apply, so invalid skips such as `queued → done` fail without changing the card.
 
