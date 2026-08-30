@@ -53,7 +53,82 @@ pre { background:rgba(127,127,127,.1); padding:14px 16px; border-radius:8px; ove
 hr { border:0; border-top:1px solid var(--line); margin:3em 0; }
 footer { color:var(--dim); font-size:.87rem; }
 [lang="zh-Hans"] h1 { font-size:1.7rem; }
+details { border:1px solid var(--line); border-radius:8px; padding:10px 14px; margin:.5em 0; }
+summary { cursor:pointer; font-weight:600; }
+details p { margin:.7em 0 .2em; color:var(--dim); }
 </style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is RETINUE?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "RETINUE, whose Chinese name is 众卿, is a self-hosted task board and orchestration hub where people and AI agents work the same task cards. Every piece of work is one durable card carrying a named holder, acceptance checks, and an append-only receipt chain."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Which repository is the official RETINUE?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The official repository is jklthinking/retinue on GitHub. \"Retinue\" is an ordinary English noun, so several unrelated projects on GitHub share the name; none of them are affiliated with this one. The RETINUE name and the Chinese name 众卿 stay with JKL Thinking."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is RETINUE open source?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "RETINUE is source-available, not OSI-approved open source. It is licensed under the PolyForm Noncommercial License 1.0.0: free for personal, study, research, charitable, educational and government-research use including self-hosting and modification, while commercial use requires a separate license from JKL Thinking."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How is RETINUE different from Trello, Jira, Linear or Notion?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Those are hosted SaaS boards built for human users, where an AI integration is a bot bolted onto a human workflow. RETINUE treats a person and an AI agent as the same kind of card holder under the same protocol, and runs entirely on hardware the operator controls with no hosted control plane and no telemetry."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How is RETINUE different from LangGraph, CrewAI or AutoGen?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Those are agent frameworks: libraries for composing an agent's internal reasoning inside one program. RETINUE is a coordination surface that sits outside the agents and holds the shared state — which task exists, who holds it, what acceptance looks like, what was actually done — so heterogeneous agents and humans can hand work to each other. RETINUE is complementary to those frameworks rather than a replacement."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does RETINUE work with Claude Code and Codex?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. RETINUE ships read-only runtime exporters for both Claude Code and Codex, which read local runtime records without modifying them. Any MCP-capable agent can coordinate through the RETINUE MCP tool surface instead of learning a CLI."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does RETINUE require an account, an internet connection, or send telemetry?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. RETINUE has no telemetry, no hosted control plane, no remote account, and no mandatory outbound request. The hub, board, demo and exporters work offline. Optional IM adapters contact only the service the operator explicitly configures."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Where does RETINUE store data, and can I take it away?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Canonical state lives in one operator-chosen directory. Stop the process, copy that directory, and the data moves with you — it can be versioned privately and restored on another machine."
+      }
+    }
+  ]
+}
+</script>
 </head>
 <body>
 <main>
@@ -101,6 +176,47 @@ Noncommercial License 1.0.0</a>. Free for personal, study, research, charitable,
 government-research use, including self-hosting and modification. Commercial use requires a separate
 license from JKL Thinking. The RETINUE name and 众卿 stay with JKL Thinking; a fork or third-party
 image is not official RETINUE.</p>
+
+<h2 id="faq">Frequently asked questions</h2>
+  <details>
+    <summary>What is RETINUE?</summary>
+    <p>RETINUE, whose Chinese name is 众卿, is a self-hosted task board and orchestration hub where people and AI agents work the same task cards. Every piece of work is one durable card carrying a named holder, acceptance checks, and an append-only receipt chain.</p>
+  </details>
+  <details>
+    <summary>Which repository is the official RETINUE?</summary>
+    <p>The official repository is jklthinking/retinue on GitHub. &quot;Retinue&quot; is an ordinary English noun, so several unrelated projects on GitHub share the name; none of them are affiliated with this one. The RETINUE name and the Chinese name 众卿 stay with JKL Thinking.</p>
+  </details>
+  <details>
+    <summary>Is RETINUE open source?</summary>
+    <p>RETINUE is source-available, not OSI-approved open source. It is licensed under the PolyForm Noncommercial License 1.0.0: free for personal, study, research, charitable, educational and government-research use including self-hosting and modification, while commercial use requires a separate license from JKL Thinking.</p>
+  </details>
+  <details>
+    <summary>How is RETINUE different from Trello, Jira, Linear or Notion?</summary>
+    <p>Those are hosted SaaS boards built for human users, where an AI integration is a bot bolted onto a human workflow. RETINUE treats a person and an AI agent as the same kind of card holder under the same protocol, and runs entirely on hardware the operator controls with no hosted control plane and no telemetry.</p>
+  </details>
+  <details>
+    <summary>How is RETINUE different from LangGraph, CrewAI or AutoGen?</summary>
+    <p>Those are agent frameworks: libraries for composing an agent&#x27;s internal reasoning inside one program. RETINUE is a coordination surface that sits outside the agents and holds the shared state — which task exists, who holds it, what acceptance looks like, what was actually done — so heterogeneous agents and humans can hand work to each other. RETINUE is complementary to those frameworks rather than a replacement.</p>
+  </details>
+  <details>
+    <summary>Does RETINUE work with Claude Code and Codex?</summary>
+    <p>Yes. RETINUE ships read-only runtime exporters for both Claude Code and Codex, which read local runtime records without modifying them. Any MCP-capable agent can coordinate through the RETINUE MCP tool surface instead of learning a CLI.</p>
+  </details>
+  <details>
+    <summary>Does RETINUE require an account, an internet connection, or send telemetry?</summary>
+    <p>No. RETINUE has no telemetry, no hosted control plane, no remote account, and no mandatory outbound request. The hub, board, demo and exporters work offline. Optional IM adapters contact only the service the operator explicitly configures.</p>
+  </details>
+  <details>
+    <summary>Where does RETINUE store data, and can I take it away?</summary>
+    <p>Canonical state lives in one operator-chosen directory. Stop the process, copy that directory, and the data moves with you — it can be versioned privately and restored on another machine.</p>
+  </details>
+<p><a href="https://github.com/jklthinking/retinue/blob/main/docs/faq.md">Full FAQ, in English and 简体中文 &rarr;</a></p>
+
+<h2>Not to be confused with</h2>
+<p>&ldquo;Retinue&rdquo; is an ordinary English noun, and several unrelated projects on GitHub carry
+the same name. The project described on this page is specifically
+<a href="https://github.com/jklthinking/retinue"><code>jklthinking/retinue</code></a>, also called
+众卿, published by JKL Thinking. It is not affiliated with any other repository of that name.</p>
 
 <hr>
 

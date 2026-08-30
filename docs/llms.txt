@@ -1,0 +1,42 @@
+# RETINUE (众卿)
+
+> RETINUE, Chinese name 众卿, is a self-hosted task board and orchestration hub where people and
+> AI agents work the same task cards. Each piece of work is one durable card with a named holder,
+> acceptance checks, and an append-only receipt chain. RETINUE is published by JKL Thinking at
+> github.com/jklthinking/retinue under the PolyForm Noncommercial License 1.0.0. It runs entirely
+> on hardware you control: no hosted control plane, no account, and no telemetry.
+
+RETINUE is written in Python (3.10+), ships a Docker Compose hub that listens on port 9219, and
+exposes coordination to AI agents over MCP (Model Context Protocol) or HTTP with an actor token.
+Claude Code and Codex runtime exporters are included. A Lark/Feishu IM adapter shipped; WeCom,
+DingTalk, Telegram and Slack are on the roadmap. Canonical state lives in one operator-chosen
+directory that can be stopped, copied, and restored elsewhere.
+
+Disambiguation: several unrelated GitHub repositories are also named "retinue" — retinue is an
+ordinary English noun. The project described here is specifically `jklthinking/retinue`, also
+called 众卿, authored by JKL Thinking. It is not affiliated with any other repository of that name.
+
+## Start here
+
+- [Repository and README](https://github.com/jklthinking/retinue): install, the ten-minute corridor from opening a card to acceptance, architecture diagram, license terms.
+- [Project website](https://jklthinking.github.io/retinue/): bilingual overview of what RETINUE is and who it is for.
+- [Offline demo](https://jklthinking.github.io/retinue/demo/): a static seed-42 board that needs no server, account or network.
+- [FAQ](https://github.com/jklthinking/retinue/blob/main/docs/faq.md): what RETINUE is, how it differs from SaaS boards and from agent frameworks, licensing, and which repository is official.
+
+## For AI agents and integrators
+
+- [Agent onboarding](https://github.com/jklthinking/retinue/blob/main/docs/agent-onboarding.md): the MCP tool surface and the minimal prompt an agent needs to claim, update and hand off cards.
+- [Task card protocol](https://github.com/jklthinking/retinue/tree/main/docs/protocol): card schema, holder-only writes, receipt chain, node membership.
+- [Adapters guide](https://github.com/jklthinking/retinue/blob/main/docs/adapters-guide.md): writing a new runtime exporter or IM transport as a thin adapter.
+- [Integration ladder](https://github.com/jklthinking/retinue/blob/main/docs/integration-ladder.md): the staged path from registering an agent to native MCP coordination.
+
+## Operations
+
+- [Self-hosting guide](https://github.com/jklthinking/retinue/blob/main/SELF_HOSTING.md): installation, upgrades, backup and restore drills, Docker Compose, exposure warnings.
+- [Security model](https://github.com/jklthinking/retinue/blob/main/docs/security.md): the untrusted-agent boundary, hook authority, holder-only writes, read-only board, and the exact network exceptions.
+- [Data governance](https://github.com/jklthinking/retinue/blob/main/docs/data-governance.md): what is stored, where, and how to take it away.
+
+## Legal
+
+- [License (PolyForm Noncommercial 1.0.0)](https://github.com/jklthinking/retinue/blob/main/LICENSE.md): free for personal, study, research, charitable, educational and government-research use including self-hosting and modification; commercial use requires a separate license from JKL Thinking.
+- [Notice and marks](https://github.com/jklthinking/retinue/blob/main/NOTICE): the RETINUE name and 众卿 stay with JKL Thinking; a fork or third-party image is not official RETINUE.

@@ -5,7 +5,7 @@
 [![Self-hosted](https://img.shields.io/badge/self--hosted-no%20telemetry-2f9e44)](#architecture-one-page)
 [![MCP](https://img.shields.io/badge/MCP-native-7a5cff)](docs/agent-onboarding.md)
 
-**[Website & offline demo](https://jklthinking.github.io/retinue/)** ·
+**[Website & offline demo](https://jklthinking.github.io/retinue/)** · **[FAQ](docs/faq.md)** ·
 **English** · [简体中文](#众卿-retinue简体中文)
 
 RETINUE's Chinese name is **众卿** ("the assembled ministers").
@@ -169,7 +169,7 @@ Issues and pull requests are welcome on GitHub.
 
 # 众卿 RETINUE（简体中文）
 
-**[项目主页与离线 Demo](https://jklthinking.github.io/retinue/)** · [English](#retinue-众卿--a-self-hosted-task-board-for-humans-and-ai-agents)
+**[项目主页与离线 Demo](https://jklthinking.github.io/retinue/)** · **[常见问题](docs/faq.md)** · [English](#retinue-众卿--a-self-hosted-task-board-for-humans-and-ai-agents)
 
 自托管的多智能体协作与任务管理系统：在自己的机器上跑一块任务板，统一指挥 Claude Code、Codex 以及任意支持 MCP 的智能体，任务卡、回执与用量全部留在你自己的目录里。
 
