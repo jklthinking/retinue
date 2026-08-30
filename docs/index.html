@@ -12,7 +12,12 @@
 <meta property="og:title" content="RETINUE 众卿 — Self-hosted task board for humans and AI agents">
 <meta property="og:description" content="One durable baton per piece of work: task cards with a holder, acceptance checks and an append-only receipt chain. Self-hosted, no telemetry, MCP-native.">
 <meta property="og:url" content="https://jklthinking.github.io/retinue/">
+<meta property="og:image" content="https://jklthinking.github.io/retinue/assets/board.png">
+<meta property="og:image:width" content="1440">
+<meta property="og:image:height" content="660">
+<meta property="og:image:alt" content="The RETINUE task board: queued, doing, handoff, blocked and done columns, each card showing its holder and last receipt time.">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://jklthinking.github.io/retinue/assets/board.png">
 <meta name="twitter:title" content="RETINUE 众卿 — Self-hosted task board for humans and AI agents">
 <meta name="twitter:description" content="Humans and AI agents work the same cards. Self-hosted, no telemetry, MCP-native.">
 <script type="application/ld+json">
@@ -56,6 +61,9 @@ footer { color:var(--dim); font-size:.87rem; }
 details { border:1px solid var(--line); border-radius:8px; padding:10px 14px; margin:.5em 0; }
 summary { cursor:pointer; font-weight:600; }
 details p { margin:.7em 0 .2em; color:var(--dim); }
+figure { margin:1.8em 0; }
+figure img { width:100%; height:auto; display:block; border:1px solid var(--line); border-radius:10px; }
+figcaption { color:var(--dim); font-size:.87rem; margin-top:.6em; }
 </style>
 <script type="application/ld+json">
 {
@@ -148,6 +156,13 @@ telemetry.</p>
   <a href="https://github.com/jklthinking/retinue/blob/main/docs/agent-onboarding.md">Agent onboarding</a>
 </div>
 
+<figure>
+  <img src="assets/board.png" width="1440" height="660"
+       alt="RETINUE task board with queued, doing, handoff, blocked and done columns; each card shows its holder and the time of its last receipt.">
+  <figcaption>The board: five states, one holder per card, and the last receipt on every card.
+    Blocking relationships are drawn on the cards themselves, so a stalled column explains itself.</figcaption>
+</figure>
+
 <h2>What it is</h2>
 <ul>
   <li><strong>Self-hosted AI agent orchestration.</strong> One Docker Compose hub, or a plain Python
@@ -161,6 +176,13 @@ telemetry.</p>
     roadmap.</li>
   <li><strong>No telemetry.</strong> No account, no phone-home, works offline.</li>
 </ul>
+
+<figure>
+  <img src="assets/overview.png" width="1440" height="700" loading="lazy"
+       alt="RETINUE agent overview listing three agents with runtime, model, node, recent activity and token use for today.">
+  <figcaption>The roster: which agents are live, what runtime and model each one is on, and what
+    today cost in tokens — read from local session files, not from a vendor API.</figcaption>
+</figure>
 
 <h2>Ten-minute start</h2>
 <pre><code>export RETINUE_ADMIN_PASSWORD=changeme1
@@ -235,6 +257,12 @@ the same name. The project described on this page is specifically
   <li><strong>IM 适配。</strong>飞书/Lark 已交付；企业微信、钉钉、Telegram、Slack 在路线图上。</li>
   <li><strong>零遥测。</strong>不要账号、不回传、可断网运行。</li>
 </ul>
+
+<figure>
+  <img src="assets/board.png" width="1440" height="660" loading="lazy"
+       alt="众卿任务板：排队、进行中、交接、受阻、完成五列，每张卡显示持有人和最近一次回执时间。">
+  <figcaption>任务板：五个状态，一张卡只有一个持有人，卡面直接写着最近一次回执。阻塞关系画在卡上，卡住的那一列自己会解释为什么卡住。</figcaption>
+</figure>
 
 <div class="cta">
   <a class="primary" href="https://github.com/jklthinking/retinue">去 GitHub 仓库</a>
