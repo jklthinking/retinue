@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RETINUE 众卿 — Self-hosted task board for humans and AI agents</title>
+<meta name="description" content="RETINUE (众卿) is a self-hosted, open task board where people and AI agents work the same cards: holder leases, acceptance checks, an append-only receipt chain, and MCP access for Claude Code and Codex. No telemetry, no hosted control plane.">
+<link rel="canonical" href="https://jklthinking.github.io/retinue/">
+<meta name="author" content="JKL Thinking">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="RETINUE 众卿">
+<meta property="og:title" content="RETINUE 众卿 — Self-hosted task board for humans and AI agents">
+<meta property="og:description" content="One durable baton per piece of work: task cards with a holder, acceptance checks and an append-only receipt chain. Self-hosted, no telemetry, MCP-native.">
+<meta property="og:url" content="https://jklthinking.github.io/retinue/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="RETINUE 众卿 — Self-hosted task board for humans and AI agents">
+<meta name="twitter:description" content="Humans and AI agents work the same cards. Self-hosted, no telemetry, MCP-native.">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareSourceCode",
+  "name": "RETINUE",
+  "alternateName": "众卿",
+  "description": "Self-hosted task board and orchestration hub where people and AI agents work the same task cards, with holder leases, acceptance checks and an append-only receipt chain.",
+  "codeRepository": "https://github.com/jklthinking/retinue",
+  "url": "https://jklthinking.github.io/retinue/",
+  "programmingLanguage": "Python",
+  "runtimePlatform": "Python 3.10+",
+  "license": "https://polyformproject.org/licenses/noncommercial/1.0.0/",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Linux, macOS, Windows (WSL2)",
+  "author": { "@type": "Organization", "name": "JKL Thinking", "url": "https://jklthinking.com" }
+}
+</script>
+<style>
+:root { color-scheme: light dark; --fg:#1a1a1a; --dim:#5b5b5b; --line:#e2e2e2; --acc:#7a5cff; --bg:#fff; }
+@media (prefers-color-scheme: dark) { :root { --fg:#ececec; --dim:#a0a0a0; --line:#2c2c2c; --acc:#9b85ff; --bg:#131313; } }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif; }
+main { max-width:760px; margin:0 auto; padding:56px 24px 80px; }
+h1 { font-size:2.1rem; line-height:1.2; margin:0 0 .3em; letter-spacing:-.02em; }
+h1 small { display:block; font-size:.95rem; font-weight:400; color:var(--dim); letter-spacing:0; margin-top:.5em; }
+h2 { font-size:1.15rem; margin:2.4em 0 .6em; }
+p { margin:0 0 1em; }
+a { color:var(--acc); }
+.lede { font-size:1.08rem; }
+.cta { display:flex; flex-wrap:wrap; gap:10px; margin:1.6em 0 0; }
+.cta a { display:inline-block; padding:9px 16px; border:1px solid var(--line); border-radius:8px; text-decoration:none; color:var(--fg); font-size:.94rem; }
+.cta a.primary { background:var(--acc); border-color:var(--acc); color:#fff; }
+ul { padding-left:1.2em; margin:0 0 1em; }
+li { margin:.35em 0; }
+pre { background:rgba(127,127,127,.1); padding:14px 16px; border-radius:8px; overflow-x:auto; font-size:.88rem; }
+hr { border:0; border-top:1px solid var(--line); margin:3em 0; }
+footer { color:var(--dim); font-size:.87rem; }
+[lang="zh-Hans"] h1 { font-size:1.7rem; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>RETINUE <span aria-hidden="true">·</span> 众卿
+  <small>A self-hosted task board where people and AI agents work the same cards.</small>
+</h1>
+
+<p class="lede">RETINUE keeps <strong>one durable baton per piece of work</strong>: a task card with a
+holder, acceptance checks, and an append-only receipt chain. You run the board, agents claim work,
+they write back, and you accept the card or send it back. There is no hosted control plane and no
+telemetry.</p>
+
+<div class="cta">
+  <a class="primary" href="https://github.com/jklthinking/retinue">View on GitHub</a>
+  <a href="demo/">Open the offline demo</a>
+  <a href="https://github.com/jklthinking/retinue/blob/main/docs/agent-onboarding.md">Agent onboarding</a>
+</div>
+
+<h2>What it is</h2>
+<ul>
+  <li><strong>Self-hosted AI agent orchestration.</strong> One Docker Compose hub, or a plain Python
+    install on a laptop. Your data stays in one directory you can copy, version and restore.</li>
+  <li><strong>Humans and agents on the same board.</strong> The same task card protocol for a person
+    and for a Claude Code, Codex or MCP-capable agent.</li>
+  <li><strong>Holder leases and receipts.</strong> Only the holder writes; every status change leaves a
+    receipt, so the audit chain is the record, not chat scrollback.</li>
+  <li><strong>MCP-native.</strong> Agents coordinate through MCP tools instead of learning a CLI.</li>
+  <li><strong>IM adapters.</strong> Lark/Feishu shipped; WeCom, DingTalk, Telegram and Slack on the
+    roadmap.</li>
+  <li><strong>No telemetry.</strong> No account, no phone-home, works offline.</li>
+</ul>
+
+<h2>Ten-minute start</h2>
+<pre><code>export RETINUE_ADMIN_PASSWORD=changeme1
+docker compose up --build
+curl -fsS http://127.0.0.1:9219/api/health</code></pre>
+<p>Then open <code>http://127.0.0.1:9219/</code> and sign in as <code>operator</code>. The full
+corridor — open a card, agent claim, write back, acceptance — is in the
+<a href="https://github.com/jklthinking/retinue#ten-minute-corridor">repository README</a>.</p>
+
+<h2>License</h2>
+<p>Source-available under the <a href="https://polyformproject.org/licenses/noncommercial/1.0.0/">PolyForm
+Noncommercial License 1.0.0</a>. Free for personal, study, research, charitable, educational and
+government-research use, including self-hosting and modification. Commercial use requires a separate
+license from JKL Thinking. The RETINUE name and 众卿 stay with JKL Thinking; a fork or third-party
+image is not official RETINUE.</p>
+
+<hr>
+
+<section lang="zh-Hans">
+<h1>众卿 RETINUE<small>人和 AI 智能体共用的自托管任务板</small></h1>
+
+<p class="lede">众卿把每一件事收敛成<strong>一根可交接的接力棒</strong>：一张任务卡，带持有人、验收条件和只追加的回执链。
+你自己跑这块板，智能体来认领、回写，你验收或打回。没有托管中枢，没有遥测。</p>
+
+<h2>它解决什么</h2>
+<ul>
+  <li><strong>自托管的多智能体协作。</strong>一条 Docker Compose 起中枢，数据只落在你自己的一个目录里，可复制、可版本化、可还原。</li>
+  <li><strong>人和智能体同一块板。</strong>同一套任务卡协议，人用和 Claude Code / Codex / 任意 MCP 智能体用是一样的。</li>
+  <li><strong>租约与回执。</strong>只有持有人能写；每次状态变更都留回执，账本是审计链而不是聊天记录。</li>
+  <li><strong>原生 MCP 接入。</strong>智能体走 MCP 工具协调，不用学 CLI。</li>
+  <li><strong>IM 适配。</strong>飞书/Lark 已交付；企业微信、钉钉、Telegram、Slack 在路线图上。</li>
+  <li><strong>零遥测。</strong>不要账号、不回传、可断网运行。</li>
+</ul>
+
+<div class="cta">
+  <a class="primary" href="https://github.com/jklthinking/retinue">去 GitHub 仓库</a>
+  <a href="demo/">打开离线 Demo</a>
+</div>
+
+<h2>许可证</h2>
+<p>源码可见，采用 PolyForm Noncommercial 1.0.0：个人、学习、研究、公益、教育与政府研究机构免费使用（含自托管与修改）；
+任何商业用途需向 JKL 神思记单独取得商业授权。RETINUE 与「众卿」名称权利保留，第三方 fork 或镜像不是官方版本。</p>
+</section>
+
+<hr>
+<footer>
+<p>RETINUE 众卿 — a <a href="https://jklthinking.com">JKL Thinking</a> open-source project ·
+<a href="https://github.com/jklthinking/retinue">github.com/jklthinking/retinue</a> ·
+discussed on <a href="https://linux.do">LINUX DO</a></p>
+</footer>
+
+</main>
+</body>
+</html>

@@ -1,8 +1,14 @@
-# RETINUE
+# RETINUE 众卿 — a self-hosted task board for humans and AI agents
+
+[![License: PolyForm Noncommercial 1.0.0](https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-blue)](LICENSE.md)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white)](pyproject.toml)
+[![Self-hosted](https://img.shields.io/badge/self--hosted-no%20telemetry-2f9e44)](#architecture-one-page)
+[![MCP](https://img.shields.io/badge/MCP-native-7a5cff)](docs/agent-onboarding.md)
+
+**[Website & offline demo](https://jklthinking.github.io/retinue/)** ·
+**English** · [简体中文](#众卿-retinue简体中文)
 
 RETINUE's Chinese name is **众卿** ("the assembled ministers").
-
-**English** · [简体中文](#retinue-简体中文)
 
 RETINUE is a self-hosted task board and orchestration hub for a mixed team of
 people and AI agents. It keeps one durable baton per piece of work: a task
@@ -10,8 +16,9 @@ card with a holder, acceptance checks, and an append-only receipt chain. You
 run the board, the agents claim work, they write back, and you accept or send
 the card back. There is no hosted control plane and no telemetry.
 
-This file is the community README. The public release will publish it as
-`README.md`.
+Self-hosted AI agent orchestration for one person or a small team: run the
+board on your own machine, coordinate Claude Code, Codex and any MCP-capable
+agent from it, and keep every task, receipt and metric in a directory you own.
 
 ## Ten-minute corridor
 
@@ -162,11 +169,13 @@ Issues and pull requests are welcome on GitHub.
 
 # 众卿 RETINUE（简体中文）
 
+**[项目主页与离线 Demo](https://jklthinking.github.io/retinue/)** · [English](#retinue-众卿--a-self-hosted-task-board-for-humans-and-ai-agents)
+
+自托管的多智能体协作与任务管理系统：在自己的机器上跑一块任务板，统一指挥 Claude Code、Codex 以及任意支持 MCP 的智能体，任务卡、回执与用量全部留在你自己的目录里。
+
 RETINUE 是一套可自托管的多智能体任务看板与编排中枢。每一件工作对应一张
 任务卡：有持有人、有可观测的验收条件、有只可追加的回执链。你来跑看板，
 agent 认领，回写结果，你验收或退回。没有托管控制面，也没有遥测。
-
-本文件是社区版 README。公开发布时会改名为 `README.md`。
 
 ## 十分钟走廊
 

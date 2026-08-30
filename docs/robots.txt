@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://jklthinking.github.io/retinue/sitemap.xml
