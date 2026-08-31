@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import datetime as dt
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import event, update
@@ -769,11 +771,15 @@ def test_progress_reporting(client):
 
 def test_metrics_roundtrip(client):
     headers = agent_headers(client)
+    # The summary window is anchored on today and capped at 31 days, so a
+    # literal date here quietly ages out of range and fails the suite weeks
+    # after the change that wrote it.
+    today = dt.date.today().isoformat()
     posted = client.post(
         "/api/metrics/ingest",
         json={
             "actor_id": "scribe",
-            "date": "2026-07-25",
+            "date": today,
             "runtime": "claude-code",
             "input_tokens": 1000,
             "output_tokens": 250,
@@ -786,7 +792,7 @@ def test_metrics_roundtrip(client):
         "/api/metrics/ingest",
         json={
             "actor_id": "owner",
-            "date": "2026-07-25",
+            "date": today,
             "runtime": "x",
             "input_tokens": 1,
             "output_tokens": 1,
