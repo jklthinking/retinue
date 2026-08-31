@@ -5,10 +5,10 @@ import { hueOf } from "../avatar";
 import { useVocab } from "../theme";
 
 const EDGE_COLOR: Record<string, string> = {
-  queued: "#a49d8d",
-  doing: "#2563eb",
-  handoff: "#c9962b",
-  blocked: "#d64545",
+  queued: "#5c574c",
+  doing: "#186b5e",
+  handoff: "#c9a227",
+  blocked: "#9b3333",
 };
 
 const ACTIVE: Status[] = ["queued", "doing", "handoff", "blocked"];

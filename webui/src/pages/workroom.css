@@ -427,8 +427,8 @@
   margin-top: 0.4rem;
   padding: 0.15rem 0.38rem;
   border-radius: 999px;
-  background: #eef8f5;
-  color: #16846d;
+  background: var(--status-doing-bg, #e4f3ee);
+  color: var(--status-doing, #186b5e);
   font-size: 0.58rem;
 }
 

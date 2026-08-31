@@ -655,8 +655,8 @@
 .session-actions { display: flex; gap: 0.45rem; flex-wrap: wrap; margin-top: 0.64rem; }
 .session-action { display: inline-flex; align-items: center; justify-content: center; gap: 0.32rem; min-height: 2rem; padding: 0.42rem 0.6rem; border-radius: 0.56rem; font-size: 0.62rem; font-weight: 750; transition: transform 150ms ease-out, background 150ms ease, border-color 150ms ease; }
 .session-action:active { transform: scale(0.97); }
-.session-action--soft { border: 1px solid #ccdced; color: #2e64a3; background: #fff; }
-.session-action--primary { border: 1px solid #1f5d9f; color: #fff; background: #286eb8; }
+.session-action--soft { border: 1px solid var(--line, #e8dfcf); color: var(--teal, #186b5e); background: var(--card, #fff); }
+.session-action--primary { border: 1px solid var(--ink, #1f2a44); color: var(--on-ink, #e2dcd0); background: var(--accent-gradient, #1f2a44); }
 .session-action:disabled { cursor: not-allowed; opacity: 0.6; }
 .session-task-form { display: grid; gap: 0.48rem; margin-top: 0.72rem; padding-top: 0.68rem; border-top: 1px dashed #ccd9e8; }
 .session-task-form label { display: grid; gap: 0.2rem; color: #536477; font-size: 0.59rem; font-weight: 750; }
@@ -704,10 +704,10 @@
   font-weight: 780;
   white-space: nowrap;
 }
-.session-task-status--doing { background: #e9f0ff; color: #255da9; }
-.session-task-status--handoff { background: #fff3d8; color: #916917; }
-.session-task-status--blocked { background: #fff0ef; color: #b3423b; }
-.session-task-status--done { background: #e4f6ed; color: #18745b; }
+.session-task-status--doing { background: var(--status-doing-bg, #e4f3ee); color: var(--status-doing, #186b5e); }
+.session-task-status--handoff { background: var(--status-handoff-bg, #f6edd0); color: var(--status-handoff, #7a5c10); }
+.session-task-status--blocked { background: var(--status-blocked-bg, #f8e6e6); color: var(--status-blocked, #9b3333); }
+.session-task-status--done { background: var(--status-done-bg, #e8f1e4); color: var(--status-done, #3f6b38); }
 
 .session-task-bridge__facts {
   display: flex;
