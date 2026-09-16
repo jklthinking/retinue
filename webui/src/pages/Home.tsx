@@ -30,6 +30,7 @@ import { Ambient, DataState, Metric, PageHeader, Panel } from "../components/ui"
 import { useVocab } from "../theme";
 import { Avatar } from "../avatar";
 import { BOARD_REFRESH_MS, DATA_REFRESH_EVENT } from "../lib/refresh";
+import { demoToday } from "../demo";
 
 function greeting(): string {
   const hour = new Date().getHours();
@@ -74,7 +75,7 @@ export default function Home({
     error: summaryError,
     loading: summaryLoading,
     loaded: summaryLoaded,
-  } = useSummary({ today: localTodayISO() });
+  } = useSummary({ today: demoToday() ?? localTodayISO() });
   const [status, setStatus] = useState<StatusInfo | null>(null);
   const [sessions, setSessions] = useState<RuntimeSessionInfo[]>([]);
   const [auxLoading, setAuxLoading] = useState(true);

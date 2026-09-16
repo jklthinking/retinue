@@ -1,0 +1,1 @@
+[{"id":1,"name":"内容发布流程","stages":[{"name":"撰写","holder":"copywriter","gate":"auto"},{"name":"数据核对","holder":"analyst","gate":"review"},{"name":"总经理门","holder":"gm","gate":"queen"}],"match_terms":[],"acceptance":[]}]

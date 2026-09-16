@@ -40,6 +40,7 @@ import Workroom from "./pages/Workroom";
 import Sessions from "./pages/Sessions";
 import { ThemeSwitcher, useVocab } from "./theme";
 import { requestDataRefresh } from "./lib/refresh";
+import { demoMode } from "./demo";
 
 type Page =
   | "home"
@@ -107,7 +108,11 @@ export default function App() {
     try {
       setMe(await api.get<Me>("/api/auth/me"));
     } catch (error) {
-      if (error instanceof ApiError && error.status === 401) setMe(null);
+      if (demoMode) {
+        setMe(null);
+      } else if (error instanceof ApiError && error.status === 401) {
+        setMe(null);
+      }
     } finally {
       setChecking(false);
     }
@@ -118,11 +123,12 @@ export default function App() {
   }, [refreshMe]);
 
   if (checking) return <div className="boot">加载中…</div>;
-  if (!me) return <Login onLogin={() => void refreshMe()} />;
+  if (!me && !demoMode) return <Login onLogin={() => void refreshMe()} />;
+  if (!me) return <div className="boot">演示数据加载失败，请刷新页面。</div>;
 
   // The 中枢 hub embeds the site-specific console (admin-only API).
   const teacherMode = me.mode === "teacher";
-  const viewerMode = me.role === "viewer";
+  const viewerMode = demoMode || me.role === "viewer";
 
   return (
     <div className={`shell ${viewerMode ? "shell--viewer" : ""}`}>
@@ -175,22 +181,30 @@ export default function App() {
           >
             <RefreshCw size={15} />
           </button>
-          <button
-            title="退出登录"
-            aria-label="退出登录"
-            onClick={() => {
-              void api.post("/api/auth/logout").then(() => setMe(null));
-            }}
-          >
-            <LogOut size={15} />
-          </button>
+          {!demoMode && (
+            <button
+              title="退出登录"
+              aria-label="退出登录"
+              onClick={() => {
+                void api.post("/api/auth/logout").then(() => setMe(null));
+              }}
+            >
+              <LogOut size={15} />
+            </button>
+          )}
         </div>
         <div className="side-theme">
           <ThemeSwitcher />
         </div>
       </aside>
       <main className="main">
-        {viewerMode && (
+        {demoMode && (
+          <div className="real-data-banner real-data-banner--demo">
+            <strong>公开演示 · 只读样本</strong>
+            <span>界面与生产面板一致，数据来自 company 演示模板快照，无法改卡或登录写操作。</span>
+          </div>
+        )}
+        {viewerMode && !demoMode && (
           <div className="real-data-banner">
             <strong>{vocab.liveBanner}</strong>
             <span>这里展示的成员、任务、节点与流转均来自真实运行数据；观察席不能修改内容。</span>

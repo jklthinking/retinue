@@ -4,6 +4,8 @@ import react from "@vitejs/plugin-react";
 
 /// <reference types="vitest" />
 
+const panelDemoOutDir = process.env.PANEL_DEMO_OUTDIR || "../server/static";
+
 export default defineConfig({
   // Relative base: the same build works at "/" (standalone port) and under a
   // reverse-proxied prefix like "/retinue/" on the portal. Requires the SPA to
@@ -16,7 +18,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: "../server/static",
+    outDir: panelDemoOutDir,
     emptyOutDir: true,
   },
   server: {

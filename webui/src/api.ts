@@ -1,3 +1,5 @@
+import { demoMode, demoToday } from "./demo";
+
 export class ApiError extends Error {
   status: number;
   constructor(status: number, message: string) {
@@ -48,7 +50,49 @@ interface CursorPage<T> {
   has_more: boolean;
 }
 
+let demoRouteIndex: Record<string, string> | null = null;
+
+async function loadDemoRouteIndex(): Promise<Record<string, string>> {
+  if (demoRouteIndex) return demoRouteIndex;
+  const response = await fetch("api/_index.json");
+  if (!response.ok) {
+    throw new ApiError(response.status, "无法加载演示数据索引");
+  }
+  demoRouteIndex = (await response.json()) as Record<string, string>;
+  return demoRouteIndex;
+}
+
+function normalizeDemoPath(path: string): string {
+  const withSlash = path.startsWith("/") ? path : `/${path}`;
+  if (withSlash.startsWith("/api/summary")) {
+    const today = demoToday();
+    if (today) return `/api/summary?today=${today}`;
+    return "/api/summary";
+  }
+  return withSlash;
+}
+
+async function demoRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+  if (options.method && options.method !== "GET") {
+    throw new ApiError(403, "公开演示为只读，无法修改数据。");
+  }
+  const index = await loadDemoRouteIndex();
+  const key = normalizeDemoPath(path);
+  const file = index[key];
+  if (!file) {
+    throw new ApiError(404, `演示数据未收录: ${key}`);
+  }
+  const response = await fetch(`api/${file}`);
+  if (!response.ok) {
+    throw new ApiError(response.status, response.statusText);
+  }
+  return response.json() as Promise<T>;
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  if (demoMode) {
+    return demoRequest<T>(path, options);
+  }
   // Relative URLs keep the app working both at "/" and under a proxied prefix.
   const response = await fetch(path.replace(/^\//, ""), {
     headers: options.body ? { "Content-Type": "application/json" } : undefined,
