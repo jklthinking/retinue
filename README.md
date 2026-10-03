@@ -85,9 +85,12 @@ or a human with a browser).
   session data give you token activity per agent without touching sources.
 - **Optional IM adapters.** Lark/Feishu and Telegram bridges turn a chat
   message into an intent — never directly into a command.
-- **Data sovereignty.** Canonical state is one directory (`org.yaml`,
-  `tasks/`, `metrics/`, `nodes/`). Stop the process, copy the directory, and
-  the deployment moves with you.
+- **Data sovereignty.** File mode keeps canonical state in one data directory
+  (`org.yaml`, `tasks/`, `metrics/`, `nodes/`); stop writers before copying it.
+  The server stores canonical state in `retinue.db`; use a consistent SQLite
+  snapshot for its backup. Runtime source records, external artifacts,
+  credentials and deployment configuration have separate recovery paths.
+  See the [backup guide](SELF_HOSTING.md#backup).
 
 ## Who it is for
 
@@ -121,7 +124,9 @@ Host port 9219 must be free (`docker compose` fails with "address already
 in use" otherwise). The admin password must be at least eight characters.
 
 ```bash
-export RETINUE_ADMIN_PASSWORD=changeme1
+read -rsp 'Choose an admin password (at least 8 characters): ' RETINUE_ADMIN_PASSWORD
+printf '\n'
+export RETINUE_ADMIN_PASSWORD
 docker compose up --build
 ```
 
@@ -225,9 +230,11 @@ Installation, backup, and exposure warnings are in
    GET only                         node token, no card writes
 ```
 
-Canonical state lives in one operator-chosen directory. Stop the process and
-copy that directory to take the data away. Agents never choose `on_claim`
-hooks; those come only from `org.yaml`.
+File mode keeps canonical state in the selected data directory; stop writers
+before copying it. Server mode uses `retinue.db` and needs a consistent SQLite
+snapshot. Runtime source records, external artifacts, credentials and deployment
+configuration are recovered separately; see [Backup](SELF_HOSTING.md#backup).
+Agents never choose `on_claim` hooks; file-mode hooks come only from `org.yaml`.
 
 
 ## FAQ
@@ -339,8 +346,10 @@ agent 框架。它垫在你已经在用的 agent（Claude Code、OpenAI Codex、
   token 消耗，不改动来源。
 - **可选 IM 适配器**：飞书 / Lark 与 Telegram 桥接把聊天消息变成「意图」，
   绝不直接变成命令。
-- **数据主权**：事实源就是一个目录（`org.yaml`、`tasks/`、`metrics/`、
-  `nodes/`）。停进程、拷目录，整套部署就带走了。
+- **数据主权**：文件模式的事实源是一个数据目录（`org.yaml`、`tasks/`、
+  `metrics/`、`nodes/`），停掉写入者后复制；服务端事实源是 `retinue.db`，
+  使用一致性 SQLite 快照备份。运行时源记录、外部成果、凭据与部署配置
+  分别恢复，详见[备份说明](SELF_HOSTING.md#backup)。
 
 ## 适合谁
 
@@ -358,7 +367,9 @@ agent 框架。它垫在你已经在用的 agent（Claude Code、OpenAI Codex、
 管理员密码至少八位。
 
 ```bash
-export RETINUE_ADMIN_PASSWORD=changeme1
+read -rsp 'Choose an admin password (at least 8 characters): ' RETINUE_ADMIN_PASSWORD
+printf '\n'
+export RETINUE_ADMIN_PASSWORD
 docker compose up --build
 ```
 
@@ -430,9 +441,10 @@ agent 的令牌会得到 `403 holder-only-writes`。
 
 ## 架构一页图
 
-见上方英文节的文字架构图。事实源是运营者选定的一个数据目录；停进程、拷
-走目录，数据就带走了。`on_claim` 钩子只来自 `org.yaml`，任务卡不能指定要
-执行的命令。
+见上方英文节的文字架构图。文件模式的事实源是运营者选定的数据目录，停掉
+写入者后复制；服务端使用 `retinue.db`，需要一致性 SQLite 快照。运行时源记录、
+外部成果、凭据与部署配置分别恢复，详见[备份说明](SELF_HOSTING.md#backup)。
+文件模式的 `on_claim` 钩子只来自 `org.yaml`，任务卡不能指定要执行的命令。
 
 ## 常见问题
 

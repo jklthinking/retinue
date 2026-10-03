@@ -99,11 +99,13 @@ directories. Optional IM adapters contact only the service an operator
 explicitly configures; enabling one is an intentional exception to the
 no-outbound default.
 
-Canonical Retinue state lives in one operator-chosen directory: `org.yaml`,
-`tasks/`, `metrics/`, and `nodes/`. Stop processes and copy that directory to
-take the data away or restore it elsewhere. Runtime transcripts and credentials
-remain outside it. Retinue has no hosted control plane, remote account, or
-mandatory network dependency.
+File-mode canonical state lives in one operator-chosen data directory:
+`org.yaml`, `tasks/`, `metrics/`, and `nodes/`. Stop writers before copying it.
+The server stores canonical state in `retinue.db`; its backup requires a
+consistent SQLite snapshot. Runtime source records, external artifacts,
+plaintext credentials and deployment configuration have separate recovery
+paths; see [Backup](../SELF_HOSTING.md#backup). Retinue has no hosted control
+plane, remote account, or mandatory network dependency.
 
 ## SEC-7 Interactive-login throttling
 

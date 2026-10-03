@@ -56,11 +56,11 @@ adapters and explicitly configured runtime integrations contact the services the
 
 ## Where does RETINUE store data, and can I take it away?
 
-Canonical state lives in an operator-chosen data directory: file-mode task cards, or the server's
-SQLite database and related state. Stop the process before copying that directory for a consistent
-backup. Runtime source records and externally referenced artifacts remain in their own locations;
-they are not included automatically. See [data governance](data-governance.md) and
-[self-hosting](../SELF_HOSTING.md).
+Canonical state depends on the deployment mode. In file mode, stop writers before copying the
+complete data directory (`org.yaml`, `tasks/`, `metrics/`, `nodes/`). Server mode stores canonical
+state in `retinue.db` and requires a consistent SQLite snapshot for backup. Runtime source records,
+external artifacts, plaintext credentials and deployment configuration have separate recovery paths.
+See [data governance](data-governance.md) and the [backup guide](../SELF_HOSTING.md#backup).
 
 ## How do I see collaboration on one task?
 
@@ -132,9 +132,10 @@ GitHub 上另有若干同名但毫无关联的项目。RETINUE 名称与中文�
 
 ## 数据存在哪里？能带走吗？
 
-规范状态落在你指定的数据目录里：文件模式的任务卡，或服务端的 SQLite 数据库与相关状态。
-停掉进程后再复制目录，以获得一致备份。运行时源记录与外部成果保留在各自位置，不会自动纳入备份。
-详见[数据治理](data-governance.md)与[自托管说明](../SELF_HOSTING.md)。
+规范状态按部署模式区分：文件模式停掉写入者后复制完整数据目录（`org.yaml`、`tasks/`、
+`metrics/`、`nodes/`）；服务端事实源是 `retinue.db`，使用一致性 SQLite 快照备份。
+运行时源记录、外部成果、明文凭据与部署配置分别恢复。
+详见[数据治理](data-governance.md)与[备份说明](../SELF_HOSTING.md#backup)。
 
 ## 怎么看到同一任务的多智能体协作？
 

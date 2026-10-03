@@ -16,8 +16,10 @@ Code/Codex exporter、MCP 协作和可选的飞书适配器。上方静态演示
 ## 数据主权
 
 Retinue 没有遥测、托管控制面、远程账号或强制外呼。核心、面板、daemon、demo
-和 exporter 均可离线运行。事实数据集中在一个目录：`org.yaml`、`tasks/`、
-`metrics/`、`nodes/`；停进程后可直接复制、私有版本化，并在另一台机器恢复。
+和 exporter 均可离线运行。文件模式的事实源是一个数据目录：`org.yaml`、
+`tasks/`、`metrics/`、`nodes/`；停掉写入者后可复制、私有版本化，并在另一台机器恢复。
+服务端事实源是 `retinue.db`，使用一致性 SQLite 快照备份。运行时源记录、外部成果、
+凭据与部署配置分别恢复，详见[备份说明](SELF_HOSTING.md#backup)。
 Exporter 只读运行时记录，不修改来源。只有显式启用的 IM adapter 会访问所配置
 的服务。
 

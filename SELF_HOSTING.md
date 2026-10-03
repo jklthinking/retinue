@@ -521,7 +521,9 @@ read-only panel). Set an admin password of at least eight characters, then
 start:
 
 ```bash
-export RETINUE_ADMIN_PASSWORD=changeme1
+read -rsp 'Choose an admin password (at least 8 characters): ' RETINUE_ADMIN_PASSWORD
+printf '\n'
+export RETINUE_ADMIN_PASSWORD
 docker compose up --build
 ```
 
