@@ -14,6 +14,7 @@ interface LoginConfig {
   demo: boolean;
   mode: string;
   entry_label: string;
+  observer_label?: string;
   footnote: string;
   sites: SiteEntry[];
 }
@@ -32,7 +33,7 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
     api
       .get<LoginConfig>("/api/login-config")
       .then(setConfig)
-      .catch(() => setConfig({ label: "", demo: false, mode: "", entry_label: "", footnote: "", sites: [] }));
+      .catch(() => setConfig({ label: "", demo: false, mode: "", entry_label: "", observer_label: "", footnote: "", sites: [] }));
   }, []);
 
   async function submit(event: FormEvent) {
@@ -49,11 +50,11 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
     }
   }
 
-  async function demoLogin() {
+  async function demoLogin(seat: "work" | "observe" = "work") {
     setBusy(true);
     setError("");
     try {
-      await api.post("/api/auth/demo-login");
+      await api.post(`/api/auth/demo-login?seat=${seat}`);
       onLogin();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "进入失败");
@@ -96,10 +97,15 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
 
         {demoMode ? (
           <div className="demo-entry">
-            <button className="primary demo-button" disabled={busy} onClick={() => void demoLogin()}>
+            <button className="primary demo-button" disabled={busy} onClick={() => void demoLogin("work")}>
               <LogIn size={16} />
               {busy ? "进入中…" : entryLabel}
             </button>
+            {config?.observer_label ? (
+              <button type="button" className="link-button" disabled={busy} onClick={() => void demoLogin("observe")}>
+                {config.observer_label}
+              </button>
+            ) : null}
             {error && <p className="error">{error}</p>}
             <button type="button" className="link-button" onClick={() => setShowManual(true)}>
               使用账号密码登录

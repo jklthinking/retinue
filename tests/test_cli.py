@@ -58,3 +58,67 @@ def test_cli_invalid_transition_returns_error(tmp_path, capsys):
         ["task", "update", str(path), "--status", "done", "--note", "skip"]
     ) == 2
     assert "illegal status transition" in capsys.readouterr().err
+
+
+def test_live_sessions_cli_lists_verified_locations(tmp_path, monkeypatch, capsys):
+    token_file = tmp_path / "actor.token"
+    token_file.write_text("actor-secret", encoding="utf-8")
+    monkeypatch.setattr(
+        "core.cli.live.list_live_sessions",
+        lambda **_kwargs: [
+            {
+                "bound_live_session_id": "live-20260902-001",
+                "actor_id": "worker-one",
+                "runtime": "codex",
+                "state": "idle",
+                "node_id": "node-d",
+                "display_location": "work:1.0",
+                "backend": "tmux",
+                "generation": "a" * 32,
+            }
+        ],
+    )
+
+    assert main(["sessions", "--token-file", str(token_file)]) == 0
+    output = capsys.readouterr().out
+    assert "live-20260902-001\tworker-one\tcodex\tidle\tnode-d:work:1.0" in output
+
+
+def test_live_control_cli_forwards_fenced_request(tmp_path, monkeypatch, capsys):
+    token_file = tmp_path / "actor.token"
+    token_file.write_text("actor-secret", encoding="utf-8")
+    seen = {}
+
+    def fake_create(live_session_id, verb, **kwargs):
+        seen.update({"live_session_id": live_session_id, "verb": verb, **kwargs})
+        return {"id": "ctl-" + "a" * 24, "status": "queued"}
+
+    monkeypatch.setattr("core.cli.live.create_control", fake_create)
+    assert main(
+        [
+            "tell",
+            "live-20260902-001",
+            "请同步进度",
+            "--idempotency-key",
+            "source:event-1001",
+            "--url",
+            "http://hub.invalid",
+            "--token-file",
+            str(token_file),
+        ]
+    ) == 0
+    assert seen == {
+        "live_session_id": "live-20260902-001",
+        "verb": "tell",
+        "url": "http://hub.invalid",
+        "token": "actor-secret",
+        "idempotency_key": "source:event-1001",
+        "message": "请同步进度",
+        "lines": None,
+    }
+    assert '"status": "queued"' in capsys.readouterr().out
+
+
+def test_live_cli_reports_missing_token_without_traceback(capsys):
+    assert main(["sessions"]) == 2
+    assert "requires --token-file" in capsys.readouterr().err

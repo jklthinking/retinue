@@ -1,4 +1,5 @@
 import type { Task } from "../types";
+import { panelNow } from "../demo";
 
 export const STAGES = ["发单", "接单", "执行", "交付审校", "完成"] as const;
 
@@ -32,7 +33,7 @@ export function claimedAt(task: Task): string | null {
   return task.open_dispatch ? null : postedAt(task);
 }
 
-export function localDateKey(date = new Date()): string {
+export function localDateKey(date = panelNow()): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
     date.getDate()
   ).padStart(2, "0")}`;
@@ -52,7 +53,7 @@ export function lastEvent(task: Task) {
 export function elapsedText(fromIso: string | null, toIso?: string | null): string {
   if (!fromIso) return "—";
   const from = new Date(fromIso).getTime();
-  const to = toIso ? new Date(toIso).getTime() : Date.now();
+  const to = toIso ? new Date(toIso).getTime() : panelNow().getTime();
   const minutes = Math.max(0, Math.round((to - from) / 60_000));
   if (minutes < 60) return `${minutes} 分钟`;
   const hours = minutes / 60;

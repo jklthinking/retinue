@@ -121,3 +121,37 @@ def test_admin_can_complete_actor_runtime_binding(tmp_path: Path):
     assert response.json()["model"] == "gpt-5.6"
     assert response.json()["role"] == "报告撰写"
     assert response.json()["goal"] == "把业务事实整理成清晰报告。"
+
+
+def test_aliases_bind_same_device_and_sync_services_do_not_need_models(tmp_path, monkeypatch):
+    from server.db import Node, NodeRuntime
+    module = importlib.import_module("server.routers.actors")
+    monkeypatch.setattr(module, "scan_local_runtimes", lambda: [])
+    client = _client(tmp_path)
+    factory = client.app.state.session_factory
+    with factory() as db:
+        worker = db.get(Actor, "scribe")
+        worker.runtime, worker.node, worker.model = "openai-codex", "device-a", "configured-at-runtime"
+        db.add(Node(id="device-a", label="Device A", membership_status="admitted"))
+        db.add(Actor(id="transport-session-sync", kind="agent", runtime="multi", node="device-a", model="session-index-v2"))
+        db.flush()
+        db.add(NodeRuntime(node_id="device-a", runtime="codex", command="codex", available=True, source="PATH"))
+        db.commit()
+    _login(client)
+    body = client.get("/api/agent-discovery").json()
+    assert [item["runtime"] for item in body["runtimes"]] == ["codex"]
+    assert body["runtimes"][0]["agent_ids"] == ["scribe"]
+    assert len(body["attention"]) == 1
+    assert "模型" in body["attention"][0]["missing"]
+    assert "节点未发现该运行时" not in body["attention"][0]["missing"]
+
+
+def test_alias_model_is_not_an_exact_model(tmp_path, monkeypatch):
+    module = importlib.import_module("server.routers.actors")
+    monkeypatch.setattr(module, "scan_local_runtimes", lambda: [])
+    client = _client(tmp_path)
+    _login(client)
+    client.post("/api/actors/scribe/update", json={"runtime": "kimi-cli", "node": "device-a", "model": "opus"})
+    body = client.get("/api/agent-discovery").json()
+    assert body["runtimes"][0]["runtime"] == "kimi"
+    assert "精确模型型号" in body["attention"][0]["missing"]

@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from ..db import Actor, Node, NodeRuntime, RuntimeSession, utcnow
 from ..deps import ONLINE_WINDOW, Principal, get_db, require_admin, require_auth
-from ..discovery import runtime_label, scan_local_runtimes
+from ..discovery import canonical_runtime, is_sync_actor, model_identity_state, runtime_label, scan_local_runtimes
 from ..helpers import actor_to_dict
 from ..matching import match_agents
 from ..schemas import ActorBody, ActorUpdateBody
@@ -90,7 +90,7 @@ def agent_discovery(
     """
     cutoff = utcnow() - ONLINE_WINDOW
     actor_rows = list(db.execute(select(Actor).order_by(Actor.id)).scalars())
-    agent_rows = [row for row in actor_rows if row.kind == "agent" and not row.disabled]
+    agent_rows = [row for row in actor_rows if row.kind == "agent" and not row.disabled and not is_sync_actor(row)]
     session_rows = list(db.execute(select(RuntimeSession)).scalars())
     node_rows = list(
         db.execute(
@@ -108,18 +108,18 @@ def agent_discovery(
             )
         ).scalars()
     )
-    local_rows = {row["runtime"]: row for row in scan_local_runtimes()}
+    local_rows = {canonical_runtime(row["runtime"]): row for row in scan_local_runtimes()}
 
     runtimes = set(local_rows)
-    runtimes.update(row.runtime.strip() for row in agent_rows if row.runtime.strip())
-    runtimes.update(row.runtime.strip() for row in session_rows if row.runtime.strip())
-    runtimes.update(row.runtime.strip() for row in probe_rows if row.runtime.strip())
+    runtimes.update(canonical_runtime(row.runtime) for row in agent_rows if row.runtime.strip())
+    runtimes.update(canonical_runtime(row.runtime) for row in session_rows if row.runtime.strip())
+    runtimes.update(canonical_runtime(row.runtime) for row in probe_rows if row.runtime.strip())
 
     runtime_items: list[dict[str, Any]] = []
     for runtime in sorted(runtimes):
-        related_agents = [row for row in agent_rows if row.runtime.strip() == runtime]
-        related_sessions = [row for row in session_rows if row.runtime.strip() == runtime]
-        related_probes = [row for row in probe_rows if row.runtime.strip() == runtime]
+        related_agents = [row for row in agent_rows if canonical_runtime(row.runtime) == runtime]
+        related_sessions = [row for row in session_rows if canonical_runtime(row.runtime) == runtime]
+        related_probes = [row for row in probe_rows if canonical_runtime(row.runtime) == runtime]
         local = local_rows.get(runtime)
         latest_session = max(
             (row.synced_at for row in related_sessions if row.synced_at is not None),
@@ -144,7 +144,7 @@ def agent_discovery(
                 "label": (node_by_id.get(row.node_id).label if node_by_id.get(row.node_id) else row.node_id),
                 "detected_at": row.detected_at.isoformat() if row.detected_at else None,
             }
-            for row in sorted(related_probes, key=lambda item: item.node_id)
+            for row in sorted({row.node_id: row for row in sorted(related_probes, key=lambda item: item.detected_at or item.updated_at)}.values(), key=lambda item: item.node_id)
         ]
         runtime_items.append(
             {
@@ -165,16 +165,21 @@ def agent_discovery(
 
     session_actors = {row.actor_id for row in session_rows}
     probed_nodes = {row.node_id for row in probe_rows}
-    available_pairs = {(row.node_id, row.runtime) for row in probe_rows}
+    available_pairs = {(row.node_id, canonical_runtime(row.runtime)) for row in probe_rows}
     attention: list[dict[str, Any]] = []
     for actor in agent_rows:
         missing: list[str] = []
-        runtime = actor.runtime.strip()
+        runtime = canonical_runtime(actor.runtime)
         node = actor.node.strip()
         if not runtime:
             missing.append("运行时")
         if not node:
             missing.append("运行节点")
+        model_state = model_identity_state(actor.model)
+        if model_state == "unknown":
+            missing.append("模型")
+        elif model_state == "alias":
+            missing.append("精确模型型号")
         if actor.id not in session_actors:
             missing.append("会话同步")
         if runtime and node and node in probed_nodes and (node, runtime) not in available_pairs:
@@ -201,7 +206,7 @@ def agent_discovery(
     if not probe_rows:
         actions.append("尚未收到跨机运行时探针；在每台终端每日运行 probe-runtimes 后即可发现可用 CLI。")
     if attention:
-        actions.append(f"有 {len(attention)} 位智能体需要补齐绑定、节点能力或会话同步。")
+        actions.append(f"有 {len(attention)} 位智能体需要补齐设备、模型、节点能力或会话同步。")
     if not actions:
         actions.append("已发现的运行时均有成员绑定；可直接到协作空间按能力派单。")
 

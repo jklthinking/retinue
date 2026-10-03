@@ -10,12 +10,14 @@ route ordering is behaviour.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from sqlalchemy.orm import sessionmaker
 
 from . import __version__
+from .deps import require_admin
 from .panel import mount_panel
 from .routers import (
     actors,
@@ -28,6 +30,7 @@ from .routers import (
     intake,
     distill,
     knowledge,
+    live_sessions,
     metrics,
     nodes,
     orientation,
@@ -39,6 +42,7 @@ from .routers import (
     templates,
     todos,
     card_pipelines,
+    collaboration,
 )
 from .security import LoginThrottle, verify_password  # noqa: F401 — re-exported:
 # tests patch ``server.app.verify_password`` to observe the login hash path.
@@ -53,11 +57,13 @@ _ROUTERS = (
     auth.router,
     actors.router,
     tasks.router,
+    collaboration.router,
     approvals.router,
     templates.router,
     card_pipelines.router,
     metrics.router,
     sessions.router,
+    live_sessions.router,
     todos.router,
     admin.router,
     skills.router,
@@ -90,6 +96,14 @@ def create_app(
 
     for router in _ROUTERS:
         app.include_router(router)
+
+    # ---------- kingdom console (optional module, extracted from the old
+    # hermes panel; reads redacted observer snapshots, admin-only) ----------
+
+    if os.environ.get("RETINUE_KINGDOM_ROOT"):
+        from .kingdom import router as kingdom_router
+
+        app.include_router(kingdom_router, dependencies=[Depends(require_admin)])
 
     # ---------- static SPA (must stay last: the catch-all shadows nothing) ----------
 

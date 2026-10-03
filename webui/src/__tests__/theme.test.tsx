@@ -23,7 +23,7 @@ function VocabProbe() {
     <div>
       <span data-testid="app-title">{vocab.appTitle}</span>
       <span data-testid="central-hub">{vocab.centralHub}</span>
-      <span data-testid="node-throne">{vocab.nodeThrone}</span>
+      <span data-testid="node-node-a">{vocab.nodePrimary}</span>
     </div>
   );
 }
@@ -32,12 +32,12 @@ describe("主题词表", () => {
   it("默认导出中性词表，不含宫廷词汇", () => {
     expect(DEFAULT_THEME).toBe("neutral");
     for (const value of Object.values(neutralVocab)) {
-      expect(value).not.toMatch(/组织|王座|众卿/);
+      expect(value).not.toMatch(/王国|王座|众卿/);
     }
     // 宫廷预设保留原有风味文案
     expect(courtVocab.appTitle).toBe("众卿任务台");
-    expect(courtVocab.centralHub).toBe("组织中枢");
-    expect(courtVocab.nodeThrone).toBe("王座 Throne");
+    expect(courtVocab.centralHub).toBe("王国中枢");
+    expect(courtVocab.nodePrimary).toBe("节点 A");
   });
 
   it("无 Provider 时组件回退到中性词表", () => {
@@ -53,7 +53,7 @@ describe("主题词表", () => {
       </ThemeProvider>
     );
     expect(screen.getByTestId("app-title")).toHaveTextContent("众卿任务台");
-    expect(screen.getByTestId("node-throne")).toHaveTextContent("王座 Throne");
+    expect(screen.getByTestId("node-node-a")).toHaveTextContent("节点 A");
   });
 
   it("ThemeSwitcher 切换主题并持久化选择", async () => {
@@ -82,7 +82,7 @@ describe("主题词表", () => {
         <VocabProbe />
       </ThemeProvider>
     );
-    expect(screen.getByTestId("central-hub")).toHaveTextContent("组织中枢");
+    expect(screen.getByTestId("central-hub")).toHaveTextContent("王国中枢");
   });
 
   it("组件文案随主题切换（DispatchMap）", async () => {

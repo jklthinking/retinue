@@ -5,11 +5,13 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import secrets
 import sys
 
 import yaml
 
 from adapters.im.feishu import FeishuAdapter, emit_if_configured, listen, normalize_event
+from core.cli.live import LiveCliError
 from core.cli.output import configure_output_streams
 from core.daemon import TaskDaemon
 from core.panel import serve as serve_panel
@@ -137,6 +139,51 @@ def _parser() -> argparse.ArgumentParser:
         help="agent identity (or set RETINUE_AGENT_ID); required for write tools",
     )
 
+    def add_live_auth(command: argparse.ArgumentParser) -> None:
+        command.add_argument(
+            "--url", help="Retinue Hub URL (or RETINUE_SERVER_URL)"
+        )
+        command.add_argument(
+            "--token-file", help="actor token file (or RETINUE_TOKEN_FILE)"
+        )
+
+    sessions = commands.add_parser(
+        "sessions", help="list currently observed and bound live Agent sessions"
+    )
+    add_live_auth(sessions)
+    sessions.add_argument("--json", action="store_true")
+
+    tell = commands.add_parser("tell", help="queue one fenced message to a live session")
+    tell.add_argument("live_session_id")
+    tell.add_argument("message")
+    tell.add_argument("--idempotency-key")
+    add_live_auth(tell)
+
+    peek = commands.add_parser("peek", help="request a bounded, redacted terminal tail")
+    peek.add_argument("live_session_id")
+    peek.add_argument("--lines", type=int, default=20, choices=range(1, 101))
+    peek.add_argument("--idempotency-key")
+    add_live_auth(peek)
+
+    interrupt = commands.add_parser(
+        "interrupt", help="queue a permissioned 30-second soft interrupt"
+    )
+    interrupt.add_argument("live_session_id")
+    interrupt.add_argument("--idempotency-key")
+    add_live_auth(interrupt)
+
+    control_show = commands.add_parser(
+        "control-show", help="show one live control envelope and its result"
+    )
+    control_show.add_argument("envelope_id")
+    add_live_auth(control_show)
+
+    jump = commands.add_parser(
+        "jump", help="resolve a live session to its current node and display location"
+    )
+    jump.add_argument("live_session_id")
+    add_live_auth(jump)
+
     export = commands.add_parser("export", help="export runtime metrics into the workspace")
     exporters = export.add_subparsers(dest="exporter", required=True)
     claude_code = exporters.add_parser(
@@ -195,6 +242,64 @@ def run(args: argparse.Namespace) -> int:
         from core.mcp_server import serve as serve_mcp
 
         serve_mcp(args.root, args.agent)
+    elif args.command in {
+        "sessions",
+        "tell",
+        "peek",
+        "interrupt",
+        "control-show",
+        "jump",
+    }:
+        from core.cli import live
+
+        url = live.resolve_url(args.url)
+        token = live.read_token(args.token_file)
+        if args.command == "sessions":
+            rows = live.list_live_sessions(url=url, token=token)
+            if args.json:
+                print(json.dumps(rows, ensure_ascii=False, indent=2))
+            else:
+                for row in rows:
+                    live_id = row.get("bound_live_session_id") or "-"
+                    actor = row.get("actor_id") or "unbound"
+                    print(
+                        f"{live_id}\t{actor}\t{row.get('runtime') or '-'}\t"
+                        f"{row.get('state')}\t{row.get('node_id')}:"
+                        f"{row.get('display_location')}"
+                    )
+        elif args.command == "control-show":
+            result = live.get_control(args.envelope_id, url=url, token=token)
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        elif args.command == "jump":
+            rows = live.list_live_sessions(url=url, token=token)
+            target = next(
+                (
+                    row
+                    for row in rows
+                    if row.get("bound_live_session_id") == args.live_session_id
+                ),
+                None,
+            )
+            if target is None:
+                raise live.LiveCliError("live session is not currently visible")
+            print(
+                f"{target['node_id']}:{target['display_location']} "
+                f"({target['backend']}, generation {target['generation'][:8]})"
+            )
+        else:
+            idempotency_key = args.idempotency_key or (
+                "cli-" + secrets.token_hex(8)
+            )
+            result = live.create_control(
+                args.live_session_id,
+                args.command,
+                url=url,
+                token=token,
+                idempotency_key=idempotency_key,
+                message=args.message if args.command == "tell" else None,
+                lines=args.lines if args.command == "peek" else None,
+            )
+            print(json.dumps(result, ensure_ascii=False, indent=2))
     elif args.command == "export":
         if args.exporter == "claude-code":
             from adapters.exporters.claude_code import export_metrics
@@ -304,7 +409,7 @@ def main(argv: list[str] | None = None) -> int:
     configure_output_streams()
     try:
         return run(_parser().parse_args(argv))
-    except ProtocolError as exc:
+    except (ProtocolError, LiveCliError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 

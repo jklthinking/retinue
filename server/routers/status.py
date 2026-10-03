@@ -33,6 +33,7 @@ def login_config(request: Request) -> dict[str, Any]:
         "demo": bool(config.get("demo_user")),
         "mode": config.get("mode", ""),
         "entry_label": config.get("entry_label", ""),
+        "observer_label": config.get("observer_label", ""),
         "footnote": config.get("footnote", ""),
         "sites": [
             {**site, "current": site.get("label") == label}
@@ -116,7 +117,7 @@ def dashboard_overview(
             "holder_display": (
                 actor.display_name if actor and actor.display_name else task.holder
             ),
-            "node": actor.node if actor and actor.node else "throne",
+            "node": actor.node if actor and actor.node else "node-a",
             "current_stage": current_stage,
             "approval_status": pending.get(task.id),
             "refs": snapshot["refs"],

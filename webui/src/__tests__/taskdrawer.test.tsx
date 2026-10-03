@@ -127,7 +127,7 @@ describe("TaskDrawer 执行时间线", () => {
             actor_id: "agent-one",
             actor_name: "Agent One",
             runtime: "kimi",
-            node: "throne",
+            node: "node-a",
             title: "样例施工会话",
             summary: "",
             privacy: "metadata",

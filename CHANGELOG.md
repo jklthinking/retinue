@@ -1,24 +1,56 @@
 ## Unreleased
 
-### Server: holder remint so the progress bar can move after a dead lease
-- **Change:** `progress` remains an explicit 0–100 field. `doing`, notes, and
-  a live lease still do not infer a percent. A holder write that omits
-  `lease_term` now heartbeats a live lease, and remints a new term when the
-  lease has expired and the card is not back on the hall
-  (`payload.lease.action: renew`). Workers that present a numeric term stay
-  fenced on stale or expired terms. After the sweeper returns the card to the
-  hall, remint is closed and the path is claim again.
-- MCP: `task_progress` documents that the bar only moves on this call;
-  `task_start` accepts optional `percent`; new `task_renew` is the explicit
-  续租 step. Bridge instructions, the retinue skill, agent onboarding, the
-  task-state protocol, and SEC-4 record the same rule.
-- **Why:** A card on the demo board (`task-20260819-001`) stayed at 0% while
-  the holder was working. Start only flipped `queued → doing` and never
-  called `task_progress`. The 3-minute lost-heartbeat window then fenced the
-  same holder (`409 lease expired; stale writer is fenced`), so they could
-  not write 20% without 续租 or 重新认领. Interactive MCP sessions omit a
-  term and never heartbeat, so this was the default path, not an operator
-  mistake.
+### Server: personal-agenda M1 stage 5 — 分享会 walkthrough
+- Todo payloads add `ready_to_close` when every live child is done and the
+  parent is still open. Completing the parent stays a human action.
+- `engine.update_task` copies card progress onto a linked private todo and
+  never changes that todo's status.
+- Home shows 「子项都做完了，这场是否也结束了？」 with an owner 「结束这场」
+  button on the parent row. Pytest walks PRD §10 on a temp DB.
+
+### Webui: personal-agenda M1 stage 4 — capture children, nav groups, chrome
+- 「记下一条」 child rows take title plus optional `due_at` / `event_on`; a new
+  child defaults `due_at` to today so a tomorrow event can land prep on 今天.
+- Sidebar groups 日程 / 协作 / 系统 without dropping items; visibility flags stay.
+- Gold capsule CTA on Home, thin blue–teal–gold bar under the greeting. Fleet
+  numbers stay on 系统总览.
+
+### Webui: personal-agenda M1 stage 3 — Agenda Home
+- Home is a personal agenda: greeting as H1 (no COMMAND HOME kicker), tabs
+  今天 / 明天 / 随时, owner checkoff, 0/50/100 progress, and 「记下一条」
+  (parent then optional children). Right rail is only 今日必须结束 / 逾期 /
+  待确认提案; fleet metrics stay on 系统总览.
+- GET `/api/todos/home` keeps the M0 keys and adds `events_tomorrow` and
+  `anytime`, with `event_on` / `parent_id` / `progress` / nested `children`.
+
+### Server: personal-agenda M1 stage 2 — proposal children and agent progress
+- Schema v22 adds `event_on`, `parent_id`, and `children_json` on `todo_proposals`.
+- Agents still cannot create, list, or complete owner todos. They POST proposals
+  (optional one-level children); the owner confirms. Granted agents may POST
+  `/api/todos/{id}/progress` on that owner's confirmed items; 100 does not complete.
+  Progress on done/cancelled items is 422.
+- MCP: `todo_propose` and `todo_progress`. `doing` / `task_progress` stay on task cards.
+
+### 0.3.0a1: Live Sessions release candidate
+
+- Adds L4 Supervise without a second orchestration service: `LiveSession`,
+  exact tmux endpoint observations/bindings, and conservative Node-side state.
+- Adds generation-fenced, expiring, idempotent `tell`, bounded/redacted `peek`,
+  and permissioned soft `interrupt` control envelopes with an append-only event
+  ledger. Terminal envelopes immediately discard transient command payloads.
+- Adds explicit `retinue-node session-bind` / `session-unbind`, a combined
+  `live-cycle`, and an opt-in `live` enrollment duty with a two-second Linux
+  reconcile timer. Automatic discovery remains read-only.
+- Adds `retinue sessions`, `tell`, `peek`, `interrupt`, `control-show`, and
+  `jump`; Hub-backed MCP tools reuse the same authorization and control path.
+- Adds a separate Web Live Sessions page. Human soft interrupt is a two-click
+  action; read-only accounts see the inventory with every control disabled.
+- Release artifacts now build the Web UI before the Python wheel/sdist and
+  declare those static files as package data; the wheel smoke test requires
+  both the health endpoint and the packaged SPA root.
+- Schema v23-v25 add the live-session read model and control ledger. Upgrade is
+  the existing explicit stop, backup, migrate, start sequence; rollback after
+  migration requires restoring the pre-migration data-directory backup.
 
 ### Legal
 
@@ -303,7 +335,7 @@
   comes from a `ThemeVocab` record in `webui/src/theme/vocab.ts`, consumed
   through the `useVocab()` hook (`webui/src/theme/ThemeContext.tsx`).
 - The default theme is neutral (任务台 / 任务中枢 / 成员 / 节点); the previous
-  court-style wording (众卿任务台 / 组织中枢 / 王座) is kept as the `court`
+  court-style wording (众卿任务台 / 王国中枢 / 王座) is kept as the `court`
   preset. A sidebar switcher swaps presets at runtime and persists the choice
   in `localStorage` (`retinue.theme`); components without a provider fall
   back to the neutral vocabulary. This ships task-20260813-008.
@@ -359,9 +391,15 @@
 - Runtime import keeps a sanitized source snapshot and the importer. Skills
   whose `source_kind` is repo, runtime, or external carry an explicit
   unreviewed-and-unsandboxed risk notice.
-- First operating set: `throne-codex` and `windows-cursor` each receive
+- First operating set: `node-a-codex` and `workstation-cursor` each receive
   three inventory skills via `POST /api/skills/pilot-bindings` when those
   actors and catalog rows exist.
+
+### Version 0.2.0a3 is the current published spelling
+- `pyproject.toml`, `server.__version__`, the health response, community
+  walkthrough, wheel name, and next tag now use `0.2.0a3` consistently.
+- The earlier `0.2.0a2` entry remains below as release history; it is no
+  longer the version operators should expect from the current checkout.
 ### Version 0.2.0a2 is the single published spelling
 - `pyproject.toml` is now `0.2.0a2`. `server.__version__` (and therefore
   `GET /api/health`) reads that string, falling back to install metadata

@@ -17,33 +17,6 @@ export function readErrorMessage(error: unknown): string {
 }
 
 
-const CACHE_PREFIX = "retinue.cache.v1:";
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-
-function cacheKey(path: string): string {
-  return CACHE_PREFIX + path;
-}
-
-function readCache<T>(path: string): { at: number; data: T } | null {
-  try {
-    const raw = localStorage.getItem(cacheKey(path));
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as { at: number; data: T };
-    if (!parsed || typeof parsed.at !== "number") return null;
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
-function writeCache<T>(path: string, data: T): void {
-  try {
-    localStorage.setItem(cacheKey(path), JSON.stringify({ at: Date.now(), data }));
-  } catch {
-    /* quota exceeded: skip */
-  }
-}
-
 interface CursorPage<T> {
   items: T[];
   next_cursor: string | null;
@@ -95,6 +68,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   }
   // Relative URLs keep the app working both at "/" and under a proxied prefix.
   const response = await fetch(path.replace(/^\//, ""), {
+    cache: "no-store",
     headers: options.body ? { "Content-Type": "application/json" } : undefined,
     ...options,
   });
@@ -114,25 +88,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 export const api = {
   get: <T>(path: string) => request<T>(path),
-  /** Return last good payload immediately; revalidate in the background.
-   *  On a cache miss, wait for the network. If the network fails and a
-   *  (possibly stale) copy exists, return that instead of throwing. */
-  getCached: async <T>(path: string, bypass = false): Promise<T> => {
-    const hit = readCache<T>(path);
-    const freshEnough = hit !== null && Date.now() - hit.at < CACHE_TTL_MS;
-    if (!bypass && freshEnough && hit) {
-      void request<T>(path).then((fresh) => writeCache(path, fresh)).catch(() => {});
-      return hit.data;
-    }
-    try {
-      const fresh = await request<T>(path);
-      writeCache(path, fresh);
-      return fresh;
-    } catch (err) {
-      if (hit) return hit.data;
-      throw err;
-    }
-  },
+  /** Compatibility name for existing callers. Live board reads always await
+   * the server: a cached response must not hide new events, expired sessions,
+   * or a failed refresh. Views may retain their last payload with an error. */
+  getCached: <T>(path: string, _bypass = false): Promise<T> => request<T>(path),
   getAllPages: async <T>(path: string, pageSize = 100): Promise<T[]> => {
     const items: T[] = [];
     let cursor: string | null = null;

@@ -1,8 +1,10 @@
 """Enrollment: render or install the schedule for the node duties.
 
-A managed node runs up to three duties on a schedule: the infrastructure
+A managed node runs three default duties on a schedule: the infrastructure
 heartbeat and the agent-CLI inventory hourly, and the privacy-scoped session
-index daily (the operator's cadence, fixed here).  Nothing schedules them
+index daily (the operator's cadence, fixed here). An optional Linux-oriented
+``live`` duty reconciles live tmux panes and control envelopes every two
+seconds. Nothing schedules them
 until an operator enrolls the node with ``retinue-node enroll``.  The
 operator chooses the subset explicitly with ``--duties`` (default: all
 three); a node whose session collection is handled centrally enrolls with
@@ -85,15 +87,17 @@ USER_UNIT_DIR = Path(".config/systemd/user")  # relative to the enrolling user's
 DUTY_HEARTBEAT = "heartbeat"
 DUTY_RUNTIMES = "runtimes"
 DUTY_SESSIONS = "sessions"
+DUTY_LIVE = "live"
 
-ALL_DUTY_KEYS = (DUTY_HEARTBEAT, DUTY_RUNTIMES, DUTY_SESSIONS)
+DEFAULT_DUTY_KEYS = (DUTY_HEARTBEAT, DUTY_RUNTIMES, DUTY_SESSIONS)
+ALL_DUTY_KEYS = (*DEFAULT_DUTY_KEYS, DUTY_LIVE)
 
 
 def parse_duty_selection(value: str | None) -> tuple[str, ...]:
     """The ``--duties`` value as ordered, validated duty keys.  Absent means
-    all three; a subset is always the operator's explicit choice."""
+    the three low-frequency duties; live control is always explicit."""
     if value is None or not value.strip():
-        return ALL_DUTY_KEYS
+        return DEFAULT_DUTY_KEYS
     requested = [part.strip() for part in value.split(",") if part.strip()]
     for key in requested:
         if key not in ALL_DUTY_KEYS:
@@ -104,6 +108,7 @@ def parse_duty_selection(value: str | None) -> tuple[str, ...]:
 
 HOURLY = "hourly"
 DAILY = "daily"
+REALTIME = "realtime"
 
 
 @dataclass(frozen=True)
@@ -128,7 +133,7 @@ class Duty:
     key: str  # unit file and task name suffix
     description: str
     args: tuple[str, ...]  # node.cli subcommand plus its own arguments
-    cadence: str  # HOURLY or DAILY
+    cadence: str  # HOURLY, DAILY, or REALTIME
 
 
 def duties(config: EnrollConfig) -> tuple[Duty, ...]:
@@ -149,6 +154,12 @@ def duties(config: EnrollConfig) -> tuple[Duty, ...]:
                 "--privacy", config.privacy,
             ),
             DAILY,
+        ),
+        Duty(
+            DUTY_LIVE,
+            "live session reconcile and control relay",
+            ("live-cycle",),
+            REALTIME,
         ),
     )
     return tuple(duty for duty in known if duty.key in config.duty_keys)
@@ -200,6 +211,18 @@ _JITTER = {HOURLY: "5min", DAILY: "30min"}
 
 
 def _timer_unit(duty: Duty) -> str:
+    if duty.cadence == REALTIME:
+        return f"""[Unit]
+Description=Run the Retinue node {duty.description} continuously
+
+[Timer]
+OnBootSec=3s
+OnUnitActiveSec=2s
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target
+"""
     return f"""[Unit]
 Description=Run the Retinue node {duty.description} {duty.cadence}
 
@@ -250,7 +273,11 @@ def windows_task_name(duty: Duty) -> str:
 def windows_task_argv(config: EnrollConfig, duty: Duty) -> list[str]:
     """One schtasks command per duty; /F replaces an existing task of the
     same fixed name, so re-enrollment updates in place instead of adding."""
-    schedule = "HOURLY" if duty.cadence == HOURLY else "DAILY"
+    schedule = (
+        "HOURLY"
+        if duty.cadence == HOURLY
+        else "DAILY" if duty.cadence == DAILY else "MINUTE"
+    )
     common = ["--node", config.node, "--url", config.url]
     if duty.key == DUTY_SESSIONS:
         common += ["--actor-token-file", config.actor_token_file]

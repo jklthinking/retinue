@@ -17,8 +17,35 @@ RUNTIME_LABELS = {
 }
 
 
+RUNTIME_ALIASES = {"openai-codex": "codex", "kimi-cli": "kimi"}
+MODEL_ALIASES = {"opus", "sonnet", "haiku", "auto", "default"}
+UNKNOWN_MODELS = {"", "unknown", "configured-at-runtime", "待确认", "未登记", "n/a"}
+
+
+def canonical_runtime(runtime: str) -> str:
+    """Normalize known inventory aliases without changing stored identities."""
+    value = runtime.strip()
+    return RUNTIME_ALIASES.get(value, value)
+
+
+def is_sync_actor(actor: Any) -> bool:
+    """Indexing services are transport agents, not model workers."""
+    return actor.kind == "agent" and (
+        actor.model.strip().lower().startswith("session-index-v")
+        or actor.id.strip().lower().endswith("-session-sync")
+    )
+
+
+def model_identity_state(model: str) -> str:
+    """Assess registry completeness, never provider verification."""
+    value = model.strip().lower()
+    if value in UNKNOWN_MODELS:
+        return "unknown"
+    return "alias" if value in MODEL_ALIASES else "registered"
+
+
 def runtime_label(runtime: str) -> str:
-    return RUNTIME_LABELS.get(runtime, runtime or "未命名运行时")
+    return RUNTIME_LABELS.get(canonical_runtime(runtime), runtime or "未命名运行时")
 
 
 def scan_local_runtimes(home: Path | None = None) -> list[dict[str, Any]]:

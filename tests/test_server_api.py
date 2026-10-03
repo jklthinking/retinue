@@ -84,7 +84,7 @@ def test_health_reports_the_pyproject_version(client):
 def test_unconfigured_site_vocabulary_is_absent_from_shared_interfaces(
     monkeypatch, tmp_path
 ):
-    monkeypatch.delenv("RETINUE_INTERNAL_ROOT", raising=False)
+    monkeypatch.delenv("RETINUE_KINGDOM_ROOT", raising=False)
     factory = make_session_factory(tmp_path / "unconfigured-site.db")
     with factory() as db:
         db.add(Actor(id="operator", kind="human", display_name="Operator"))
@@ -117,7 +117,7 @@ def test_unconfigured_site_vocabulary_is_absent_from_shared_interfaces(
     assert identity.status_code == onboarding.status_code == 200
     assert identity.json()["site_console"] is False
 
-    site_vocabulary = "internal"
+    site_vocabulary = "kingdom"
     route_paths = {
         getattr(route, "path", "") for route in unconfigured.app.routes
     }
@@ -219,6 +219,42 @@ def test_demo_login_uses_the_password_login_source_throttle(client):
     response = client.post("/api/auth/demo-login")
     assert response.status_code == 429
     assert response.headers["retry-after"] == "1"
+
+
+def test_demo_login_can_select_the_read_only_observer_seat(tmp_path):
+    factory = make_session_factory(tmp_path / "observer-seat.db")
+    with factory() as db:
+        db.add(
+            User(
+                username="work-seat",
+                password_hash=hash_password("unused-work-pass"),
+                role="admin",
+            )
+        )
+        db.add(
+            User(
+                username="observer-seat",
+                password_hash=hash_password("unused-observer-pass"),
+                role="viewer",
+            )
+        )
+        db.commit()
+    (tmp_path / "site-config.json").write_text(
+        '{"demo_user":"work-seat","observer_user":"observer-seat",'
+        '"observer_label":"进入观察席"}',
+        encoding="utf-8",
+    )
+    observer_client = TestClient(create_app(factory, data_dir=tmp_path))
+
+    config = observer_client.get("/api/login-config")
+    assert config.status_code == 200
+    assert config.json()["observer_label"] == "进入观察席"
+
+    response = observer_client.post("/api/auth/demo-login?seat=observe")
+    assert response.status_code == 200
+    assert response.json()["username"] == "observer-seat"
+    assert response.json()["role"] == "viewer"
+    assert observer_client.get("/api/auth/me").json()["readonly"] is True
 
 
 def test_viewer_can_read_but_cannot_mutate(client):
@@ -556,7 +592,7 @@ def test_node_token_only_allows_bound_heartbeat(client):
 
     wrong_node = client.post(
         "/api/nodes/heartbeat",
-        json={**payload, "id": "forge"},
+        json={**payload, "id": "node-d"},
         headers=headers,
     )
     assert wrong_node.status_code == 403
@@ -647,7 +683,7 @@ def test_node_token_reports_runtime_inventory_without_transcript_access(client):
     assert reported.status_code == 200
     assert reported.json()["runtimes"][0]["command"] == "codex"
     assert client.post(
-        "/api/nodes/runtimes", json={**payload, "node_id": "forge"}, headers=headers
+        "/api/nodes/runtimes", json={**payload, "node_id": "node-d"}, headers=headers
     ).status_code == 403
     assert client.get("/api/tasks", headers=headers).status_code == 401
 
@@ -812,7 +848,7 @@ def test_orientation_context_is_refreshable_and_sanitized(client):
     response = client.get("/api/orientation/context")
     assert response.status_code == 200
     body = response.json()
-    assert body["schema_version"] == "retinue-internal-context/v1"
+    assert body["schema_version"] == "retinue-kingdom-context/v1"
     assert any("/api/orientation/context" in item for item in body["bootstrap"])
     assert body["privacy_boundary"]["excluded"]
     assert 0 <= body["data_quality"]["score"] <= 100
@@ -829,7 +865,7 @@ def test_onboarding_prepare_registers_actor_account_and_returns_context(client):
             "display_name": "新 BOT",
             "runtime": "hermes",
             "model": "demo-model",
-            "node": "forge",
+            "node": "node-d",
             "username": "new-bot-user",
             "password": "new-bot-pass-123",
             "label": "试点接入",

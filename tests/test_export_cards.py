@@ -81,7 +81,7 @@ def _seed(db_path: Path) -> dict[str, str]:
             title="Alpha card",
             created_by="queen",
             holder="agent-one",
-            dept="throne",
+            dept="node-a",
             priority="high",
             acceptance=["导出结果可通过既有 lint"],
         )

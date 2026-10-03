@@ -4,6 +4,9 @@ import { api, ApiError } from "../api";
 import type { ActorInfo, ApprovalInfo, Me, RuntimeSessionInfo, Status, Task } from "../types";
 import { GATE_LABEL, PRIORITY_LABEL, STATUS_LABEL, TRANSITIONS } from "../types";
 import { taskDeepLink } from "../deeplink";
+import TaskCollaboration from "./TaskCollaboration";
+import { isSessionSync, rosterIdentity } from "../lib/rosterIdentity";
+import { writeNavigation } from "../lib/navigation";
 
 interface Props {
   taskId: string;
@@ -13,9 +16,10 @@ interface Props {
   onChanged: () => void;
   /** When present, upstream/downstream relations render as jump links. */
   onOpenTask?: (taskId: string) => void;
+  onOpenFlow?: (taskId: string) => void;
 }
 
-export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onOpenTask }: Props) {
+export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onOpenTask, onOpenFlow }: Props) {
   const [task, setTask] = useState<Task | null>(null);
   const [note, setNote] = useState("");
   const [holder, setHolder] = useState("");
@@ -171,7 +175,13 @@ export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onO
           </button>
         </header>
 
+        <button type="button" className="drawer-link" onClick={() => {
+          if (onOpenFlow) onOpenFlow(task.id);
+          else { onClose(); writeNavigation({ page: "taskflow", task: task.id }); }
+        }}>打开完整协作图与时间泳道 <ExternalLink size={14} /></button>
         {task.blocked_reason && <p className="blocked-banner">受阻:{task.blocked_reason}</p>}
+
+        <TaskCollaboration taskId={taskId} me={me} actors={actors} onChanged={() => { void load(); onChanged(); }} onOpenTask={onOpenTask} />
 
         {task.proposal && (
           <section className="drawer-section proposal-section">
@@ -494,11 +504,11 @@ export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onO
             <div className="reassign">
               <select value={holder} onChange={(e) => setHolder(e.target.value)}>
                 {actors
-                  .filter((a) => !a.disabled)
+                  .filter((a) => !a.disabled && !isSessionSync(a))
                   .map((a) => (
                     <option key={a.id} value={a.id}>
                       {a.display_name || a.id}
-                      {a.kind === "agent" ? "(智能体)" : ""}
+                      {a.kind === "agent" ? ` · ${rosterIdentity(a)}` : ""}
                     </option>
                   ))}
               </select>

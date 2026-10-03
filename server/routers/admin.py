@@ -114,13 +114,13 @@ def admin_prepare_onboarding(
             "actor_id": body.actor_id,
         },
         "token": token,
-        "token_note": "仅此一次展示，请立即保存；不会再次出现在组织上下文包中。",
+        "token_note": "仅此一次展示，请立即保存；不会再次出现在王国上下文包中。",
         "orientation": build_orientation_context(db, Principal(
             kind="agent", name=body.actor_id, actor_id=body.actor_id, role="agent"
         )),
         "next_steps": [
             "把一次性令牌交给 BOT 的安全配置，不要贴进任务正文。",
-            "BOT 启动时用 GET /api/orientation/context 刷新组织现状。",
+            "BOT 启动时用 GET /api/orientation/context 刷新王国现状。",
             "需要写入真实 Profile 或外部平台身份时，再执行生产入职确认。",
         ],
     }

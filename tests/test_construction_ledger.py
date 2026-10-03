@@ -34,7 +34,7 @@ def test_tree_as_it_stands_is_fully_accounted_for():
     result = ccl.evaluate(REPO_ROOT, ccl.LEDGER_PATH)
     assert result.violations == []
     assert result.site_count > 0  # the scan found the sites it claims to cover
-    # This assertion used to require the internal-import overlap to stay visible while
+    # This assertion used to require the kingdom-import overlap to stay visible while
     # that redesign was in flight. It landed, those entries were replaced by real
     # deciders, and the assertion fired -- which is exactly what a tripwire is for.
     # It now guards the state we want to keep: nothing is permitted without a decider,

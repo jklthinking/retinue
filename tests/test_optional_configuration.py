@@ -15,14 +15,164 @@ def _reload(name: str):
     return importlib.reload(module)
 
 
+def test_kingdom_imports_without_machine_specific_defaults(monkeypatch):
+    for name in (
+        "RETINUE_KINGDOM_ROOT",
+        "RETINUE_KINGDOM_CASTLE_ROOT",
+        "RETINUE_KINGDOM_CASTLE_HOST",
+        "RETINUE_KINGDOM_VAULT",
+    ):
+        monkeypatch.delenv(name, raising=False)
+
+    kingdom = _reload("server.kingdom")
+
+    assert kingdom.HERMES_ROOT is None
+    assert kingdom.CASTLE_ROOT is None
+    assert kingdom.DATA_DIR is None
+    assert kingdom.ACTION_SCRIPT is None
+    assert kingdom.CASTLE_ACTION_SCRIPT is None
+    assert kingdom.OBSERVER_SCRIPT is None
+    assert kingdom.CASTLE_HOST is None
+    assert kingdom.VAULT_CANDIDATES == ()
+    assert kingdom._read_snapshot("node-a") is None
+    assert kingdom._read_audit("node-a") == {
+        "ok": False,
+        "items": [],
+        "reason": "kingdom root is not configured",
+    }
+    assert kingdom._read_audit("node-b") == {
+        "ok": False,
+        "items": [],
+        "reason": "kingdom root is not configured",
+    }
+    assert kingdom._list_conflicts() == {"available": False, "items": []}
+
+    result = kingdom._run_action({"node": "node-a", "action": "snapshot_refresh"})
+    assert result == {
+        "ok": False,
+        "error": "RETINUE_KINGDOM_ROOT is not configured",
+    }
+    overview = kingdom._combined_overview()
+    assert overview["nodes"] == []
+    assert overview["alerts"]
+    assert all("not configured" in row["detail"] for row in overview["alerts"])
 
 
+def test_node_b_root_drives_remote_commands_and_falls_back_to_local(monkeypatch, tmp_path):
+    kingdom_root = tmp_path / "local-kingdom"
+    node_b_root = tmp_path / "remote-kingdom"
+    vault_root = tmp_path / "vault"
+    monkeypatch.setenv("RETINUE_KINGDOM_ROOT", str(kingdom_root))
+    monkeypatch.setenv("RETINUE_KINGDOM_CASTLE_ROOT", str(node_b_root))
+    monkeypatch.setenv("RETINUE_KINGDOM_CASTLE_HOST", "node-b-node")
+    monkeypatch.setenv("RETINUE_KINGDOM_VAULT", str(vault_root))
+    kingdom = _reload("server.kingdom")
+    calls = []
+
+    def fake_run(argv, **kwargs):
+        calls.append((argv, kwargs))
+        return type("Result", (), {"returncode": 0, "stdout": "", "stderr": ""})()
+
+    monkeypatch.setattr(kingdom.subprocess, "run", fake_run)
+    assert kingdom._read_audit("node-b") == {"ok": True, "items": []}
+    assert kingdom._run_action({"node": "node-b", "action": "snapshot_refresh"}) == {
+        "ok": True,
+        "node": "node-b",
+    }
+    assert calls[0][0][-1] == str(node_b_root / "logs" / "kingdom-actions.jsonl")
+    assert calls[1][0][-2] == str(node_b_root / "scripts" / "kingdom_action.py")
+    assert kingdom.VAULT_CANDIDATES == (vault_root,)
+
+    monkeypatch.delenv("RETINUE_KINGDOM_CASTLE_ROOT")
+    kingdom = _reload("server.kingdom")
+    calls.clear()
+    monkeypatch.setattr(kingdom.subprocess, "run", fake_run)
+
+    assert kingdom.CASTLE_ROOT == kingdom.HERMES_ROOT == kingdom_root
+    assert kingdom._read_audit("node-b") == {"ok": True, "items": []}
+    assert kingdom._run_action({"node": "node-b", "action": "snapshot_refresh"}) == {
+        "ok": True,
+        "node": "node-b",
+    }
+    assert calls[0][0][-1] == str(kingdom_root / "logs" / "kingdom-actions.jsonl")
+    assert calls[1][0][-2] == str(kingdom_root / "scripts" / "kingdom_action.py")
 
 
+def test_failed_remote_audit_is_a_redacted_gap_not_an_empty_log(monkeypatch, tmp_path):
+    kingdom_root = tmp_path / "local-kingdom"
+    node_b_root = tmp_path / "remote-kingdom"
+    node_b_host = "node-b-node"
+    monkeypatch.setenv("RETINUE_KINGDOM_ROOT", str(kingdom_root))
+    monkeypatch.setenv("RETINUE_KINGDOM_CASTLE_ROOT", str(node_b_root))
+    monkeypatch.setenv("RETINUE_KINGDOM_CASTLE_HOST", node_b_host)
+    kingdom = _reload("server.kingdom")
+
+    def failed_run(argv, **kwargs):
+        del argv, kwargs
+        diagnostic = f"could not reach {node_b_host}; remote path {node_b_root}"
+        return type("Result", (), {"returncode": 255, "stdout": "", "stderr": diagnostic})()
+
+    async def inline_to_thread(function, *args):
+        return function(*args)
+
+    monkeypatch.setattr(kingdom.subprocess, "run", failed_run)
+    monkeypatch.setattr(kingdom.asyncio, "to_thread", inline_to_thread)
+
+    response = asyncio.run(kingdom.kingdom_audit())
+    assert response == {
+        "items": [],
+        "gaps": [{
+            "node": "node-b",
+            "reason": "remote command failed",
+            "returncode": 255,
+        }],
+    }
+    action = kingdom._run_action({"node": "node-b", "action": "snapshot_refresh"})
+    assert action == {
+        "ok": False,
+        "error": "remote action failed",
+        "returncode": 255,
+        "node": "node-b",
+    }
+    caller_text = json.dumps({"audit": response, "action": action})
+    assert node_b_host not in caller_text
+    assert str(kingdom_root) not in caller_text
+    assert str(node_b_root) not in caller_text
+    assert "/" not in caller_text
 
 
+def test_genuinely_empty_remote_audit_keeps_the_existing_response(monkeypatch, tmp_path):
+    monkeypatch.setenv("RETINUE_KINGDOM_ROOT", str(tmp_path / "local-kingdom"))
+    monkeypatch.setenv("RETINUE_KINGDOM_CASTLE_ROOT", str(tmp_path / "remote-kingdom"))
+    monkeypatch.setenv("RETINUE_KINGDOM_CASTLE_HOST", "node-b-node")
+    kingdom = _reload("server.kingdom")
+
+    def successful_run(argv, **kwargs):
+        del argv, kwargs
+        return type("Result", (), {"returncode": 0, "stdout": "", "stderr": ""})()
+
+    async def inline_to_thread(function, *args):
+        return function(*args)
+
+    monkeypatch.setattr(kingdom.subprocess, "run", successful_run)
+    monkeypatch.setattr(kingdom.asyncio, "to_thread", inline_to_thread)
+
+    assert asyncio.run(kingdom.kingdom_audit()) == {"items": []}
 
 
+def test_node_b_action_reports_missing_host_configuration(monkeypatch, tmp_path):
+    monkeypatch.setenv("RETINUE_KINGDOM_ROOT", str(tmp_path / "kingdom"))
+    monkeypatch.delenv("RETINUE_KINGDOM_CASTLE_ROOT", raising=False)
+    monkeypatch.delenv("RETINUE_KINGDOM_CASTLE_HOST", raising=False)
+    monkeypatch.delenv("RETINUE_KINGDOM_VAULT", raising=False)
+    kingdom = _reload("server.kingdom")
+
+    result = kingdom._run_action({"node": "node-b", "action": "snapshot_refresh"})
+
+    assert result == {
+        "ok": False,
+        "error": "RETINUE_KINGDOM_CASTLE_HOST is not configured",
+    }
 
 
 def test_mcp_bridge_imports_without_connection_configuration(monkeypatch):

@@ -15,6 +15,7 @@ from ..helpers import notify_feishu
 from ..schemas import (
     TodoCreateBody,
     TodoGrantBody,
+    TodoProgressBody,
     TodoProposalBody,
     TodoRejectBody,
     TodoReminderBody,
@@ -43,6 +44,7 @@ from ..todos import (
     parse_remind_at,
     promote_item,
     proposal_to_dict,
+    record_progress,
     register_reminder,
     reject_proposal,
     reminder_to_dict,
@@ -158,6 +160,18 @@ def post_todo_proposal(
             notes=body.notes,
             owner_username=body.owner_username,
             due_at=body.due_at,
+            event_on=body.event_on,
+            parent_id=body.parent_id,
+            children=[
+                {
+                    "title": child.title,
+                    "notes": child.notes,
+                    "due_at": child.due_at,
+                    "event_on": child.event_on,
+                    "progress": child.progress,
+                }
+                for child in body.children
+            ],
             remind_at=body.remind_at,
             source_session_id=body.source_session_id,
             source_message_id=body.source_message_id,
@@ -238,6 +252,9 @@ def post_todo(
             title=body.title,
             notes=body.notes,
             due_at=body.due_at,
+            event_on=body.event_on,
+            parent_id=body.parent_id,
+            progress=body.progress,
             remind_at=body.remind_at,
             source_session_id=body.source_session_id,
             source_message_id=body.source_message_id,
@@ -306,6 +323,28 @@ def post_todo_update(
             notes=body.notes,
             due_at=body.due_at,
             clear_due_at=body.due_at == "",
+            event_on=body.event_on,
+            clear_event_on=body.event_on == "",
+            parent_id=body.parent_id,
+            clear_parent_id=body.parent_id == "",
+            progress=body.progress,
+        )
+    except ProtocolError as exc:
+        raise wrap_protocol_errors(exc) from exc
+    return item_to_dict(db, item, include_events=True)
+
+
+@router.post("/api/todos/{item_id}/progress")
+def post_todo_progress(
+    item_id: str,
+    body: TodoProgressBody,
+    principal: Principal = Depends(require_auth),
+    db: Session = Depends(get_db, scope="function"),
+) -> dict[str, Any]:
+    item = _item_or_404(db, item_id)
+    try:
+        item = record_progress(
+            db, principal, item, percent=body.percent, note=body.note
         )
     except ProtocolError as exc:
         raise wrap_protocol_errors(exc) from exc

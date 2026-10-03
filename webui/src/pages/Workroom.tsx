@@ -25,9 +25,10 @@ import { PRIORITY_LABEL, STATUS_LABEL } from "../types";
 import { Avatar } from "../avatar";
 import StageStepper from "../components/StageStepper";
 import TaskDrawer from "../components/TaskDrawer";
+import TaskCollaboration from "../components/TaskCollaboration";
 import { Ambient, PageHeader, Panel } from "../components/ui";
 import "./workroom.css";
-import { BOARD_REFRESH_MS, DATA_REFRESH_EVENT } from "../lib/refresh";
+import { startVisiblePolling } from "../lib/refresh";
 
 type DispatchMode = "direct" | "pipeline";
 const PRIORITIES: Priority[] = ["urgent", "high", "medium", "low", "none"];
@@ -104,14 +105,7 @@ export default function Workroom({ me }: { me: Me }) {
   }, [loadTaskDetail]);
 
   useEffect(() => {
-    void loadCore();
-    const timer = setInterval(() => void loadCore(), BOARD_REFRESH_MS);
-    const onManual = () => void loadCore();
-    window.addEventListener(DATA_REFRESH_EVENT, onManual);
-    return () => {
-      clearInterval(timer);
-      window.removeEventListener(DATA_REFRESH_EVENT, onManual);
-    };
+    return startVisiblePolling(loadCore);
   }, [loadCore]);
 
   useEffect(() => {
@@ -344,7 +338,7 @@ export default function Workroom({ me }: { me: Me }) {
                 <span className="workroom-agent__body">
                   <span className="workroom-agent__head">
                     <strong>{agent.display_name || agent.id}</strong>
-                    <span className="workroom-score">{agent.score}%</span>
+                    <span className="workroom-score" title="根据技能、状态和任务匹配计算的推荐分，不代表成功概率">推荐分 {agent.score}/100</span>
                   </span>
                   <span className="workroom-agent__status">
                     <i className={agent.online ? "is-online" : ""} />
@@ -490,7 +484,7 @@ export default function Workroom({ me }: { me: Me }) {
                     <Avatar name={nameOf(selectedTask.holder)} size={34} square />
                     <div>
                       <strong>{nameOf(selectedTask.holder)}</strong>
-                      <span>单 Agent 直派 · 当前进度 {selectedTask.progress}%</span>
+                      <span>当前持棒 · 上报进度 {selectedTask.progress}%</span>
                     </div>
                   </div>
                 )}
@@ -543,6 +537,10 @@ export default function Workroom({ me }: { me: Me }) {
           </Panel>
         </div>
       </div>
+
+      {selectedTask && <div className="workroom-collaboration">
+        <TaskCollaboration taskId={selectedTask.id} actors={actors} me={me} onChanged={() => void loadCore()} onOpenTask={setSelectedTaskId} />
+      </div>}
 
       {drawerOpen && selectedTask && (
         <TaskDrawer

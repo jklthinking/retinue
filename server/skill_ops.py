@@ -32,7 +32,7 @@ RISK_NOTICE = (
 # Applied only when both the actor and the skill exist in the target database.
 PILOT_BINDINGS: tuple[tuple[str, tuple[str, ...]], ...] = (
     (
-        "throne-codex",
+        "node-a-codex",
         (
             "test-driven-development",
             "systematic-debugging",
@@ -40,7 +40,7 @@ PILOT_BINDINGS: tuple[tuple[str, tuple[str, ...]], ...] = (
         ),
     ),
     (
-        "windows-cursor",
+        "workstation-cursor",
         (
             "review",
             "plan",

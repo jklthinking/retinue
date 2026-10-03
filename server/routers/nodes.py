@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import datetime as dt
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -28,6 +29,15 @@ from ..watermarks import compute_watermark, evaluate_and_maybe_open_card, load_w
 router = APIRouter()
 
 
+def observation_time(value: dt.datetime | None) -> str | None:
+    if value is None:
+        return None
+    # SQLite returns stored UTC datetimes without tzinfo. Never let a browser
+    # reinterpret a server observation in its own local timezone.
+    stamp = value.replace(tzinfo=dt.timezone.utc) if value.tzinfo is None else value.astimezone(dt.timezone.utc)
+    return stamp.isoformat()
+
+
 def node_runtime_to_dict(item: NodeRuntime, data_probed: bool) -> dict[str, Any]:
     # "unknown" (an older probe cannot check data directories) must never
     # collapse into "none" (a current probe checked and found none).
@@ -45,11 +55,11 @@ def node_runtime_to_dict(item: NodeRuntime, data_probed: bool) -> dict[str, Any]
         "source": item.source,
         "path_hint": item.path_hint,
         "data_changed_at": (
-            item.data_changed_at.isoformat() if item.data_changed_at else None
+            observation_time(item.data_changed_at)
         ),
         "data_state": data_state,
-        "detected_at": item.detected_at.isoformat() if item.detected_at else None,
-        "updated_at": item.updated_at.isoformat() if item.updated_at else None,
+        "detected_at": observation_time(item.detected_at),
+        "updated_at": observation_time(item.updated_at),
     }
 
 
@@ -80,16 +90,16 @@ def node_to_dict(
         "services": json.loads(node.services_json),
         "membership_status": node.membership_status,
         "admitted_by": node.admitted_by,
-        "admitted_at": node.admitted_at.isoformat() if node.admitted_at else None,
+        "admitted_at": observation_time(node.admitted_at),
         "runtimes_probed_at": (
-            node.runtimes_probed_at.isoformat() if node.runtimes_probed_at else None
+            observation_time(node.runtimes_probed_at)
         ),
         "data_dirs_probed_at": (
-            node.data_dirs_probed_at.isoformat() if node.data_dirs_probed_at else None
+            observation_time(node.data_dirs_probed_at)
         ),
         "runtime_state": runtime_state,
         "runtimes": [node_runtime_to_dict(item, data_probed) for item in runtimes],
-        "updated_at": node.updated_at.isoformat() if node.updated_at else None,
+        "updated_at": observation_time(node.updated_at),
         "watermark": watermark
         or {
             "disk": "unknown",

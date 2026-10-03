@@ -18,5 +18,10 @@ from core.static_demo import build_static_demo  # noqa: E402
 parser = argparse.ArgumentParser()
 parser.add_argument("--output", type=Path, default=REPOSITORY / "docs" / "demo")
 args = parser.parse_args()
-for page in build_static_demo(args.output):
+if (args.output / ".retinue-panel-demo").is_file():
+    from core.panel_demo import build_panel_demo
+    pages = build_panel_demo(args.output)
+else:
+    pages = build_static_demo(args.output)
+for page in pages:
     print(page)

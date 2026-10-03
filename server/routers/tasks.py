@@ -69,11 +69,7 @@ from ..helpers import (
 )
 from ..intake import open_channel_card
 from ..skill_ops import actor_skill_briefing
-def proposal_for_task(_task):
-    return None
-
-def apply_roster_proposal(_db, _task, authorised_by):
-    raise ProtocolError('roster import is not in this edition')
+from ..kingdom_import import apply_kingdom_proposal, proposal_for_task
 from ..schemas import (
     AttemptBody,
     ClaimBody,
@@ -916,7 +912,7 @@ def post_apply_roster_proposal(
 ) -> dict[str, Any]:
     task = get_task_or_404(db, task_id)
     try:
-        applied = apply_roster_proposal(
+        applied = apply_kingdom_proposal(
             db,
             task,
             authorised_by=principal.write_identity,

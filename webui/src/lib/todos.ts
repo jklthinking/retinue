@@ -3,12 +3,32 @@ import type { TodoHome, TodoItem, TodoProposal } from "../types";
 
 /** Thin wrappers over the private-todo REST surface; see server/routers/todos.py. */
 
+export interface TodoCreateInput {
+  title: string;
+  notes?: string;
+  due_at?: string | null;
+  event_on?: string | null;
+  parent_id?: string | null;
+  progress?: number;
+}
+
 export function fetchTodoHome(): Promise<TodoHome> {
   return api.get<TodoHome>("/api/todos/home");
 }
 
 export function fetchTodos(): Promise<TodoItem[]> {
   return api.get<{ todos: TodoItem[] }>("/api/todos").then((body) => body.todos);
+}
+
+export function createTodoItem(body: TodoCreateInput): Promise<TodoItem> {
+  return api.post<TodoItem>("/api/todos", body);
+}
+
+export function updateTodoItem(
+  itemId: string,
+  body: { progress?: number; title?: string; due_at?: string | null; event_on?: string | null }
+): Promise<TodoItem> {
+  return api.post<TodoItem>(`/api/todos/${itemId}/update`, body);
 }
 
 export function confirmTodoProposal(proposalId: string): Promise<TodoItem> {

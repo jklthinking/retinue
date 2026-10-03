@@ -200,7 +200,7 @@ export default function Admin() {
       <section className="admin-section onboarding-section">
         <div className="onboarding-card-icon"><Bot size={19} /></div>
         <div className="onboarding-card-copy">
-          <span className="rt-eyebrow">INTERNAL BOOTSTRAP</span>
+          <span className="rt-eyebrow">KINGDOM BOOTSTRAP</span>
           <h2>{vocab.onboardTitle}</h2>
           <p>{vocab.onboardDesc}</p>
         </div>
@@ -211,11 +211,12 @@ export default function Admin() {
 
       {status && (
         <section className="admin-section">
-          <h2>授权状态</h2>
+          <h2>版本与支持证书</h2>
+          <p><span className="chip chip-low">MIT 开源版</span> 允许个人与商业使用，无需激活（服务端 v{status.version}）。</p>
           {status.license.valid ? (
-            <p><span className="chip chip-low">已授权</span> {status.license.customer} · {status.license.edition} · {status.license.seats} 席 · 有效期至 {status.license.expires_at}（服务端 v{status.version}）</p>
+            <p><span className="chip chip-low">支持证书有效</span> {status.license.customer} · {status.license.edition} · {status.license.seats} 席 · 有效期至 {status.license.expires_at}；证书仅提供支持信息。</p>
           ) : (
-            <p><span className="chip chip-high">试用模式</span> {status.license.error ? `许可证异常：${status.license.error}` : "未安装许可证。将 license.json 放入数据目录后重启即可激活。"}（服务端 v{status.version}）</p>
+            <p className="muted">{status.license.error ? `可选支持证书异常：${status.license.error}` : "未安装可选支持证书。"} 不影响 MIT 版的功能或使用权。</p>
           )}
         </section>
       )}
@@ -268,8 +269,8 @@ export default function Admin() {
           {!onboardingResult ? <>
             <form className="onboarding-form" onSubmit={onPrepareOnboarding}>
               <div className="onboarding-form-heading"><Bot size={16} /><span>身份资料</span></div>
-              <label>执行者标识<input name="actor_id" placeholder="例如 forge-scribe" pattern="[a-z0-9]+(-[a-z0-9]+)*" required /></label>
-              <label>显示名<input name="display_name" placeholder="例如 Forge 写作官" required /></label>
+              <label>执行者标识<input name="actor_id" placeholder="例如 worker-scribe" pattern="[a-z0-9]+(-[a-z0-9]+)*" required /></label>
+              <label>显示名<input name="display_name" placeholder="例如节点 A 写作助手" required /></label>
               <label>职责<input name="actor_role" placeholder="例如 写作与编辑" maxLength={128} /></label>
               <label>目标<textarea name="goal" placeholder="例如 把业务要求整理成清晰、可交付的内容。" maxLength={500} rows={2} /></label>
               <div className="onboarding-grid"><label>运行时<input name="runtime" placeholder="claude-code" /></label><label>模型<input name="model" placeholder="claude-sonnet" /></label></div>

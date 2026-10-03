@@ -14,6 +14,9 @@ function makeItem(overrides: Partial<TodoItem> = {}): TodoItem {
     notes: "",
     status: "open",
     due_at: null,
+    event_on: null,
+    parent_id: null,
+    progress: 0,
     remind_at: null,
     proposal_id: null,
     source_channel: null,
@@ -46,10 +49,12 @@ function makeHome(overrides: Partial<TodoHome> = {}): TodoHome {
     ],
     due_today: [makeItem({ id: "todo-1", title: "交周报", due_at: "2026-08-13" })],
     overdue: [makeItem({ id: "todo-2", title: "还书", due_at: "2026-08-10" })],
+    events_tomorrow: [],
+    anytime: [],
     waiting_on_others: [
       {
         ...makeItem({ id: "todo-3", title: "审阅稿件", status: "promoted", task_id: "task-x" }),
-        task_holder: "throne-grok",
+        task_holder: "node-a-grok",
         task_status: "doing",
       },
     ],

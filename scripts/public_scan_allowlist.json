@@ -1,0 +1,690 @@
+{
+  "version": 1,
+  "policy": "Exact file, source-line hash, category and match hash only. No directories are exempt.",
+  "entries": [
+    {
+      "file": "adapters/exporters/sessions.py",
+      "line": 43,
+      "category": "machine-path",
+      "line_sha256": "5d635ebdd204cc36d77f82591bd4fad3641ed75605d881f1138ed3e0743ccf2b",
+      "match_sha256": "8ac16fd7861b930708f8adcb47ac33755af68d1b5672ed4c57a2498972c4d3c2",
+      "reason": "sanitizer-rule",
+      "review_note": "Independently reviewed exact public source context: security-rule-literal. Any content or file change requires new review."
+    },
+    {
+      "file": "adapters/exporters/sessions.py",
+      "line": 43,
+      "category": "machine-path",
+      "line_sha256": "5d635ebdd204cc36d77f82591bd4fad3641ed75605d881f1138ed3e0743ccf2b",
+      "match_sha256": "f59c3413e99204fd33a15f9b76a8ed797ba24e07cf216d1362f9b37cefca85b4",
+      "reason": "sanitizer-rule",
+      "review_note": "Independently reviewed exact public source context: security-rule-literal. Any content or file change requires new review."
+    },
+    {
+      "file": "adapters/exporters/sessions.py",
+      "line": 43,
+      "category": "machine-path",
+      "line_sha256": "5d635ebdd204cc36d77f82591bd4fad3641ed75605d881f1138ed3e0743ccf2b",
+      "match_sha256": "80be236287644bd2b7b718a01823eaceaf2d11398b4c86c1b52c7a727d6cd24d",
+      "reason": "sanitizer-rule",
+      "review_note": "Independently reviewed exact public source context: security-rule-literal. Any content or file change requires new review."
+    },
+    {
+      "file": "core/protocol/task.py",
+      "line": 45,
+      "category": "machine-path",
+      "line_sha256": "c357e1b24a6aa38a90ea7990af64a7aff318b72ddf4bcc2a00f5e19427165ced",
+      "match_sha256": "703b308c9a1b3be0009889ec007892730736ae9a331db9255da7d22b42cbc7e3",
+      "reason": "sanitizer-rule",
+      "review_note": "Independently reviewed exact public source context: security-rule-literal. Any content or file change requires new review."
+    },
+    {
+      "file": "core/protocol/task.py",
+      "line": 45,
+      "category": "machine-path",
+      "line_sha256": "c357e1b24a6aa38a90ea7990af64a7aff318b72ddf4bcc2a00f5e19427165ced",
+      "match_sha256": "a0417f8ad3c4032aa5ea83a333abfbfeeb0478006a7644617219503d750fb56c",
+      "reason": "sanitizer-rule",
+      "review_note": "Independently reviewed exact public source context: security-rule-literal. Any content or file change requires new review."
+    },
+    {
+      "file": "core/protocol/task.py",
+      "line": 45,
+      "category": "machine-path",
+      "line_sha256": "c357e1b24a6aa38a90ea7990af64a7aff318b72ddf4bcc2a00f5e19427165ced",
+      "match_sha256": "c14b742cfdd9a79d749b3d9d66d6fa10ad75277a141ace3115110ce55e975a91",
+      "reason": "sanitizer-rule",
+      "review_note": "Independently reviewed exact public source context: security-rule-literal. Any content or file change requires new review."
+    },
+    {
+      "file": "docs/demo/assets/index-yKb0YEP8.js",
+      "line": 175,
+      "category": "address",
+      "line_sha256": "c0561c4907ffc1fae46c1ba92a4e35b6e3ca2eb83d8589fae644fac411f53b2b",
+      "match_sha256": "a38256b48fff62fd48df52a529383b581681bccfd26c314410abd7d5ab818380",
+      "reason": "svg-path-constant",
+      "review_note": "Independently reviewed exact public source context: svg-path-numeric-constant-not-network-address. Any content or file change requires new review."
+    },
+    {
+      "file": "docs/THIRD_PARTY_NOTICES.md",
+      "line": 52,
+      "category": "email",
+      "line_sha256": "e5284b0f51898ba224929ce2cc66e6575809e5e39e669afeb483cad02a682b10",
+      "match_sha256": "d1d48f2285248b9be4679339c9aafd3e180cb9b28274c2c3de1a5dcbd2334a4e",
+      "reason": "public-third-party-notice",
+      "review_note": "Independently reviewed exact public source context: public-third-party-license-copyright. Any content or file change requires new review."
+    },
+    {
+      "file": "docs/walkthroughs/feishu-bot2bot.md",
+      "line": 55,
+      "category": "machine-path",
+      "line_sha256": "32596d8714ee0dfe6db654ad33af5f4539ab9aca1cca04fa9aa00aafb101347c",
+      "match_sha256": "9735a6c6cb0665bcd4e257bc6a05d7d0bbddb0116ed1a187db05221227ffa231",
+      "reason": "negative-test",
+      "review_note": "Independently reviewed exact public source context: escaped-example-JSON. Any content or file change requires new review."
+    },
+    {
+      "file": "node/control_relay.py",
+      "line": 32,
+      "category": "machine-path",
+      "line_sha256": "3e6401fd1c81d3d6a0a65e1fc206d231d66549efeb8e7b2e75c060c84418a9fc",
+      "match_sha256": "b5e503112a24cf34b1e0b4439f32f90388c2027de3fd04c12a4b8090061c04fe",
+      "reason": "sanitizer-rule",
+      "review_note": "Independently reviewed exact public source context: security-rule-literal. Any content or file change requires new review."
+    },
+    {
+      "file": "scripts/demo_collaboration_flow.py",
+      "line": 40,
+      "category": "credential",
+      "line_sha256": "e1e13e428640d3d749cc4c669d3284b08d1ca10bc937226c9a02468f276b03f9",
+      "match_sha256": "863990bbe7f73efc3f5a2756e9b5c8faa7053fd3996db39e9e09607c688d7f03",
+      "reason": "synthetic-demo",
+      "review_note": "Independently reviewed exact public source context: synthetic-demo-temporary-seed-login. Any content or file change requires new review."
+    },
+    {
+      "file": "scripts/export_community.py",
+      "line": 32,
+      "category": "machine-path",
+      "line_sha256": "0257e0b1eab04f8d7b4073aa27df8e999044bb87477baffe5c80e5dac5e3d4bb",
+      "match_sha256": "1de2ff77244ebede5122cd61426f937d8d62cc050170b110ad51fc5072304ac2",
+      "reason": "sanitizer-rule",
+      "review_note": "Independently reviewed exact public source context: security-rule-literal. Any content or file change requires new review."
+    },
+    {
+      "file": "scripts/export_community.py",
+      "line": 32,
+      "category": "machine-path",
+      "line_sha256": "0257e0b1eab04f8d7b4073aa27df8e999044bb87477baffe5c80e5dac5e3d4bb",
+      "match_sha256": "a0417f8ad3c4032aa5ea83a333abfbfeeb0478006a7644617219503d750fb56c",
+      "reason": "sanitizer-rule",
+      "review_note": "Independently reviewed exact public source context: security-rule-literal. Any content or file change requires new review."
+    },
+    {
+      "file": "scripts/export_community.py",
+      "line": 32,
+      "category": "machine-path",
+      "line_sha256": "0257e0b1eab04f8d7b4073aa27df8e999044bb87477baffe5c80e5dac5e3d4bb",
+      "match_sha256": "c14b742cfdd9a79d749b3d9d66d6fa10ad75277a141ace3115110ce55e975a91",
+      "reason": "sanitizer-rule",
+      "review_note": "Independently reviewed exact public source context: security-rule-literal. Any content or file change requires new review."
+    },
+    {
+      "file": "server/schemas.py",
+      "line": 502,
+      "category": "machine-path",
+      "line_sha256": "91653edef519e6ac5be5406f45c07143175b968e05ecd03152dbc788fc069576",
+      "match_sha256": "4ac57404a7bb5caa16f1a7052ff3ea2fc8a32af536c11c28cbc324ba0686343f",
+      "reason": "sanitizer-rule",
+      "review_note": "Independently reviewed exact public source context: security-rule-literal. Any content or file change requires new review."
+    },
+    {
+      "file": "server/schemas.py",
+      "line": 505,
+      "category": "machine-path",
+      "line_sha256": "91653edef519e6ac5be5406f45c07143175b968e05ecd03152dbc788fc069576",
+      "match_sha256": "4ac57404a7bb5caa16f1a7052ff3ea2fc8a32af536c11c28cbc324ba0686343f",
+      "reason": "sanitizer-rule",
+      "review_note": "Independently reviewed exact public source context: security-rule-literal. Any content or file change requires new review."
+    },
+    {
+      "file": "server/schemas.py",
+      "line": 530,
+      "category": "machine-path",
+      "line_sha256": "23c902d9cbd6650c5d8d6690292948cf7483bca94190f6192a84fee9c7901c72",
+      "match_sha256": "4ac57404a7bb5caa16f1a7052ff3ea2fc8a32af536c11c28cbc324ba0686343f",
+      "reason": "sanitizer-rule",
+      "review_note": "Independently reviewed exact public source context: security-rule-literal. Any content or file change requires new review."
+    },
+    {
+      "file": "server/schemas.py",
+      "line": 532,
+      "category": "machine-path",
+      "line_sha256": "973cb284d69d0959aa3e7891757e9c1c4c7a9d5a776a320b9a17a8ea7643e60d",
+      "match_sha256": "4ac57404a7bb5caa16f1a7052ff3ea2fc8a32af536c11c28cbc324ba0686343f",
+      "reason": "sanitizer-rule",
+      "review_note": "Independently reviewed exact public source context: security-rule-literal. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_agent_discovery.py",
+      "line": 55,
+      "category": "credential",
+      "line_sha256": "02d1d8023c7e1918f10623fb9406521a0ef8b4b87472691c778868c3aa691e1d",
+      "match_sha256": "4561d1d5af13bee5f3c91f0460007fcd23cb9298db878228b3e0568220df46f9",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_agent_dispatch_limits.py",
+      "line": 113,
+      "category": "credential",
+      "line_sha256": "92e2ac4e4beb7d9e599680fd98fe9f851c786c7d3293385a8ab25e920649a6c7",
+      "match_sha256": "7448520cb288ff642c533449d0dc316884ac3badf979b7c5cbdf03982c9fbb78",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_agent_matching.py",
+      "line": 74,
+      "category": "credential",
+      "line_sha256": "7c39ac0de053bfbc02721b15fe0b09bbf7818c2c60294975f4aa40e43ac9f00a",
+      "match_sha256": "9bc3bbf4be3178795196cdc030b39a6a4098c4dd96c6c7746b5b6b83bdb2b2e4",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_attempts.py",
+      "line": 201,
+      "category": "credential",
+      "line_sha256": "58a65952cd1f961b74ca8ff1ff0b65063461ec26aa2c9c2599af7c44cf057d44",
+      "match_sha256": "d86a4e85ee22fca99ec1c557564d21f687f15b3aa909945e1791b06d0e561e1c",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_collaboration.py",
+      "line": 261,
+      "category": "credential",
+      "line_sha256": "093e785b0290409e878eb86a9a91f1a74110f636b0be7302cb1f54e76a6a43eb",
+      "match_sha256": "f33b0d88cae36429ef509dcdb9e39df489d600511be54a6f9ffc2dcae6d13727",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_collaboration.py",
+      "line": 268,
+      "category": "credential",
+      "line_sha256": "af1504d17ca395f957fbaedd2ad9c4830bd9c161051e6b69f892e94827488476",
+      "match_sha256": "f33b0d88cae36429ef509dcdb9e39df489d600511be54a6f9ffc2dcae6d13727",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_collaboration.py",
+      "line": 365,
+      "category": "credential",
+      "line_sha256": "afc3adefebbbf6ae1598e813cb1b3856bc306656b21d6337a38c30384789be67",
+      "match_sha256": "08361e420858c6984a2175ec82ebfb11d042cb83c88bbd232d302ffe9c8d228e",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_collaboration_context.py",
+      "line": 232,
+      "category": "credential",
+      "line_sha256": "093e785b0290409e878eb86a9a91f1a74110f636b0be7302cb1f54e76a6a43eb",
+      "match_sha256": "f33b0d88cae36429ef509dcdb9e39df489d600511be54a6f9ffc2dcae6d13727",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_cookie_secure.py",
+      "line": 37,
+      "category": "credential",
+      "line_sha256": "58a65952cd1f961b74ca8ff1ff0b65063461ec26aa2c9c2599af7c44cf057d44",
+      "match_sha256": "d86a4e85ee22fca99ec1c557564d21f687f15b3aa909945e1791b06d0e561e1c",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_dispatch_contract.py",
+      "line": 59,
+      "category": "credential",
+      "line_sha256": "02d1d8023c7e1918f10623fb9406521a0ef8b4b87472691c778868c3aa691e1d",
+      "match_sha256": "4561d1d5af13bee5f3c91f0460007fcd23cb9298db878228b3e0568220df46f9",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_dispatch_v2.py",
+      "line": 108,
+      "category": "credential",
+      "line_sha256": "e0026bfeef9df2c51aaa40c0d20eb9099000497e1a41d188c4a6f176680f3b74",
+      "match_sha256": "036590867ac88ad51f662b31c5191417f243928a2b91ed20c045a79751206f71",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_distill_m0.py",
+      "line": 335,
+      "category": "credential",
+      "line_sha256": "bbea10a6231cee173457264b948ed5d529c04d749b3c1380bd1320352103c8d3",
+      "match_sha256": "4616ee921059639e084977900156874c9dc7067341bc45adfa04f906c7b8467d",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_export_community.py",
+      "line": 116,
+      "category": "credential",
+      "line_sha256": "743588777cb87a0b536e7c5e3acb8bd7f5ce45595689e7f808e771207b264754",
+      "match_sha256": "5222d9433e3bf476fe2677e877f1dd5f1f59dcd7937477725bf45e468804bf7c",
+      "reason": "negative-test",
+      "review_note": "Independently reviewed exact public source context: synthetic-scan-negative-case. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_export_community.py",
+      "line": 125,
+      "category": "credential",
+      "line_sha256": "790782a46082176a1a7561b49c0f9d1a6d63663bfadf0aea0370b8611226cf46",
+      "match_sha256": "3f4dd124b8a881f6c6b53fc6d70002e47d40c2f20a18165284bd8558d091dfba",
+      "reason": "negative-test",
+      "review_note": "Independently reviewed exact public source context: synthetic-scan-negative-case. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_export_community.py",
+      "line": 139,
+      "category": "credential",
+      "line_sha256": "936abd49b64ccf3bd0443e5c73d67c85093cef2dfdfc050e242ba6d42070a1f7",
+      "match_sha256": "3f4dd124b8a881f6c6b53fc6d70002e47d40c2f20a18165284bd8558d091dfba",
+      "reason": "negative-test",
+      "review_note": "Independently reviewed exact public source context: synthetic-scan-negative-case. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_export_community.py",
+      "line": 145,
+      "category": "credential",
+      "line_sha256": "a5c0f0c61eaf0fb864eb96e14f73689a7e0fe6a08ba674e42e21d8ed65ddfab5",
+      "match_sha256": "e87dca08badabb5bdd311ebc4bc9ee51e6706de08ba35ee59ea34c7b03f34a88",
+      "reason": "negative-test",
+      "review_note": "Independently reviewed exact public source context: synthetic-scan-negative-case. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_export_community.py",
+      "line": 152,
+      "category": "credential",
+      "line_sha256": "936abd49b64ccf3bd0443e5c73d67c85093cef2dfdfc050e242ba6d42070a1f7",
+      "match_sha256": "3f4dd124b8a881f6c6b53fc6d70002e47d40c2f20a18165284bd8558d091dfba",
+      "reason": "negative-test",
+      "review_note": "Independently reviewed exact public source context: synthetic-scan-negative-case. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_flow_api.py",
+      "line": 31,
+      "category": "credential",
+      "line_sha256": "347e56f4be60015efdbc1671bea78208654c8ffcf55b0ae4fbc8f5faa76ed8eb",
+      "match_sha256": "a5ed74363fc4eb8b9a8373a4ef164b0aba0126cebefb9e6ca680527c36e73eed",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_intake_cmd_m1.py",
+      "line": 88,
+      "category": "credential",
+      "line_sha256": "13c0be552bdf98098e96072d27d68705c13d41060e47616c5fb7d661872e8ac7",
+      "match_sha256": "b0f1638a9d54f96d65477d49f5ab505b6f832fd5f0ecb8bdbcc349906238fd70",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_intake_m0.py",
+      "line": 104,
+      "category": "credential",
+      "line_sha256": "13c0be552bdf98098e96072d27d68705c13d41060e47616c5fb7d661872e8ac7",
+      "match_sha256": "b0f1638a9d54f96d65477d49f5ab505b6f832fd5f0ecb8bdbcc349906238fd70",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_intake_m0.py",
+      "line": 387,
+      "category": "credential",
+      "line_sha256": "d6b9d00efc8faaf7f0ae779809008c86e8bef4e73077894db4b1df8399b860e0",
+      "match_sha256": "c1ececcf2f359a5dd6906d01a3b602ddfdc3e9df02d26e19e778a427833163f1",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_intake_m0.py",
+      "line": 445,
+      "category": "credential",
+      "line_sha256": "d6b9d00efc8faaf7f0ae779809008c86e8bef4e73077894db4b1df8399b860e0",
+      "match_sha256": "c1ececcf2f359a5dd6906d01a3b602ddfdc3e9df02d26e19e778a427833163f1",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_live_sessions_api.py",
+      "line": 59,
+      "category": "credential",
+      "line_sha256": "02d1d8023c7e1918f10623fb9406521a0ef8b4b87472691c778868c3aa691e1d",
+      "match_sha256": "4561d1d5af13bee5f3c91f0460007fcd23cb9298db878228b3e0568220df46f9",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_node_inventory.py",
+      "line": 50,
+      "category": "credential",
+      "line_sha256": "138473e93c27ada354d61888903be587c47665d69c15359c0839d82ffefaa6fc",
+      "match_sha256": "4561d1d5af13bee5f3c91f0460007fcd23cb9298db878228b3e0568220df46f9",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_node_inventory.py",
+      "line": 219,
+      "category": "machine-path",
+      "line_sha256": "0ae39c86409435b270667ffe20dfa7c2a5f51f4026124084c65808af9ed47b64",
+      "match_sha256": "28f709d79730058e2a461518e34126da18ceda07729e792c92f7ca1251e730bf",
+      "reason": "negative-test",
+      "review_note": "Independently reviewed exact public source context: synthetic-privacy-boundary-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_orchestration_lease.py",
+      "line": 465,
+      "category": "credential",
+      "line_sha256": "267f126defe49a88951c4a9827e928c38a7695f4383490c9509a5a214cf23945",
+      "match_sha256": "036590867ac88ad51f662b31c5191417f243928a2b91ed20c045a79751206f71",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_pipeline_v2.py",
+      "line": 34,
+      "category": "credential",
+      "line_sha256": "347e56f4be60015efdbc1671bea78208654c8ffcf55b0ae4fbc8f5faa76ed8eb",
+      "match_sha256": "a5ed74363fc4eb8b9a8373a4ef164b0aba0126cebefb9e6ca680527c36e73eed",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_retinue_node_pull.py",
+      "line": 112,
+      "category": "email",
+      "line_sha256": "cad675124eaf5f081e035a9675f0e67c4e79c3fa689979151bdc71e903ee64fa",
+      "match_sha256": "b6da6d5bf1f6033644e6e32d2ae168e24c936234d6824bc9776fb935c9a6ddb5",
+      "reason": "negative-test",
+      "review_note": "Independently reviewed exact public source context: synthetic-hostile-URL-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_runtime_pins.py",
+      "line": 170,
+      "category": "credential",
+      "line_sha256": "138473e93c27ada354d61888903be587c47665d69c15359c0839d82ffefaa6fc",
+      "match_sha256": "4561d1d5af13bee5f3c91f0460007fcd23cb9298db878228b3e0568220df46f9",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_runtime_probe.py",
+      "line": 146,
+      "category": "machine-path",
+      "line_sha256": "a20ee0a7e1215497a738c5ce3369b3db7f3cf422da9c1879f9a3fc1b0d6ec07d",
+      "match_sha256": "8545a81f99f36eda523c5e88e45567d21aaf5ea733e5595596cb07dd7364e8e4",
+      "reason": "negative-test",
+      "review_note": "Independently reviewed exact public source context: synthetic-privacy-boundary-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_runtime_probe.py",
+      "line": 149,
+      "category": "machine-path",
+      "line_sha256": "a807cbdaa40e9c4f08a443deec3dfe2c1d9f642faa6a6a8c7484510927670f2d",
+      "match_sha256": "8545a81f99f36eda523c5e88e45567d21aaf5ea733e5595596cb07dd7364e8e4",
+      "reason": "negative-test",
+      "review_note": "Independently reviewed exact public source context: synthetic-privacy-boundary-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_runtime_probe.py",
+      "line": 150,
+      "category": "machine-path",
+      "line_sha256": "ed93a5b884784a93c9325bb6f663031df3ca47112006088eadc14ab80ad911bb",
+      "match_sha256": "8545a81f99f36eda523c5e88e45567d21aaf5ea733e5595596cb07dd7364e8e4",
+      "reason": "negative-test",
+      "review_note": "Independently reviewed exact public source context: synthetic-privacy-boundary-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_runtime_probe.py",
+      "line": 151,
+      "category": "machine-path",
+      "line_sha256": "c1209bf1836c2718f1e8405dd4b79dcbfcf7de59d8d05ce2ac6e92f2b7f8a0da",
+      "match_sha256": "8545a81f99f36eda523c5e88e45567d21aaf5ea733e5595596cb07dd7364e8e4",
+      "reason": "negative-test",
+      "review_note": "Independently reviewed exact public source context: synthetic-privacy-boundary-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_runtime_probe.py",
+      "line": 152,
+      "category": "machine-path",
+      "line_sha256": "2e3e3f38707f19292db0c02f1919ef75f4f1ee0986f2e670834a55397557093a",
+      "match_sha256": "8545a81f99f36eda523c5e88e45567d21aaf5ea733e5595596cb07dd7364e8e4",
+      "reason": "negative-test",
+      "review_note": "Independently reviewed exact public source context: synthetic-privacy-boundary-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_runtime_probe.py",
+      "line": 153,
+      "category": "machine-path",
+      "line_sha256": "6b94457c5f2fe08b33a2d0d94137d8a9cb4f71620d211297a649843577498924",
+      "match_sha256": "8545a81f99f36eda523c5e88e45567d21aaf5ea733e5595596cb07dd7364e8e4",
+      "reason": "negative-test",
+      "review_note": "Independently reviewed exact public source context: synthetic-privacy-boundary-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_server_api.py",
+      "line": 51,
+      "category": "credential",
+      "line_sha256": "138473e93c27ada354d61888903be587c47665d69c15359c0839d82ffefaa6fc",
+      "match_sha256": "4561d1d5af13bee5f3c91f0460007fcd23cb9298db878228b3e0568220df46f9",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_server_api.py",
+      "line": 103,
+      "category": "credential",
+      "line_sha256": "58a65952cd1f961b74ca8ff1ff0b65063461ec26aa2c9c2599af7c44cf057d44",
+      "match_sha256": "d86a4e85ee22fca99ec1c557564d21f687f15b3aa909945e1791b06d0e561e1c",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_server_api.py",
+      "line": 114,
+      "category": "credential",
+      "line_sha256": "803e0966aad9c8667f318ae10798e1b544e7a424754367822294e3e52c6545dc",
+      "match_sha256": "bb2a77f78d58bb0311536689e8d6c69d69c9fa12e97b827a76a9e5df346004ee",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_server_api.py",
+      "line": 134,
+      "category": "credential",
+      "line_sha256": "068e96ab9fc6c7a398bf0c795b1d99d07f4ee4008bfdb42b36b1976429adf1e4",
+      "match_sha256": "25c1ee6412bd507a17c45caf04b7ab334cb957fd8a4e62bffa6a2f2433633b7d",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_server_api.py",
+      "line": 143,
+      "category": "credential",
+      "line_sha256": "9f820f4dfe39aaf7656d263cd6d581f6ee85d53c29ee4cf44b9ac16e6280beaf",
+      "match_sha256": "25c1ee6412bd507a17c45caf04b7ab334cb957fd8a4e62bffa6a2f2433633b7d",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_server_api.py",
+      "line": 149,
+      "category": "credential",
+      "line_sha256": "21e28e34bfe653bcc7cda2a85a1aacdbb20bfae7d1e73dd747b0aa794e9b3840",
+      "match_sha256": "25c1ee6412bd507a17c45caf04b7ab334cb957fd8a4e62bffa6a2f2433633b7d",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_server_api.py",
+      "line": 156,
+      "category": "credential",
+      "line_sha256": "f7e13acf8cf1b7b5d931bd889a99d61f7f6f61f2324b5156ae3c73624a813094",
+      "match_sha256": "4561d1d5af13bee5f3c91f0460007fcd23cb9298db878228b3e0568220df46f9",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_server_api.py",
+      "line": 165,
+      "category": "credential",
+      "line_sha256": "9f820f4dfe39aaf7656d263cd6d581f6ee85d53c29ee4cf44b9ac16e6280beaf",
+      "match_sha256": "25c1ee6412bd507a17c45caf04b7ab334cb957fd8a4e62bffa6a2f2433633b7d",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_server_api.py",
+      "line": 178,
+      "category": "credential",
+      "line_sha256": "21e28e34bfe653bcc7cda2a85a1aacdbb20bfae7d1e73dd747b0aa794e9b3840",
+      "match_sha256": "25c1ee6412bd507a17c45caf04b7ab334cb957fd8a4e62bffa6a2f2433633b7d",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_server_api.py",
+      "line": 194,
+      "category": "credential",
+      "line_sha256": "83498a2eab6e9494a6224a4c1cc89e8599c7b91ddf14643404bed77c02eb22fd",
+      "match_sha256": "25c1ee6412bd507a17c45caf04b7ab334cb957fd8a4e62bffa6a2f2433633b7d",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_server_api.py",
+      "line": 200,
+      "category": "credential",
+      "line_sha256": "83498a2eab6e9494a6224a4c1cc89e8599c7b91ddf14643404bed77c02eb22fd",
+      "match_sha256": "25c1ee6412bd507a17c45caf04b7ab334cb957fd8a4e62bffa6a2f2433633b7d",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_server_api.py",
+      "line": 215,
+      "category": "credential",
+      "line_sha256": "4e7d0b324a85142501e7980e5f15a8988786fe6f2776c5cddcddaa7e06d62c94",
+      "match_sha256": "25c1ee6412bd507a17c45caf04b7ab334cb957fd8a4e62bffa6a2f2433633b7d",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_server_api.py",
+      "line": 266,
+      "category": "credential",
+      "line_sha256": "7aa2fa00881951ef79783bdd5eaf45ceac78870d4ea4870b4e08dda225fff72b",
+      "match_sha256": "e6dcbe17db52e3f9ef2d4ca853647ed9ab738ca0615d0dfff0070322138b15df",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_server_api.py",
+      "line": 276,
+      "category": "credential",
+      "line_sha256": "34f82a74a57c3f3609c2d9d3cb2f7377884e836ac64632adc08228a7e96822df",
+      "match_sha256": "e6dcbe17db52e3f9ef2d4ca853647ed9ab738ca0615d0dfff0070322138b15df",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_server_api.py",
+      "line": 870,
+      "category": "credential",
+      "line_sha256": "ad2fac8553d0428300113c8d70c1e6fb3d699cd1fe18313d543462f2a6aa1f7f",
+      "match_sha256": "d5e90542cc3b924a021812bab36019e30d745b412e71c237589ed52397402dd4",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_server_api.py",
+      "line": 888,
+      "category": "credential",
+      "line_sha256": "ad2fac8553d0428300113c8d70c1e6fb3d699cd1fe18313d543462f2a6aa1f7f",
+      "match_sha256": "d5e90542cc3b924a021812bab36019e30d745b412e71c237589ed52397402dd4",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_session_sync.py",
+      "line": 40,
+      "category": "machine-path",
+      "line_sha256": "7f81acddd3045a0aa982aa119a1ae082f94080092750e39007bfeab6f895a8c7",
+      "match_sha256": "28f709d79730058e2a461518e34126da18ceda07729e792c92f7ca1251e730bf",
+      "reason": "negative-test",
+      "review_note": "Independently reviewed exact public source context: synthetic-privacy-boundary-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_session_sync.py",
+      "line": 40,
+      "category": "machine-path",
+      "line_sha256": "7f81acddd3045a0aa982aa119a1ae082f94080092750e39007bfeab6f895a8c7",
+      "match_sha256": "ac1b3edc09d2b039d758707ab0efc1c6fdc2fc062f0970977efd287210daddb7",
+      "reason": "negative-test",
+      "review_note": "Independently reviewed exact public source context: synthetic-privacy-boundary-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_session_sync.py",
+      "line": 267,
+      "category": "credential",
+      "line_sha256": "02d1d8023c7e1918f10623fb9406521a0ef8b4b87472691c778868c3aa691e1d",
+      "match_sha256": "4561d1d5af13bee5f3c91f0460007fcd23cb9298db878228b3e0568220df46f9",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_session_sync.py",
+      "line": 422,
+      "category": "credential",
+      "line_sha256": "7092b9351c3f5add02e7a805de9b37f8cdde4d2c08ab58c129a7b972a6c0d6f9",
+      "match_sha256": "a1dca35699459c3f0e0590d9f73763191c16df99f9332c7b927280dd1ede026f",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_skill_bindings.py",
+      "line": 249,
+      "category": "machine-path",
+      "line_sha256": "c9fcd78a295b438df4fa09b0cf517fcc9ca39be3722faf7c6ba61c8d9e345614",
+      "match_sha256": "28f709d79730058e2a461518e34126da18ceda07729e792c92f7ca1251e730bf",
+      "reason": "negative-test",
+      "review_note": "Independently reviewed exact public source context: synthetic-privacy-boundary-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_token_lifecycle.py",
+      "line": 76,
+      "category": "credential",
+      "line_sha256": "46c5b182754c873c5daf8cb2fe03c09fe730e413b1cb5214f9148b2032e93c0b",
+      "match_sha256": "e851a8ce8aef20f4d83ad072d4b9cd7d407f27798d885a1aaa507f55a30349cd",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "tests/test_watermarks_m0.py",
+      "line": 66,
+      "category": "credential",
+      "line_sha256": "cb6678857e70d9307d63bbadf9b55dc22e3e2cac1480d092da13ee2ab5f7e73b",
+      "match_sha256": "4561d1d5af13bee5f3c91f0460007fcd23cb9298db878228b3e0568220df46f9",
+      "reason": "synthetic-test",
+      "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    }
+  ]
+}

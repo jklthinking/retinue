@@ -14,9 +14,10 @@ import {
 } from "../lib/collab";
 import StageStepper from "../components/StageStepper";
 import TaskDrawer from "../components/TaskDrawer";
-import { Ambient, Metric, PageHeader, Panel } from "../components/ui";
+import { Ambient, DataState, Metric, PageHeader, Panel } from "../components/ui";
 import { Avatar } from "../avatar";
-import { BOARD_REFRESH_MS, DATA_REFRESH_EVENT } from "../lib/refresh";
+import { startVisiblePolling } from "../lib/refresh";
+import { isSessionSync, rosterIdentity } from "../lib/rosterIdentity";
 
 export default function Collab({ me }: { me: Me }) {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -25,6 +26,8 @@ export default function Collab({ me }: { me: Me }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [deciding, setDeciding] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [syncedAt, setSyncedAt] = useState<string | null>(null);
 
   const loadSeq = useState(() => ({ current: 0 }))[0];
 
@@ -40,20 +43,20 @@ export default function Collab({ me }: { me: Me }) {
       setTasks(taskList);
       setActors(actorList);
       setApprovals(approvalList);
+      setSyncedAt(new Date().toLocaleTimeString("zh-CN"));
       setError("");
     } catch {
-      if (!tasks.length) setError("协作进度暂时拉不下来，已保留上次数据（如有）");
+      if (seq === loadSeq.current) setError("协作进度同步失败，当前显示上次成功读取的记录，请刷新重试。");
+    } finally {
+      if (seq === loadSeq.current) setLoading(false);
     }
   }, [loadSeq]);
 
   useEffect(() => {
-    void load();
-    const timer = setInterval(() => void load(), BOARD_REFRESH_MS);
-    const onManual = () => void load(true);
-    window.addEventListener(DATA_REFRESH_EVENT, onManual);
+    const stop = startVisiblePolling(() => load(true));
     return () => {
-      clearInterval(timer);
-      window.removeEventListener(DATA_REFRESH_EVENT, onManual);
+      stop();
+      loadSeq.current += 1;
     };
   }, [load]);
 
@@ -113,7 +116,7 @@ export default function Collab({ me }: { me: Me }) {
     }
   }
 
-  const agents = actors.filter((a) => a.kind === "agent" && !a.disabled);
+  const agents = actors.filter((a) => a.kind === "agent" && !a.disabled && !isSessionSync(a));
   const laneOf = (holder: string) => live.filter((t) => t.holder === holder);
 
   return (
@@ -125,7 +128,8 @@ export default function Collab({ me }: { me: Me }) {
         subtitle="发单 → 接单 → 执行 → 交付的完整流水线,每一棒都有回执。"
       />
       {error && <p className="error">{error}</p>}
-
+      {syncedAt && <p className="muted" role="status">最近同步 {syncedAt} · 页面可见时每 15 秒更新</p>}
+      {loading ? <DataState loading /> : !syncedAt ? <DataState empty="尚未读取到任务记录，请刷新重试。" /> : <>
       <div className="rt-metrics">
         <Metric icon={<Megaphone />} label="大厅待接" value={openTasks.length} sub="挂单等待认领" tone="amber" />
         <Metric icon={<Handshake />} label="已接未开工" value={claimedIdle.length} sub="接单待启动" tone="ink" />
@@ -142,7 +146,7 @@ export default function Collab({ me }: { me: Me }) {
           tone={blocked.length > 0 ? "red" : "blue"}
         />
         <Metric icon={<ArrowRight />} label="交付审校" value={review.length} sub="等待验收" tone="teal" />
-        <Metric icon={<Handshake />} label="今日完成" value={doneToday.length} sub="已交付验收" tone="green" />
+        <Metric icon={<Handshake />} label="今日完成" value={doneToday.length} sub="任务已标记完成 · 验收另计" tone="green" />
       </div>
 
       <div className="rt-layout rt-layout--hero">
@@ -321,7 +325,7 @@ export default function Collab({ me }: { me: Me }) {
         </div>
       </div>
 
-      <Panel icon={<Rows3 size={15} />} kicker="BOT LANES" title="BOT 泳道 · 各接单方在手工作">
+      <Panel icon={<Rows3 size={15} />} kicker="WORKER LOAD" title="模型在手工作 · 按当前负责成员分组">
         <div className="lane-table">
           <div className="lane-head">
             <span>接单方</span>
@@ -350,8 +354,9 @@ export default function Collab({ me }: { me: Me }) {
                   <Avatar name={agent.display_name || agent.id} size={24} square />
                   <span>
                     {agent.display_name || agent.id}
+                    <small>{rosterIdentity(agent)}</small>
                     <small className={agent.online ? "is-online" : ""}>
-                      {agent.online ? "在线" : "离线"} · {lane.filter((t) => t.status !== "done").length} 单在手
+                      {agent.online ? "近期认证上报" : "近期未上报"} · {lane.filter((t) => t.status !== "done").length} 单在手
                     </small>
                   </span>
                 </span>
@@ -365,6 +370,7 @@ export default function Collab({ me }: { me: Me }) {
         </div>
       </Panel>
 
+      </>}
       {selected && (
         <TaskDrawer
           taskId={selected}

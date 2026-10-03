@@ -73,6 +73,10 @@ def notify_feishu(text: str) -> None:
 
 def actor_to_dict(actor: Actor, online_cutoff: dt.datetime) -> dict[str, Any]:
     last_seen = actor.last_seen_at
+    if last_seen is not None:
+        last_seen = last_seen.replace(tzinfo=dt.timezone.utc) if last_seen.tzinfo is None else last_seen.astimezone(dt.timezone.utc)
+    cutoff = online_cutoff.replace(tzinfo=dt.timezone.utc) if online_cutoff.tzinfo is None else online_cutoff.astimezone(dt.timezone.utc)
+    upper = cutoff + ONLINE_WINDOW + dt.timedelta(minutes=5)
     return {
         "id": actor.id,
         "kind": actor.kind,
@@ -84,7 +88,8 @@ def actor_to_dict(actor: Actor, online_cutoff: dt.datetime) -> dict[str, Any]:
         "node": actor.node,
         "disabled": actor.disabled,
         "last_seen_at": last_seen.isoformat() if last_seen else None,
-        "online": bool(last_seen and last_seen > online_cutoff.replace(tzinfo=None)),
+        "online": bool(not actor.disabled and last_seen and cutoff < last_seen <= upper),
+        "activity_basis": "authenticated_api_activity",
     }
 
 
@@ -138,23 +143,9 @@ def build_orientation_context(db: Session, principal: Principal) -> dict[str, An
             .group_by(Task.status)
         ).all()
     )
-    actors = [
-        {
-            "id": actor.id,
-            "kind": actor.kind,
-            "display_name": actor.display_name,
-            "role": actor.role,
-            "goal": actor.goal,
-            "runtime": actor.runtime,
-            "model": actor.model,
-            "node": actor.node,
-            "online": bool(
-                actor.last_seen_at
-                and actor.last_seen_at > cutoff.replace(tzinfo=None)
-            ),
-        }
-        for actor in db.execute(select(Actor).order_by(Actor.kind, Actor.id)).scalars()
-    ]
+    actors = [actor_to_dict(actor, cutoff)
+              for actor in db.execute(select(Actor).order_by(Actor.kind, Actor.id)).scalars()]
+    from .routers.nodes import observation_time
     nodes = []
     for node in db.execute(
         select(Node)
@@ -171,7 +162,7 @@ def build_orientation_context(db: Session, principal: Principal) -> dict[str, An
                 "label": node.label,
                 "hostname": node.hostname,
                 "platform": node.platform,
-                "updated_at": node.updated_at.isoformat() if node.updated_at else None,
+                "updated_at": observation_time(node.updated_at),
                 "healthy_services": [
                     str(item.get("name") or item.get("unit") or item.get("service"))
                     for item in services
@@ -246,17 +237,17 @@ def build_orientation_context(db: Session, principal: Principal) -> dict[str, An
         "新成员先读本上下文包，再用自己的身份领取任务；不代替其他成员写入。",
     ]
     boundary = {
-        "included": ["组织使命与规则", "成员与节点目录", "当前任务摘要", "技能与流程目录"],
+        "included": ["王国使命与规则", "成员与节点目录", "当前任务摘要", "技能与流程目录"],
         "excluded": ["会话正文", "系统提示词与私有记忆", "密码、令牌与外部平台密钥", "未授权的原始知识库内容"],
     }
     catalog = build_data_catalog(db)
     markdown_lines = [
-        "# RETINUE 组织上下文包",
+        "# RETINUE 王国上下文包",
         "",
         f"生成时间：{generated_at}",
         f"接入身份：{principal.actor_id or principal.name}",
         "",
-        "## 组织使命",
+        "## 王国使命",
         "让人类指令在可追溯的任务卡、执行、审核、决策与交付链中完成。",
         "",
         "## 工作规则",
@@ -272,11 +263,11 @@ def build_orientation_context(db: Session, principal: Principal) -> dict[str, An
         "每次启动或收到新任务时，用自己的 Bearer 令牌 GET /api/orientation/context；不要把旧上下文当成事实。",
         "",
         "## 隐私边界",
-        "- 包含：组织规则、目录和脱敏任务摘要。",
+        "- 包含：王国规则、目录和脱敏任务摘要。",
         "- 不包含：会话正文、私有记忆、提示词、密码、令牌和外部平台密钥。",
     ]
     return {
-        "schema_version": "retinue-internal-context/v1",
+        "schema_version": "retinue-kingdom-context/v1",
         "generated_at": generated_at,
         "audience": {"actor_id": principal.actor_id, "name": principal.name, "role": principal.role},
         "mission": "让人类指令在可追溯的任务卡、执行、审核、决策与交付链中完成。",
@@ -324,8 +315,10 @@ def build_data_catalog(db: Session) -> dict[str, Any]:
     task_total = len(tasks)
     acceptance_count = sum(1 for task in tasks if task.acceptance)
     holder_count = sum(1 for task in tasks if task.holder and db.get(Actor, task.holder))
+    from .discovery import is_sync_actor
+
     active_agents = [
-        actor for actor in actors if actor.kind == "agent" and not actor.disabled
+        actor for actor in actors if actor.kind == "agent" and not actor.disabled and not is_sync_actor(actor)
     ]
     active_humans = [
         actor for actor in actors if actor.kind == "human" and not actor.disabled
@@ -336,6 +329,9 @@ def build_data_catalog(db: Session) -> dict[str, Any]:
     )
     dept_count = sum(1 for task in tasks if task.dept)
     refs_count = sum(1 for task in tasks if task.refs)
+    # A large event total does not prove that every card has an event chain.
+    covered_ids = set(db.scalars(select(TaskEvent.task_id).distinct()))
+    covered_tasks = sum(task.id in covered_ids for task in tasks)
     checks = [
         {
             "key": "task_acceptance",
@@ -404,9 +400,9 @@ def build_data_catalog(db: Session) -> dict[str, Any]:
         {
             "key": "event_chain",
             "label": "任务事件链",
-            "observed": events,
+            "observed": covered_tasks,
             "total": task_total,
-            "status": "good" if events >= task_total else "attention",
+            "status": "good" if covered_tasks == task_total else "attention",
             "detail": "事件链是状态变化的审计事实，不与看板重复双写。",
         },
     ]
@@ -423,6 +419,12 @@ def build_data_catalog(db: Session) -> dict[str, Any]:
         recommendations.append("会话索引目前为 0；先接入 metadata 级索引，不导入会话正文。")
     if templates < 3:
         recommendations.append("流程模板不足 3 条；请固定讲义、研发交付、知识整理三条模板。")
+    from .data_health import build_data_health
+
+    health = build_data_health(db)
+    issue_count = sum(check["issue_count"] for check in health["checks"])
+    if issue_count:
+        recommendations.append(f"运行数据检查发现 {issue_count} 项待核对记录；在质量检查中查看来源时间、失效租约与身份登记。历史记录继续保留。")
     if not recommendations:
         recommendations.append("当前结构满足试点运行；下一步做字段级契约测试和 7 天数据质量观察。")
     return {
@@ -461,6 +463,7 @@ def build_data_catalog(db: Session) -> dict[str, Any]:
             {"key": "sessions", "title": "会话索引", "table": "runtime_sessions", "rows": sessions, "status": "info" if sessions == 0 else "good", "fields": ["actor_id", "runtime", "privacy", "cursor", "task_id"]},
         ],
         "quality": {"score": score, "checks": checks},
+        "health": health,
         "recommendations": recommendations,
         "privacy": {
             "web_catalog": "只返回字段、数量、状态和目录元数据",

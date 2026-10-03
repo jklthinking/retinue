@@ -12,6 +12,7 @@ from __future__ import annotations
 import dataclasses
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -161,6 +162,15 @@ def test_render_windows_matches_expected():
 def test_cadence_hourly_hourly_daily():
     cadences = {duty.key: duty.cadence for duty in enroll.duties(CONFIG)}
     assert cadences == {"heartbeat": "hourly", "runtimes": "hourly", "sessions": "daily"}
+
+
+def test_live_duty_is_explicit_and_uses_fast_reconcile_timer():
+    assert enroll.parse_duty_selection(None) == ("heartbeat", "runtimes", "sessions")
+    config = dataclasses.replace(CONFIG, duty_keys=("live",))
+    rendered = enroll.render(config, "linux-user")
+    assert "ExecStart=python3 -m node.cli live-cycle" in rendered
+    assert "OnUnitActiveSec=2s" in rendered
+    assert "retinue-node-live.timer" in rendered
 
 
 def test_render_twice_is_byte_identical():
@@ -318,7 +328,9 @@ def test_unsupported_target_refuses(token_file, actor_token_file, clear_env, cap
 def test_install_refuses_wrong_platform_without_side_effects(monkeypatch):
     calls = []
     monkeypatch.setattr(enroll.subprocess, "run", lambda *a, **kw: calls.append(a))
-    monkeypatch.setattr(enroll.os, "name", "posix")
+    # Keep the simulated platform local to enroll; changing os.name globally
+    # also changes pathlib's implementation while pytest is reporting errors.
+    monkeypatch.setattr(enroll, "os", SimpleNamespace(name="posix"))
     with pytest.raises(SystemExit) as excinfo:
         enroll.install(CONFIG, "windows")
     assert "Windows" in str(excinfo.value)
@@ -328,9 +340,10 @@ def test_install_refuses_wrong_platform_without_side_effects(monkeypatch):
 def test_install_refuses_unprivileged_system_scope(monkeypatch):
     writes = []
     calls = []
-    monkeypatch.setattr(enroll.os, "name", "posix")
+    monkeypatch.setattr(
+        enroll, "os", SimpleNamespace(name="posix", geteuid=lambda: 1000)
+    )
     monkeypatch.setattr(enroll.shutil, "which", lambda command: command)
-    monkeypatch.setattr(enroll.os, "geteuid", lambda: 1000)
     monkeypatch.setattr(enroll, "write_unit_files", lambda files: writes.append(files))
     monkeypatch.setattr(enroll.subprocess, "run", lambda *a, **kw: calls.append(a))
     with pytest.raises(SystemExit) as excinfo:

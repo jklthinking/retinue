@@ -170,14 +170,27 @@ export interface Me {
 export interface MetricsActor {
   actor_id: string;
   days: Record<string, { input: number; output: number }>;
-  input: number;
-  output: number;
+  input: number | null;
+  output: number | null;
+  usage_available?: boolean;
+  records?: number;
+  last_reported_at?: string | null;
+  stale?: boolean;
+  freshness_seconds?: number | null;
+  runtimes?: Array<{ runtime: string; input: number; output: number; records: number; input_definition?: string; cache_breakdown?: null; last_reported_at?: string | null; stale?: boolean }>;
 }
 
 export interface MetricsSummary {
   start: string;
   days: number;
   actors: MetricsActor[];
+  source?: string;
+  end?: string;
+  generated_at?: string;
+  timezone?: string;
+  bucket_timezone?: string;
+  usage_available?: boolean;
+  coverage?: { expected_actors: number; reported_actors: number; missing_actors: string[]; complete: boolean; basis?: string };
 }
 
 export type GateKind = "auto" | "review" | "queen";
@@ -377,6 +390,11 @@ export interface ThroughputDay {
 
 export interface Throughput {
   start: string;
+  end?: string;
+  timezone?: string;
+  generated_at?: string;
+  source?: string;
+  diagnostics?: { invalid_timestamps: number; timezone_unknown_timestamps: number; future_events_in_candidate_window: number };
   days: ThroughputDay[];
   done_by_actor: { actor_id: string; done: number }[];
 }
@@ -496,6 +514,11 @@ export interface TodoItem {
   notes: string;
   status: string;
   due_at: string | null;
+  event_on: string | null;
+  parent_id: string | null;
+  progress: number;
+  ready_to_close?: boolean;
+  children?: TodoItem[];
   remind_at: string | null;
   proposal_id: string | null;
   source_channel: string | null;
@@ -516,4 +539,6 @@ export interface TodoHome {
   due_today: TodoItem[];
   overdue: TodoItem[];
   waiting_on_others: TodoWaitingItem[];
+  events_tomorrow: TodoItem[];
+  anytime: TodoItem[];
 }

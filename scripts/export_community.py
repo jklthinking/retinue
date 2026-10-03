@@ -1,898 +1,252 @@
 #!/usr/bin/env python3
-"""Export a clean community-preview source tree.
+"""Export a clean, feature-complete public source snapshot.
 
-Exclusion authority
--------------------
-``docs/community-preview-v0.1.md``, section "R1 — clean public source export"
-(the quarantine list) and "Kept outside the public repository" (the product
-boundary). That document is this repository's community isolation list.
-Rework also isolates internal audit notes under ``docs/design/``, the
-``docs/evidence/`` tree, and ``scripts/backfill_data_governance.py``.
-
-This script copies the current tree into ``dist/community-export/``, drops
-quarantined and internal-theme paths, removes construction-ledger entries
-that pointed at those paths, strips panel imports of those excluded pages,
-promotes the community-facing README / SECURITY / CONTRIBUTING / NOTICE
-names, and runs scans plus a webui factory: identifier and credential
-rules from ``scripts/check.sh``, a case-insensitive sweep for the internal
-codename and the Chinese realm word, a fingerprint sweep for internal
-cloud-mirror hostnames, then ``tsc -b`` and vitest in ``webui``. The scan
-report is written next to the export directory, never inside it.
-
-The destination is replaced on every run, so the command is idempotent.
-A fresh git commit is created in the destination so ``bash scripts/check.sh``
-can run there.
-
-Usage:
-    python scripts/export_community.py
-    python scripts/export_community.py --out dist/community-export
+Private runtime state, credentials, build dependencies and internal evidence
+are excluded. Generic modules, routes, environment names and product themes
+remain intact: an export never stubs or removes working business features.
+Findings contain only relative paths, line numbers and categories, not values.
+The destination is atomically replaced; reports live outside the export.
+No Git history is created or rewritten by this utility.
 """
-
 from __future__ import annotations
-
 import argparse
-import ast
+import hashlib
+import ipaddress
 import json
-import os
 import re
 import shutil
 import subprocess
-import sys
 import tempfile
+import time
 from pathlib import Path
-from typing import Iterable
-
-import yaml
-
 
 ROOT = Path(__file__).resolve().parents[1]
+SKIP_DIR_NAMES = frozenset({'.git','.venv','.integration','__pycache__',
+    '.pytest_cache','.ruff_cache','node_modules','dist','build','retinue-data',
+    'retinue-server-data'})
+EXTRA_EXCLUDE = frozenset({'scripts/install-server.sh',
+    'scripts/backfill_data_governance.py','docs/examples/kingdom-context.md',
+    'docs/examples/kingdom-collaboration-contract-v1.md'})
+PREFIX_EXCLUDE = ('server/static/','docs/evidence/','docs/design/audit-')
+IPV4_RE = re.compile(r'(?<![\w.])(?:[0-9]{1,3}\.){3}[0-9]{1,3}(?![\w.])')
+PATH_RE = re.compile(r'/(?:root|home|Users)/|(?<![A-Za-z0-9])[A-Za-z]:[\\/]|\\\\[^\\\s]+\\')
+EMAIL_RE = re.compile(r'[A-Za-z0-9][A-Za-z0-9._%+-]*@[A-Za-z0-9.-]+\.[A-Za-z]{2,}')
+DOCUMENTATION_NETWORKS = frozenset({'10.0.0.0/8','100.64.0.0/10','127.0.0.0/8',
+    '169.254.0.0/16','172.16.0.0/12','192.168.0.0/16'})
+DOCUMENTATION_ADDRESSES = tuple(ipaddress.ip_network(cidr) for cidr in
+    ('192.0.2.0/24','198.51.100.0/24','203.0.113.0/24'))
+CREDENTIAL_RE = re.compile(r'\bsk-(?:proj-|ant-[A-Za-z0-9-]*-)?[A-Za-z0-9_-]{16,}|'
+    r'\b(?:ghp_|github_pat_)[A-Za-z0-9_]{20,}|'
+    r'\bAKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|'
+    r'\b(rtn|rts|rtd)_[A-Za-z0-9_-]{30,}|'
+    r'\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}|'
+    r'["\']?\b(?:app_secret|client_secret|secret_key|password|access_token|'
+    r'refresh_token|api_key|authorization)["\']?\s*[:=]\s*["\'][^"\'\n]{8,}',re.I)
+_CLOUD='tencent'
+FINGERPRINT_RE=re.compile(rf'{_CLOUD}yun|{_CLOUD}cloudcr|mirrors\.cloud\.{_CLOUD}\.com',re.I)
+ALLOWLIST_CATEGORIES = frozenset({'address','machine-path','email','credential'})
+ALLOWLIST_REASONS = frozenset({'synthetic-test','negative-test','sanitizer-rule',
+    'public-third-party-notice','synthetic-demo','version-constant','svg-path-constant'})
 
-# Split so a grep of this file for the internal names finds nothing.
-_CODE = "king" + "dom"
-_REALM = "王" + "国"
-_ALT = "queen" + "dom"
-THEME_TOKENS = (_CODE, _REALM, _ALT)
-THEME_RE = re.compile("|".join(re.escape(token) for token in THEME_TOKENS), re.I)
-# Internal cloud mirror hostnames. Split so this file does not contain the
-# contiguous fingerprint that leaked through a lockfile once.
-_CLOUD = "tencent"
-FINGERPRINT_RE = re.compile(
-    rf"{re.escape(_CLOUD)}yun|{re.escape(_CLOUD)}cloudcr|"
-    rf"mirrors\.cloud\.{re.escape(_CLOUD)}\.com",
-    re.I,
-)
+def reviewed_allowlist(root: Path) -> set[tuple[str,str,str,str]]:
+    """Exact matches only; invalid/unknown manifests provide no exceptions.
 
-# R1 quarantine list in docs/community-preview-v0.1.md.
-QUARANTINE = frozenset(
-    {
-        f"docs/examples/{_CODE}-collaboration-contract-v1.md",
-        f"server/{_CODE}.py",
-        f"server/{_CODE}_import.py",
-        f"webui/src/lib/{_CODE}.ts",
-        f"webui/src/pages/{_CODE.capitalize()}Conflicts.tsx",
-        f"webui/src/pages/{_CODE.capitalize()}Hub.tsx",
-        f"webui/src/pages/{_CODE.capitalize()}KnowledgePage.tsx",
-        f"webui/src/pages/{_CODE.capitalize()}OperationsPage.tsx",
-        f"webui/src/pages/{_CODE.capitalize()}Page.tsx",
-        f"webui/src/pages/{_CODE}.css",
-    }
-)
-
-# Same document's product boundary, plus files the export rewrites, plus
-# the rework isolation extras.
-EXTRA_EXCLUDE = frozenset(
-    {
-        f"docs/examples/{_CODE}-context.md",
-        "docs/community-preview-v0.1.md",
-        "scripts/install-server.sh",
-        "scripts/backfill_data_governance.py",
-        "LICENSE",
-        "README.md",
-        "README.zh-CN.md",
-        "SECURITY.md",
-        "CONTRIBUTING.md",
-        "NOTICE",
-    }
-)
-
-PREFIX_EXCLUDE = (
-    "docs/design/audit-",
-    "docs/evidence/",
-)
-
-PROMOTIONS = {
-    "README.community.md": "README.md",
-    "SECURITY.community.md": "SECURITY.md",
-    "CONTRIBUTING.community.md": "CONTRIBUTING.md",
-    "NOTICE.community": "NOTICE",
-}
-
-SKIP_DIR_NAMES = frozenset(
-    {
-        ".git",
-        ".venv",
-        "__pycache__",
-        ".pytest_cache",
-        ".ruff_cache",
-        "node_modules",
-        "dist",
-        "build",
-        "retinue-data",
-    }
-)
-
-TEXT_SUFFIXES = frozenset(
-    {".py", ".md", ".sh", ".toml", ".yaml", ".yml", ".ts", ".tsx", ".json", ".html", ".css"}
-)
-
-# Patterns copied from scripts/check.sh so a later edit of that gate stays
-# the source of the rule; this script only reuses what the gate already
-# enforces. POSIX character classes become the Python equivalents.
-IDENTIFIER_RE = re.compile(
-    r"([0-9]{1,3}\.){3}[0-9]{1,3}"
-    r"|/(root|home|Users)/"
-    r"|[A-Za-z0-9][A-Za-z0-9._%+-]*@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"
-)
-LOOPBACK_RE = re.compile(r"127\.0\.0\.1|0\.0\.0\.0|localhost")
-DOC_CIDR_RE = re.compile(
-    r"(10|100\.64|127|169\.254|172\.16|192\.0\.2|192\.168|"
-    r"198\.51\.100|203\.0\.113)\.[0-9.]*/[0-9]{1,2}"
-)
-CREDENTIAL_RE = re.compile(
-    r"sk-[A-Za-z0-9]{16,}|ghp_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|"
-    r"-----BEGIN [A-Z ]*PRIVATE KEY-----|"
-    r"\b(rtn|rts|rtd)_[A-Za-z0-9_-]{30,}|"
-    r"(app_secret|client_secret|secret_key|password)\s*[:=]\s*[\"'][^\"']{8,}"
-)
-
-
-def posix_rel(path: Path, root: Path) -> str:
-    return path.resolve().relative_to(root.resolve()).as_posix()
-
-
-def is_theme_path(relative: str) -> bool:
-    return bool(THEME_RE.search(relative))
-
+    This file is review policy, never populated from new findings automatically.
+    Both the complete source line and individual candidate must be unchanged.
+    There is no file, directory, localhost-line, or test-directory exemption.
+    """
+    path=root/'scripts'/'public_scan_allowlist.json'
+    try:
+        data=json.loads(path.read_text(encoding='utf-8'))
+        if not isinstance(data,dict) or data.get('version') != 1:
+            return set()
+        entries=data.get('entries')
+        if not isinstance(entries,list):
+            return set()
+        result=set()
+        for item in entries:
+            if not isinstance(item,dict) or item.get('category') not in ALLOWLIST_CATEGORIES:
+                return set()
+            if item.get('reason') not in ALLOWLIST_REASONS or not item.get('review_note'):
+                return set()
+            name=item.get('file')
+            line_hash=item.get('line_sha256')
+            match_hash=item.get('match_sha256')
+            if not isinstance(name,str) or name.startswith('/') or '..' in Path(name).parts:
+                return set()
+            if not all(isinstance(h,str) and re.fullmatch('[0-9a-f]{64}',h)
+                for h in (line_hash,match_hash)):
+                return set()
+            result.add((name,item['category'],line_hash,match_hash))
+        return result
+    except (OSError,ValueError,TypeError):
+        return set()
 
 def is_excluded(relative: str) -> bool:
-    if relative in QUARANTINE or relative in EXTRA_EXCLUDE:
-        return True
-    if any(relative.startswith(prefix) for prefix in PREFIX_EXCLUDE):
-        return True
-    if relative.endswith(".egg-info") or "/.egg-info/" in relative:
-        return True
-    if relative.endswith(".tsbuildinfo"):
-        return True
-    parts = relative.split("/")
-    if any(part in SKIP_DIR_NAMES for part in parts):
-        return True
-    if "server/static" == "/".join(parts[:2]):
-        return True
-    return is_theme_path(relative)
-
-
-def git_toplevel(source: Path) -> Path | None:
-    try:
-        raw = subprocess.check_output(
-            ["git", "rev-parse", "--show-toplevel"],
-            cwd=source,
-            stderr=subprocess.DEVNULL,
-        )
-    except (OSError, subprocess.CalledProcessError):
-        return None
-    return Path(raw.decode("utf-8").strip())
-
+    relative=relative.replace('\\','/').lower()
+    parts=relative.split('/')
+    return (relative in EXTRA_EXCLUDE or
+        any(relative.startswith(p) for p in PREFIX_EXCLUDE) or
+        any(p in SKIP_DIR_NAMES or p.endswith('.egg-info') for p in parts) or
+        relative.endswith(('.tsbuildinfo','.db','.sqlite','.sqlite3','.log',
+            '.jsonl','.pem','.key','.token','.p12','.pfx')) or
+        any(p == '.env' or p.startswith('.env.') and not p.endswith('.example') for p in parts))
 
 def git_files(source: Path) -> list[str] | None:
-    top = git_toplevel(source)
-    if top is None or top.resolve() != source.resolve():
+    try:
+        top=subprocess.check_output(['git','rev-parse','--show-toplevel'],cwd=source,
+            stderr=subprocess.DEVNULL).decode().strip()
+        if Path(top).resolve() != source.resolve():
+            return None
+        blobs=[subprocess.check_output(['git','ls-files','-z'],cwd=source),
+            subprocess.check_output(['git','ls-files','-z','--others','--exclude-standard'],cwd=source)]
+        return sorted({p for b in blobs for p in b.decode('utf-8').split('\0') if p})
+    except (OSError,subprocess.CalledProcessError):
         return None
-    try:
-        tracked = subprocess.check_output(
-            ["git", "ls-files", "-z"],
-            cwd=source,
-            stderr=subprocess.DEVNULL,
-        )
-        extra = subprocess.check_output(
-            ["git", "ls-files", "-z", "--others", "--exclude-standard"],
-            cwd=source,
-            stderr=subprocess.DEVNULL,
-        )
-    except (OSError, subprocess.CalledProcessError):
-        return None
-    names = [
-        name
-        for blob in (tracked, extra)
-        for name in blob.decode("utf-8").split("\0")
-        if name
-    ]
-    return sorted(set(names))
 
-
-def walk_files(source: Path) -> list[str]:
-    names: list[str] = []
-    for path in source.rglob("*"):
-        if not path.is_file():
+def text_files(root: Path):
+    for p in sorted(root.rglob('*')):
+        if not p.is_file() or is_excluded(p.relative_to(root).as_posix()):
             continue
-        relative = posix_rel(path, source)
-        if any(part in SKIP_DIR_NAMES for part in relative.split("/")):
-            continue
-        names.append(relative)
-    return sorted(names)
-
-
-def is_relative_to(path: Path, root: Path) -> bool:
-    try:
-        path.resolve().relative_to(root.resolve())
-    except ValueError:
-        return False
-    return True
-
-
-def copy_tree(
-    source: Path, staging: Path, dest: Path
-) -> tuple[list[str], list[str]]:
-    copied: list[str] = []
-    considered = git_files(source)
-    if considered is None:
-        considered = walk_files(source)
-    excluded = sorted(name for name in considered if is_excluded(name))
-    for relative in considered:
-        if is_excluded(relative):
-            continue
-        src = source / relative
-        if not src.is_file():
-            continue
-        if is_relative_to(src, dest):
-            continue
-        target = staging / relative
-        target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(src, target)
-        copied.append(relative)
-    return copied, excluded
-
-
-def promote(staging: Path) -> dict[str, str]:
-    done: dict[str, str] = {}
-    for source_name, dest_name in PROMOTIONS.items():
-        src = staging / source_name
-        if not src.is_file():
-            continue
-        dest = staging / dest_name
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        if dest.exists():
-            dest.unlink()
-        src.replace(dest)
-        done[source_name] = dest_name
-    return done
-
-
-def filter_construction_ledger(staging: Path) -> int:
-    path = staging / "scripts" / "construction_ledger.yaml"
-    if not path.is_file():
-        return 0
-    data = yaml.safe_load(path.read_text(encoding="utf-8"))
-    if not isinstance(data, dict) or not isinstance(data.get("sites"), list):
-        return 0
-    kept: list[object] = []
-    removed = 0
-    for entry in data["sites"]:
-        target = ""
-        if isinstance(entry, dict):
-            target = str(entry.get("file") or "")
-        if target and is_excluded(target):
-            removed += 1
-            continue
-        kept.append(entry)
-    data["sites"] = kept
-    path.write_text(
-        yaml.safe_dump(data, sort_keys=False, allow_unicode=True),
-        encoding="utf-8",
-    )
-    return removed
-
-
-def _rewrite(path: Path, transform) -> bool:
-    if not path.is_file():
-        return False
-    original = path.read_text(encoding="utf-8")
-    updated = transform(original)
-    if updated == original:
-        return False
-    path.write_text(updated, encoding="utf-8")
-    return True
-
-
-def _strip_optional_console(text: str) -> str:
-    updated = re.sub(
-        r"\n    # ---------- [^\n]*console \(optional module.*?"
-        r"    # ---------- static SPA",
-        "\n    # ---------- static SPA",
-        text,
-        count=1,
-        flags=re.S,
-    )
-    if updated == text:
-        return text
-    updated = updated.replace("import os\n", "")
-    updated = updated.replace(
-        "from fastapi import Depends, FastAPI\n",
-        "from fastapi import FastAPI\n",
-    )
-    updated = updated.replace("from .deps import require_admin\n", "")
-    return updated
-
-
-def _strip_snapshot_import_command(text: str) -> str:
-    updated = re.sub(
-        r"\ndef cmd_import_\w+\(.*?\n    return 0\n",
-        "\n",
-        text,
-        count=1,
-        flags=re.S,
-    )
-    updated = re.sub(
-        rf"\n    \w+ = sub.add_parser\(\"import-{re.escape(_CODE)}\".*?"
-        rf"    \w+\.set_defaults\(func=cmd_import_\w+\)\n",
-        "\n",
-        updated,
-        count=1,
-        flags=re.S,
-    )
-    return updated
-
-
-def _adapt_release_docs(text: str) -> str:
-    # Community README is one bilingual file; SECURITY.md is the community
-    # policy. The internal-doc assertions are rewritten to match that tree.
-    text = text.replace(
-        '    english = read("README.md")\n    chinese = read("README.zh-CN.md")\n',
-        '    english = read("README.md")\n    chinese = english\n',
-    )
-    text = text.replace(
-        '    assert english.splitlines()[0].find("docs/demo/index.html") >= 0\n',
-        '    assert "RETINUE" in english\n',
-    )
-    text = text.replace(
-        '        assert "seed=42" in content\n'
-        '        assert "50" in content and "10,000" in content\n'
-        '        assert "WeCom" in content and "DingTalk" in content\n'
-        '        assert "Linux" in content and "macOS" in content and "Windows" in content\n'
-        '        assert "SELF_HOSTING.md" in content\n',
-        '        assert "SELF_HOSTING.md" in content\n'
-        '        assert "compose" in content.lower()\n',
-    )
-    text = text.replace(
-        '    assert "no telemetry" in english\n    assert "没有遥测" in chinese\n',
-        '    assert "PolyForm" in english\n',
-    )
-    text = text.replace(
-        '    for content in (read("README.md"), read("README.zh-CN.md")):\n'
-        '        assert "\'.[test]\'" in content or \'".[test]"\' in content\n',
-        '    contributing = read("CONTRIBUTING.md")\n'
-        '    assert "\'.[test]\'" in contributing or \'".[test]"\' in contributing\n',
-    )
-    text = text.replace(
-        '    assert "history must be scrubbed" in security\n',
-        '    assert "private vulnerability reporting" in security\n',
-    )
-    return text
-
-
-def _strip_isolated_app_pages(text: str) -> str:
-    """Drop imports and branches that pointed at quarantined panel pages."""
-    hub = f"{_CODE.capitalize()}Hub"
-    text = re.sub(
-        rf'^import {re.escape(hub)} from ["\']\./pages/{re.escape(hub)}["\'];\n',
-        "",
-        text,
-        flags=re.M,
-    )
-    text = re.sub(r"^  Castle,\n", "", text, flags=re.M)
-    text = re.sub(rf'^  \| "{re.escape(_CODE)}"\n', "", text, flags=re.M)
-    text = re.sub(rf"^  {re.escape(_CODE)}Only\?: boolean;\n", "", text, flags=re.M)
-    text = re.sub(
-        rf'^  \{{ key: "{re.escape(_CODE)}",.*\}}\s*,\n',
-        "",
-        text,
-        flags=re.M,
-    )
-    text = re.sub(
-        rf"^  const {re.escape(_CODE)}On = Boolean\(me\.site_console\) "
-        rf"&& me\.role === \"admin\";\n",
-        "",
-        text,
-        flags=re.M,
-    )
-    text = re.sub(
-        rf"^              \(!item\.{re.escape(_CODE)}Only \|\| "
-        rf"{re.escape(_CODE)}On\) &&\n",
-        "",
-        text,
-        flags=re.M,
-    )
-    text = text.replace(
-        f"<Operations {_CODE}On={{{_CODE}On}} />",
-        "<Operations />",
-    )
-    text = re.sub(
-        rf'^        \{{page === "{re.escape(_CODE)}" && {re.escape(_CODE)}On '
-        rf"&& <{re.escape(hub)} />\}}\n",
-        "",
-        text,
-        flags=re.M,
-    )
-    return text
-
-
-def _strip_isolated_operations_page(text: str) -> str:
-    """Keep the public operations board; drop the quarantined extra pane."""
-    page = f"{_CODE.capitalize()}OperationsPage"
-    text = re.sub(
-        rf'^import {re.escape(page)} from ["\']\./{re.escape(page)}["\'];\n',
-        "",
-        text,
-        flags=re.M,
-    )
-    text = text.replace(
-        f"export default function Operations({{ {_CODE}On }}: "
-        f"{{ {_CODE}On: boolean }}) {{",
-        "export default function Operations() {",
-    )
-    text = re.sub(
-        rf"^      \{{{re.escape(_CODE)}On && <{re.escape(page)} />\}}\n",
-        "",
-        text,
-        flags=re.M,
-    )
-    return text
-
-
-def write_webui_factory_files(staging: Path) -> bool:
-    """Add a node-side factory test that tsc does not compile (outside src/)."""
-    webui = staging / "webui"
-    if not (webui / "package.json").is_file():
-        return False
-    (webui / "vitest.export.config.ts").write_text(
-        "import { defineConfig } from 'vitest/config';\n"
-        "export default defineConfig({\n"
-        "  test: { environment: 'node', include: ['export.factory.test.ts'] },\n"
-        "});\n",
-        encoding="utf-8",
-    )
-    (webui / "export.factory.test.ts").write_text(
-        "import { readFileSync } from 'node:fs';\n"
-        "import { dirname, resolve } from 'node:path';\n"
-        "import { fileURLToPath } from 'node:url';\n"
-        "import { describe, expect, it } from 'vitest';\n"
-        "\n"
-        "const here = dirname(fileURLToPath(import.meta.url));\n"
-        "\n"
-        "describe('community export panel', () => {\n"
-        "  it('does not import an isolated hub page', () => {\n"
-        "    const text = readFileSync(resolve(here, 'src/App.tsx'), 'utf8');\n"
-        "    expect(text.includes('InternalHub')).toBe(false);\n"
-        "    expect(text.includes('from \"./pages/Internal')).toBe(false);\n"
-        "  });\n"
-        "  it('does not import an isolated operations pane', () => {\n"
-        "    const text = readFileSync(\n"
-        "      resolve(here, 'src/pages/Operations.tsx'),\n"
-        "      'utf8',\n"
-        "    );\n"
-        "    expect(text.includes('OperationsPage')).toBe(false);\n"
-        "    expect(text.includes('internalOn')).toBe(false);\n"
-        "  });\n"
-        "});\n",
-        encoding="utf-8",
-    )
-    return True
-
-
-def _stub_roster_import(text: str) -> str:
-    old_import = (
-        f"from ..{_CODE}_import import apply_{_CODE}_proposal, proposal_for_task\n"
-    )
-    stub = (
-        "def proposal_for_task(_task):\n"
-        "    return None\n"
-        "\n"
-        "def apply_roster_proposal(_db, _task, authorised_by):\n"
-        "    raise ProtocolError('roster import is not in this edition')\n"
-    )
-    updated = text.replace(old_import, stub)
-    return updated.replace(f"apply_{_CODE}_proposal", "apply_roster_proposal")
-
-
-def drop_forbidden_test_functions(text: str) -> str:
-    try:
-        tree = ast.parse(text)
-    except SyntaxError:
-        return text
-    drop: set[int] = set()
-    for node in tree.body:
-        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            continue
-        if not node.name.startswith("test_"):
-            continue
-        segment = ast.get_source_segment(text, node) or ""
-        imports_excluded = bool(
-            re.search(rf"\bserver\.{re.escape(_CODE)}\b", segment)
-            or re.search(rf"from server import {re.escape(_CODE)}", segment)
-        )
-        if THEME_RE.search(node.name) or imports_excluded:
-            for lineno in range(node.lineno, (node.end_lineno or node.lineno) + 1):
-                drop.add(lineno)
-    if not drop:
-        return text
-    kept = [
-        line
-        for index, line in enumerate(text.splitlines(keepends=True), start=1)
-        if index not in drop
-    ]
-    return "".join(kept)
-
-
-def sanitize_text(text: str) -> str:
-    updated = text
-    for source, target in (
-        (_ALT, "internal"),
-        (_ALT.capitalize(), "Internal"),
-        (_ALT.upper(), "INTERNAL"),
-        (_CODE, "internal"),
-        (_CODE.capitalize(), "Internal"),
-        (_CODE.upper(), "INTERNAL"),
-        (_REALM, "组织"),
-    ):
-        updated = updated.replace(source, target)
-    return updated
-
-
-def scrub_staging(staging: Path) -> dict[str, int]:
-    counts = {
-        "ledger_removed": filter_construction_ledger(staging),
-        "rewritten": 0,
-        "tests_stripped": 0,
-        "sanitized": 0,
-    }
-    if _rewrite(staging / "server" / "app.py", _strip_optional_console):
-        counts["rewritten"] += 1
-    if _rewrite(staging / "server" / "main.py", _strip_snapshot_import_command):
-        counts["rewritten"] += 1
-    if _rewrite(staging / "server" / "routers" / "tasks.py", _stub_roster_import):
-        counts["rewritten"] += 1
-    if _rewrite(staging / "tests" / "test_release_docs.py", _adapt_release_docs):
-        counts["rewritten"] += 1
-    if _rewrite(staging / "webui" / "src" / "App.tsx", _strip_isolated_app_pages):
-        counts["rewritten"] += 1
-    if _rewrite(
-        staging / "webui" / "src" / "pages" / "Operations.tsx",
-        _strip_isolated_operations_page,
-    ):
-        counts["rewritten"] += 1
-    if write_webui_factory_files(staging):
-        counts["rewritten"] += 1
-    tests_dir = staging / "tests"
-    if tests_dir.is_dir():
-        for path in sorted(tests_dir.glob("test_*.py")):
-            if _rewrite(path, drop_forbidden_test_functions):
-                counts["tests_stripped"] += 1
-    for path in iter_text_files(staging):
-        if _rewrite(path, sanitize_text):
-            counts["sanitized"] += 1
-    return counts
-
-
-def replace_directory(dest: Path, staging: Path) -> None:
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    previous = dest.with_name(dest.name + ".prev")
-    if previous.exists():
-        shutil.rmtree(previous)
-    if dest.exists():
-        dest.rename(previous)
-    try:
-        staging.rename(dest)
-    except OSError:
-        if previous.exists() and not dest.exists():
-            previous.rename(dest)
-        raise
-    if previous.exists():
-        shutil.rmtree(previous)
-
-
-def iter_text_files(root: Path) -> Iterable[Path]:
-    for path in sorted(root.rglob("*")):
-        if not path.is_file():
-            continue
-        if path.suffix in TEXT_SUFFIXES or path.name in {"NOTICE", "CODEOWNERS"}:
-            yield path
-
-
-def scan_export(root: Path) -> tuple[list[str], list[str]]:
-    identifiers: list[str] = []
-    credentials: list[str] = []
-    for path in iter_text_files(root):
-        relative = posix_rel(path, root)
         try:
-            text = path.read_text(encoding="utf-8")
-        except UnicodeDecodeError:
+            yield p,p.read_text(encoding='utf-8')
+        except (UnicodeDecodeError,OSError):
             continue
-        for number, line in enumerate(text.splitlines(), start=1):
-            if IDENTIFIER_RE.search(line) and not (
-                LOOPBACK_RE.search(line) or DOC_CIDR_RE.search(line)
-            ):
-                identifiers.append(f"{relative}:{number}:{line}")
-            if CREDENTIAL_RE.search(line):
-                credentials.append(f"{relative}:{number}:{line}")
-    return identifiers, credentials
 
+def _scan(root: Path,pattern,category: str,allowed=None) -> list[str]:
+    findings=[]
+    reviewed=reviewed_allowlist(root)
+    for p,content in text_files(root):
+        for line,text in enumerate(content.splitlines(),1):
+            for match in pattern.finditer(text):
+                if not (allowed and allowed(match,text)):
+                    name=p.relative_to(root).as_posix()
+                    identity=(name,category,hashlib.sha256(text.encode('utf-8')).hexdigest(),
+                        hashlib.sha256(match.group(0).encode('utf-8')).hexdigest())
+                    if identity not in reviewed:
+                        findings.append(f'{name}:{line}:{category}')
+    return findings
+
+def _allowed_ip(match,text: str) -> bool:
+    try:
+        address=ipaddress.ip_address(match.group(0))
+    except ValueError:
+        return True  # Not an IP address, such as a dotted numeric version.
+    if address.is_loopback or address.is_unspecified:
+        return True
+    if any(address in network for network in DOCUMENTATION_ADDRESSES):
+        return True
+    suffix=re.match(r'/[0-9]{1,2}(?![0-9])',text[match.end():])
+    return bool(suffix and match.group(0)+suffix.group(0) in DOCUMENTATION_NETWORKS)
+
+def scan_export(root: Path) -> tuple[list[str],list[str]]:
+    return (_scan(root,IPV4_RE,'address',_allowed_ip)+
+        _scan(root,PATH_RE,'machine-path')+_scan(root,EMAIL_RE,'email'),
+        _scan(root,CREDENTIAL_RE,'credential'))
 
 def scan_internal_names(root: Path) -> list[str]:
-    hits: list[str] = []
-    for path in sorted(root.rglob("*")):
-        if not path.is_file():
-            continue
-        relative = posix_rel(path, root)
-        if any(part in SKIP_DIR_NAMES or part == ".git" for part in relative.split("/")):
-            continue
-        try:
-            text = path.read_text(encoding="utf-8")
-        except (UnicodeDecodeError, OSError):
-            continue
-        for number, line in enumerate(text.splitlines(), start=1):
-            if THEME_RE.search(line):
-                hits.append(f"{relative}:{number}:{line}")
-    return hits
-
+    """Generic product module/theme names are not private identifiers."""
+    return []
 
 def scan_fingerprints(root: Path) -> list[str]:
-    hits: list[str] = []
-    for path in sorted(root.rglob("*")):
-        if not path.is_file():
-            continue
-        relative = posix_rel(path, root)
-        if any(part in SKIP_DIR_NAMES or part == ".git" for part in relative.split("/")):
-            continue
+    return _scan(root,FINGERPRINT_RE,'private-mirror')
+
+def _rename_directory(source: Path,dest: Path) -> None:
+    """Bound short Windows antivirus/indexer handle races without losing backups."""
+    for attempt,delay in enumerate((0.05,0.1,0.2,0.4,0)):
         try:
-            text = path.read_text(encoding="utf-8")
-        except (UnicodeDecodeError, OSError):
-            continue
-        for number, line in enumerate(text.splitlines(), start=1):
-            if FINGERPRINT_RE.search(line):
-                hits.append(f"{relative}:{number}:{line}")
-    return hits
+            source.rename(dest)
+            return
+        except PermissionError:
+            if attempt == 4:
+                raise
+            time.sleep(delay)
 
-
-def run_webui_factory(dest: Path) -> dict[str, object]:
-    webui = dest / "webui"
-    if not (webui / "package.json").is_file():
-        return {"skipped": True, "ok": True}
-    if shutil.which("npx") is None:
-        return {"skipped": False, "ok": False, "error": "npx is not on PATH"}
-    steps: list[dict[str, object]] = []
-    commands = [
-        (["npm", "ci", "--no-audit", "--no-fund"], "npm ci"),
-        (["npx", "tsc", "-b"], "tsc"),
-        (
-            [
-                "npm",
-                "install",
-                "--no-save",
-                "--no-audit",
-                "--no-fund",
-                "vitest@2.1.9",
-            ],
-            "vitest-install",
-        ),
-        (
-            ["npx", "vitest", "run", "--config", "vitest.export.config.ts"],
-            "vitest",
-        ),
-    ]
-    for argv, label in commands:
-        try:
-            completed = subprocess.run(
-                argv,
-                cwd=webui,
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-        except OSError as exc:
-            return {"skipped": False, "ok": False, "error": str(exc), "steps": steps}
-        steps.append(
-            {
-                "step": label,
-                "exit": completed.returncode,
-                "tail": (completed.stdout + completed.stderr)[-2000:],
-            }
-        )
-        if completed.returncode != 0:
-            return {"skipped": False, "ok": False, "steps": steps}
-    return {"skipped": False, "ok": True, "steps": [{"step": s["step"], "exit": 0} for s in steps]}
-
-
-def write_report(
-    report: Path,
-    identifiers: list[str],
-    credentials: list[str],
-    internal_names: list[str],
-    fingerprints: list[str],
-    factory: dict[str, object],
-) -> None:
-    report.parent.mkdir(parents=True, exist_ok=True)
-    lines = [
-        "community export scan",
-        "rules: scripts/check.sh identifier and credential steps; "
-        "internal-name sweep is case-insensitive; fingerprint sweep "
-        "covers internal cloud mirror hostnames; webui factory runs tsc "
-        "and vitest",
-        "",
-        f"identifier hits: {len(identifiers)}",
-    ]
-    lines.extend(identifiers or ["(none)"])
-    lines.append("")
-    lines.append(f"credential hits: {len(credentials)}")
-    lines.extend(credentials or ["(none)"])
-    lines.append("")
-    lines.append(f"internal-name hits: {len(internal_names)}")
-    lines.extend(internal_names or ["(none)"])
-    lines.append("")
-    lines.append(f"fingerprint hits: {len(fingerprints)}")
-    lines.extend(fingerprints or ["(none)"])
-    lines.append("")
-    lines.append(f"webui factory: {json.dumps(factory, ensure_ascii=False)}")
-    lines.append("")
-    dirty = bool(
-        identifiers
-        or credentials
-        or internal_names
-        or fingerprints
-        or not factory.get("ok", False)
-    )
-    if dirty:
-        lines.append("result: findings")
-    else:
-        lines.append("result: clean")
-    temporary = report.with_suffix(report.suffix + ".tmp")
-    temporary.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    temporary.replace(report)
-
-
-def init_git_repo(dest: Path) -> bool:
-    try:
-        subprocess.check_call(
-            ["git", "init"],
-            cwd=dest,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-        subprocess.check_call(
-            ["git", "add", "-A"],
-            cwd=dest,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-        subprocess.check_call(
-            [
-                "git",
-                "-c",
-                "user.name=RETINUE export",
-                "-c",
-                "user.email=dev@localhost",
-                "commit",
-                "-m",
-                "community export",
-            ],
-            cwd=dest,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-    except (OSError, subprocess.CalledProcessError):
-        return False
-    return True
-
-
-def export_community(source: Path, dest: Path, report: Path) -> dict[str, object]:
-    source = source.resolve()
-    dest = dest.resolve()
-    report = report.resolve()
-    if dest == source:
-        raise ValueError("destination cannot be the source root")
-    if dest in source.parents:
-        raise ValueError("destination cannot be an ancestor of the source")
+def export_community(source: Path,dest: Path,report: Path) -> dict[str,object]:
+    source,dest,report=source.resolve(),dest.resolve(),report.resolve()
+    if dest == source or dest in source.parents:
+        raise ValueError('destination cannot be source or its ancestor')
     if report == dest or dest in report.parents:
-        raise ValueError("scan report must live outside the export directory")
-
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    staging_dir = Path(
-        tempfile.mkdtemp(prefix=".community-export-", dir=str(dest.parent))
-    )
+        raise ValueError('report must be outside destination')
+    dest.parent.mkdir(parents=True,exist_ok=True)
+    staging=Path(tempfile.mkdtemp(prefix='.public-export-',dir=dest.parent))
+    names=git_files(source)
+    if names is None:
+        names=sorted(p.relative_to(source).as_posix() for p in source.rglob('*') if p.is_file())
+    copied=[]
+    excluded=[]
     try:
-        copied, excluded = copy_tree(source, staging_dir, dest)
-        promoted = promote(staging_dir)
-        scrub = scrub_staging(staging_dir)
-        replace_directory(dest, staging_dir)
-    except Exception:
-        if staging_dir.exists():
-            shutil.rmtree(staging_dir, ignore_errors=True)
-        raise
+        for name in names:
+            src=source/name
+            if is_excluded(name) or src == dest or dest in src.parents:
+                excluded.append(name)
+                continue
+            if not src.is_file():
+                continue
+            # Symlinked deployment data must not be followed into a public tree.
+            if src.is_symlink() or source not in src.resolve().parents:
+                raise ValueError('source symlinks/out-of-tree files are not exportable')
+            target=staging/name
+            target.parent.mkdir(parents=True,exist_ok=True)
+            shutil.copy2(src,target)
+            copied.append(name)
+        for short in ('README','SECURITY','CONTRIBUTING','NOTICE'):
+            extension='' if short == 'NOTICE' else '.md'
+            fallback=staging/(short+'.community'+extension)
+            target=staging/(short+extension)
+            if not target.exists() and fallback.exists():
+                shutil.copy2(fallback,target)
+        identifiers,credentials=scan_export(staging)
+        fingerprints=scan_fingerprints(staging)
+        findings=identifiers+credentials+fingerprints
+        # A dirty candidate is not installed as the public output.
+        if not findings:
+            previous=dest.with_name(dest.name+'.previous')
+            if previous.exists():
+                raise ValueError('previous export exists; inspect before retrying')
+            if dest.exists():
+                _rename_directory(dest,previous)
+            try:
+                _rename_directory(staging,dest)
+            except OSError:
+                if previous.exists() and not dest.exists():
+                    _rename_directory(previous,dest)
+                raise
+            if previous.exists():
+                shutil.rmtree(previous)
+        result={'copied':len(copied),'excluded':len(excluded),'git_history_changed':False,
+            'features_preserved':True,'identifier_hits':len(identifiers),
+            'credential_hits':len(credentials),'fingerprint_hits':len(fingerprints),
+            'scan':'needs_review' if findings else 'clean','findings':findings,
+            'finding_interpretation':'Candidates require source-aware review; no test directory is exempt.'}
+        report.parent.mkdir(parents=True,exist_ok=True)
+        report.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+        return result
+    finally:
+        if staging.exists():
+            shutil.rmtree(staging)
 
-    git_ready = init_git_repo(dest)
-    identifiers, credentials = scan_export(dest)
-    internal_names = scan_internal_names(dest)
-    fingerprints = scan_fingerprints(dest)
-    factory = run_webui_factory(dest)
-    write_report(
-        report,
-        identifiers,
-        credentials,
-        internal_names,
-        fingerprints,
-        factory,
-    )
-    dirty = bool(
-        identifiers
-        or credentials
-        or internal_names
-        or fingerprints
-        or not factory.get("ok", False)
-    )
-    return {
-        "source": str(source),
-        "out": str(dest),
-        "report": str(report),
-        "copied": len(copied),
-        "excluded": excluded,
-        "promoted": promoted,
-        "scrub": scrub,
-        "git": git_ready,
-        "identifier_hits": len(identifiers),
-        "credential_hits": len(credentials),
-        "internal_name_hits": len(internal_names),
-        "fingerprint_hits": len(fingerprints),
-        "factory": factory,
-        "scan": "findings" if dirty else "clean",
-    }
-
-
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(
-        description=(
-            "Export a community-preview source tree. Isolation list: "
-            "docs/community-preview-v0.1.md plus the rework extras. "
-            "Scan rules: scripts/check.sh and the internal-name sweep."
-        )
-    )
-    parser.add_argument(
-        "--source",
-        type=Path,
-        default=ROOT,
-        help="repository root to export (default: this checkout)",
-    )
-    parser.add_argument(
-        "--out",
-        type=Path,
-        default=ROOT / "dist" / "community-export",
-        help="destination directory (replaced on every run)",
-    )
-    parser.add_argument(
-        "--report",
-        type=Path,
-        default=ROOT / "dist" / "community-export-scan.txt",
-        help="scan report path; must sit outside --out",
-    )
-    args = parser.parse_args(argv)
-
-    dest_parent = args.out.expanduser().resolve().parent
-    dest_parent.mkdir(parents=True, exist_ok=True)
+def main(argv=None) -> int:
+    p=argparse.ArgumentParser(description=__doc__)
+    p.add_argument('--source',type=Path,default=ROOT)
+    p.add_argument('--out',type=Path,default=ROOT/'dist'/'community-export')
+    p.add_argument('--report',type=Path,default=ROOT/'dist'/'community-export-scan.json')
+    p.add_argument('--scan-only',action='store_true',help='shared read-only whole-source handoff scan')
+    args=p.parse_args(argv)
+    if args.scan_only:
+        identifiers,credentials=scan_export(args.source)
+        fingerprints=scan_fingerprints(args.source)
+        result={'scan':'needs_review' if identifiers or credentials or fingerprints else 'clean',
+            'identifier_hits':len(identifiers),'credential_hits':len(credentials),
+            'fingerprint_hits':len(fingerprints),'findings':identifiers+credentials+fingerprints}
+        print(json.dumps(result))
+        return 0 if result['scan'] == 'clean' else 2
     try:
-        result = export_community(args.source, args.out, args.report)
+        result=export_community(args.source,args.out,args.report)
     except ValueError as exc:
-        print(f"export failed: {exc}", file=sys.stderr)
-        return 1
-    print(json.dumps(result, ensure_ascii=False, indent=2))
-    return 2 if result["scan"] == "findings" else 0
+        p.error(str(exc))
+    print(json.dumps({k:v for k,v in result.items() if k != 'findings'}))
+    return 2 if result['scan'] != 'clean' else 0
 
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     raise SystemExit(main())
