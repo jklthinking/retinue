@@ -1,4 +1,4 @@
-// fetchJSON shim so the internal pages (extracted from the hermes panel)
+// fetchJSON shim so the kingdom pages (extracted from the hermes panel)
 // run unmodified against the Retinue server's cookie-session auth.
 
 import { ApiError } from "@/api";

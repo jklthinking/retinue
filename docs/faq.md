@@ -17,12 +17,11 @@ container image is not official RETINUE.
 
 ## Is RETINUE open source?
 
-RETINUE is **source-available**, not OSI-approved open source. RETINUE is licensed under the
-PolyForm Noncommercial License 1.0.0. It is free for noncommercial use — personal projects, study,
-research, charities, educational and government research institutions — including self-hosting and
-modification. Commercial use, such as a hosted service, resale, paid installation for a customer,
-or use inside a for-profit organization, requires a separate commercial license from JKL Thinking.
-Versions published earlier under FSL-1.1-Apache-2.0 keep the license they shipped with.
+RETINUE's own code in this public version is open source under **MIT**. Personal and commercial
+use, modification and redistribution are permitted with the copyright and permission notice
+preserved. Third-party dependencies and assets retain their own notices and licenses. Historical
+versions keep the license they shipped with; their tags are not rewritten. See [LICENSE](../LICENSE)
+and [third-party notices](THIRD_PARTY_NOTICES.md).
 
 ## How is RETINUE different from Trello, Jira, Linear or Notion?
 
@@ -50,15 +49,28 @@ CLI; agents can also use HTTP with an actor token.
 
 ## Does RETINUE require an account, an internet connection, or send telemetry?
 
-No. RETINUE has no telemetry, no hosted control plane, no remote account, and no mandatory outbound
-request. The hub, board, demo and exporters work offline. Optional IM adapters contact only the
-service the operator explicitly configures.
+The authenticated server uses local accounts managed by the operator; it does not require a
+RETINUE cloud account. File mode and the public read-only demo do not require a login. RETINUE has
+no built-in telemetry or mandatory outbound request. Local operation can stay offline. Optional IM
+adapters and explicitly configured runtime integrations contact the services the operator chooses.
 
 ## Where does RETINUE store data, and can I take it away?
 
-Canonical state lives in one operator-chosen directory. Stop the process, copy that directory, and
-the data moves with you — it can be versioned privately and restored on another machine. See the
-data governance and self-hosting documents in the repository.
+Canonical state depends on the deployment mode. In file mode, stop writers before copying the
+complete data directory (`org.yaml`, `tasks/`, `metrics/`, `nodes/`). Server mode stores canonical
+state in `retinue.db` and requires a consistent SQLite snapshot for backup. Runtime source records,
+external artifacts, plaintext credentials and deployment configuration have separate recovery paths.
+See [data governance](data-governance.md) and the [backup guide](../SELF_HOSTING.md#backup).
+
+## How do I see collaboration on one task?
+
+Open the task collaboration view to inspect delegation and dependency edges, device/runtime/model
+lanes, module contributions, and branch instructions, reported progress, waiting owners and artifact
+references. Worker identity and progress keep their source labels. Registration is not provider
+verification; a reported result still needs independent acceptance. Runtime observations do not
+automatically create task progress without an explicit binding and structured receipt. Usage covers
+reported sources and is not a complete provider bill. See the [PRD](PRD.md) and
+[current screenshots](releases/2026-10-02-collaboration-observability.md), which use synthetic data.
 
 ## How do I run RETINUE?
 
@@ -91,10 +103,9 @@ GitHub 上另有若干同名但毫无关联的项目。RETINUE 名称与中文�
 
 ## 众卿是开源软件吗？
 
-众卿是**源码可见（source-available）**，不是 OSI 认证的开源。许可证为 PolyForm Noncommercial 1.0.0：
-个人、学习、研究、公益、教育与政府研究机构可免费使用，含自托管与修改；任何商业用途（托管服务、转售、
-向客户收费部署、或在营利性组织内部使用）需向 JKL 神思记单独取得商业授权。此前以 FSL-1.1-Apache-2.0
-发布的版本仍沿用其发布时的许可证。
+本公开版本的众卿自有代码采用 **MIT** 开源许可，允许个人与商业使用、修改和再分发，须保留版权与许可声明。
+第三方依赖和资产仍按各自声明与许可证使用。历史版本保留发布时的许可证，历史标签不改写。
+详见 [LICENSE](../LICENSE) 与[第三方声明](THIRD_PARTY_NOTICES.md)。
 
 ## 众卿和 Trello、Jira、飞书多维表格有什么不同？
 
@@ -116,13 +127,22 @@ GitHub 上另有若干同名但毫无关联的项目。RETINUE 名称与中文�
 
 ## 众卿需要联网、注册账号吗？会上传数据吗？
 
-不需要，也不会。众卿没有遥测、没有托管控制面、没有远程账号，也没有任何强制外发请求，中枢、看板、demo
-与 exporter 均可离线运行。可选的 IM 适配只会连接你自己显式配置的那个服务。
+服务端使用你管理的本地账号，不要求注册 Retinue 云账号；文件模式与只读公开演示不要求登录。
+系统没有内置遥测或强制外发请求，本地运行可以离线。可选 IM 适配与显式配置的 runtime 接入会连接你选择的服务。
 
 ## 数据存在哪里？能带走吗？
 
-全部规范状态落在你指定的一个目录里。停掉进程、把目录拷走，数据就跟着走，可以私有版本化，也可以在另一台
-机器上还原。详见仓库中的数据治理与自托管文档。
+规范状态按部署模式区分：文件模式停掉写入者后复制完整数据目录（`org.yaml`、`tasks/`、
+`metrics/`、`nodes/`）；服务端事实源是 `retinue.db`，使用一致性 SQLite 快照备份。
+运行时源记录、外部成果、明文凭据与部署配置分别恢复。
+详见[数据治理](data-governance.md)与[备份说明](../SELF_HOSTING.md#backup)。
+
+## 怎么看到同一任务的多智能体协作？
+
+打开任务协作视图，可以查看委派与依赖关系、设备/runtime/模型泳道、模块贡献，以及分支指令、已报进展、
+等待对象和成果引用。身份与进展保留来源；模型登记不等于供应商认证，执行者声明完成仍需独立验收。
+原生会话观察需要显式任务绑定与结构化回执，才会成为任务进度；用量仅覆盖已上报来源，不是完整供应商账单。
+详见 [PRD](PRD.md) 和[当前截图](releases/2026-10-02-collaboration-observability.md)，截图均使用合成数据。
 
 ## 怎么跑起来？
 

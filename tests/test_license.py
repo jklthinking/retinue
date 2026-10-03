@@ -46,12 +46,12 @@ def test_tampered_license_rejected(keypair):
         lic.verify_license(document, public_hex)
 
 
-def test_missing_license_is_trial(tmp_path):
+def test_missing_certificate_keeps_mit_edition(tmp_path):
     status = lic.load_license(tmp_path)
     assert status == {
         "present": False,
         "valid": False,
-        "trial": True,
+        "trial": False,
         "customer": None,
         "edition": None,
         "seats": None,

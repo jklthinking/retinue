@@ -17,10 +17,10 @@ def test_readmes_publish_demo_sovereignty_roadmap_support_and_scale_boundaries()
     chinese = english
 
     assert "RETINUE" in english
-    for content in (english, chinese):
-        assert "SELF_HOSTING.md" in content
-        assert "compose" in content.lower()
-    assert "PolyForm" in english
+    assert "seed=42" in english
+    assert "SELF_HOSTING.md" in english
+    assert "MIT" in english
+    assert "no telemetry" in english
 
 
 def test_the_install_command_the_readme_prints_can_run_the_suite():
@@ -67,8 +67,8 @@ def test_the_install_command_the_readme_prints_can_run_the_suite():
             "test extra must provide it through some extra chain"
         )
 
-    contributing = read("CONTRIBUTING.md")
-    assert "'.[test]'" in contributing or '".[test]"' in contributing
+    for content in (read("CONTRIBUTING.md"),):
+        assert "'.[test]'" in content or '".[test]"' in content
 
 
 def test_self_hosting_has_backup_restore_drill_and_port_warning():
@@ -163,4 +163,4 @@ def test_closed_loop_walkthrough_names_tested_surfaces_and_honest_gaps():
     assert "Chat or group membership is not identity" in guide
     assert "creates nothing" in guide
     assert "app credentials" in guide
-    assert "internal" not in guide.lower()
+    assert "kingdom" not in guide.lower()

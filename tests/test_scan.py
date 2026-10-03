@@ -70,7 +70,8 @@ def _scan_output(monkeypatch, *, encoding: str, is_tty: bool) -> tuple[bytes, st
         "summary": {"agents_found": 1, "with_cli": 1, "with_data": 0},
     }
     target = _OutputBytes(is_tty=is_tty)
-    stream = io.TextIOWrapper(target, encoding=encoding, errors="strict")
+    # These cases assert encoding/fallback bytes, not host newline policy.
+    stream = io.TextIOWrapper(target, encoding=encoding, errors="strict", newline="\n")
     monkeypatch.setattr(sys, "stdout", stream)
     monkeypatch.setattr(scan_module, "scan_machine", lambda: report)
 
@@ -174,7 +175,7 @@ def test_scan_output_survives_legacy_redirection(monkeypatch):
 
 def test_cli_error_uses_legacy_stderr_fallback(monkeypatch):
     target = _OutputBytes(is_tty=True)
-    stream = io.TextIOWrapper(target, encoding="cp437", errors="strict")
+    stream = io.TextIOWrapper(target, encoding="cp437", errors="strict", newline="\n")
     monkeypatch.setattr(sys, "stderr", stream)
 
     def fail(_args):

@@ -22,6 +22,8 @@ import type {
 import { Ambient, PageHeader, Panel } from "../components/ui";
 import { Avatar } from "../avatar";
 import { useVocab } from "../theme";
+import { isSessionSync, registeredModel, rosterIdentity } from "../lib/rosterIdentity";
+import "./roster-identity.css";
 
 type AgentForm = {
   id: string;
@@ -70,7 +72,8 @@ export default function Roster({
   const [form, setForm] = useState<AgentForm>(EMPTY_FORM);
   const [editingActor, setEditingActor] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
-  const canManage = me.role === "admin";
+  const canManage = me.role === "admin" && !me.readonly;
+  const canDispatch = me.role !== "viewer" && !me.readonly;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -95,7 +98,14 @@ export default function Roster({
 
   const agents = actors.filter((actor) => actor.kind === "agent");
   const humans = actors.filter((actor) => actor.kind === "human");
-  const activeAgents = agents.filter((actor) => !actor.disabled);
+  const syncAgents = agents.filter(isSessionSync);
+  const workers = agents.filter((actor) => !isSessionSync(actor));
+  const activeAgents = workers.filter((actor) => !actor.disabled);
+  const modelsToConfirm = activeAgents.filter((actor) => registeredModel(actor.model).state !== "known");
+  const workerAttention = (discovery?.attention || []).filter((item) => {
+    const actor = actors.find((candidate) => candidate.id === item.actor_id);
+    return actor ? !isSessionSync(actor) : !item.actor_id.endsWith("-session-sync");
+  });
   const agentName = useCallback(
     (id: string) => actors.find((actor) => actor.id === id)?.display_name || id,
     [actors]
@@ -184,31 +194,33 @@ export default function Roster({
   }
 
   function AgentCard({ actor }: { actor: ActorInfo }) {
+    const sync = isSessionSync(actor);
+    const model = registeredModel(actor.model);
+    const executor = actor.kind === "agent" && !sync;
     return (
       <article className={"rt-agent " + (actor.disabled ? "is-disabled" : "")}>
         <div className="rt-agent__top">
           <Avatar name={actor.display_name || actor.id} size={40} square />
           <div className="rt-agent__identity">
             <div>
-              <h3>{actor.display_name || actor.id}</h3>
+              <h3 title={rosterIdentity(actor)}>{rosterIdentity(actor)}</h3>
               <span className={"rt-dot " + (actor.online ? "is-online" : "")} />
             </div>
-            <p>
-              {actor.kind === "agent" ? "智能体" : "人类成员"}
-              {actor.node ? " · " + actor.node : ""}
-            </p>
+            <p>{executor ? "现有身份 " + (actor.display_name || actor.id) : sync ? "会话同步代理" : "人类成员"}</p>
           </div>
           <span className={"rt-badge " + (actor.online ? "rt-badge--good" : "")}>
-            {actor.online ? "在线" : "离线"}
+            {actor.online ? "近期认证上报" : "近期未上报"}
           </span>
         </div>
-        {(actor.runtime || actor.model) && (
-          <div className="rt-agent__model">
-            <Cpu size={12} />
-            {actor.runtime || "—"}
-            {actor.model && <em>{actor.model}</em>}
-          </div>
-        )}
+        {actor.kind === "agent" && <div className="rt-agent__model">
+          <Cpu size={12} aria-hidden="true" />
+          <span>运行端 {actor.runtime || "待绑定"}</span>
+          {executor && <span className="roster-model-state" data-state={model.state}>
+            {model.state === "alias" ? "配置别名 · 精确型号待确认" : model.state === "unknown" ? "型号待确认" : "登记型号"}
+          </span>}
+          {sync && actor.model && <span className="roster-model-state">索引版本 {actor.model}</span>}
+        </div>}
+        {executor && <p className="roster-registration-note">设备与模型为登记资料；执行时的身份以当次上报为准。</p>}
         {(actor.role || actor.goal) && (
           <div className="rt-agent__purpose">
             {actor.role && <strong>{actor.role}</strong>}
@@ -217,21 +229,22 @@ export default function Roster({
         )}
         <footer>
           <code>{actor.id}</code>
-          <span className="muted">
-            {actor.last_seen_at ? timeLabel(actor.last_seen_at) : "尚未活动"}
-          </span>
+          <span className="muted">{actor.last_seen_at ? timeLabel(actor.last_seen_at) : "尚未活动"}</span>
+          {canManage && actor.kind === "agent" && <button type="button" className="roster-edit-binding"
+            aria-label={"编辑 " + (actor.display_name || actor.id) + " 的绑定"} onClick={() => beginBinding(actor)}>
+            <Link2 size={12} aria-hidden="true" /> 编辑绑定
+          </button>}
         </footer>
       </article>
     );
   }
-
   return (
-    <div className="rt-page">
+    <div className="rt-page roster-page">
       <Ambient />
       <PageHeader
         kicker="AGENT DISCOVERY · RUNTIME BINDING"
         title="智能体发现"
-        subtitle="发现已接入终端的运行时，确认成员绑定后即可按技能、负载与可用性派单。"
+        subtitle="以设备与登记模型辨认现有执行成员，运行端辅助定位；型号待确认时先补齐资料，再参与派单。"
         tools={
           <div className="discovery-header-actions">
             <button
@@ -243,13 +256,13 @@ export default function Roster({
               <RefreshCw className={loading ? "is-spinning" : ""} size={14} />
               {loading ? "扫描中" : "扫描并刷新"}
             </button>
-            <button
+            {canDispatch && <button
               type="button"
               className="rt-button rt-button--primary"
               onClick={() => onNavigate("workroom")}
             >
               <Search size={14} /> 智能派单
-            </button>
+            </button>}
           </div>
         }
       />
@@ -258,19 +271,24 @@ export default function Roster({
 
       <section className="discovery-overview" aria-label="发现概览">
         <article>
-          <span>已连接智能体</span>
-          <strong>{activeAgents.length}</strong>
-          <small>{agents.filter((actor) => actor.online).length} 位在线</small>
+          <span>执行成员</span>
+          <strong>{loading && !discovery ? "—" : activeAgents.length}</strong>
+          <small>{activeAgents.filter((actor) => actor.online).length} 位近期认证上报 · 不含同步代理</small>
         </article>
         <article>
           <span>已发现运行时</span>
           <strong>{discovery?.runtimes.length ?? "—"}</strong>
           <small>本机扫描、节点探针 + 已同步终端</small>
         </article>
-        <article className={(discovery?.attention.length || 0) > 0 ? "is-attention" : ""}>
+        <article className={workerAttention.length > 0 ? "is-attention" : ""}>
           <span>待补齐绑定</span>
-          <strong>{discovery?.attention.length ?? "—"}</strong>
-          <small>运行时、节点或会话同步</small>
+          <strong>{discovery ? workerAttention.length : "—"}</strong>
+          <small>设备、型号、运行端或会话同步</small>
+        </article>
+        <article className={modelsToConfirm.length ? "is-attention" : ""}>
+          <span>型号待确认</span>
+          <strong>{loading && !discovery ? "—" : modelsToConfirm.length}</strong>
+          <small>缺少型号或仅登记配置别名</small>
         </article>
       </section>
 
@@ -340,7 +358,7 @@ export default function Roster({
           className="discovery-attention-panel"
         >
           <div className="discovery-attention-list">
-            {(discovery?.attention || []).map((item) => {
+            {workerAttention.map((item) => {
               const actor = actors.find((candidate) => candidate.id === item.actor_id);
               return (
                 <article key={item.actor_id}>
@@ -357,7 +375,7 @@ export default function Roster({
                 </article>
               );
             })}
-            {!loading && (discovery?.attention.length || 0) === 0 && (
+            {!loading && workerAttention.length === 0 && (
               <p className="muted discovery-empty">所有启用中的智能体均已完成基础绑定。</p>
             )}
           </div>
@@ -378,19 +396,19 @@ export default function Roster({
           {detectedButUnbound.length > 0 && !canManage && (
             <p className="discovery-role-note">请管理员确认后登记新发现的运行时。</p>
           )}
-          <button type="button" className="discovery-dispatch" onClick={() => onNavigate("workroom")}>
+          {canDispatch && <button type="button" className="discovery-dispatch" onClick={() => onNavigate("workroom")}>
             按能力搜索并派单 <ArrowRight size={14} />
-          </button>
+          </button>}
         </Panel>
       </div>
 
-      {formOpen && (
+      {formOpen && canManage && (
         <section className="discovery-form-shell" aria-label="智能体运行时绑定">
           <form className="discovery-form" onSubmit={saveAgent}>
             <header>
               <div>
                 <span>{editingActor ? "BINDING UPDATE" : "NEW AGENT"}</span>
-                <h2>{editingActor ? "补齐智能体绑定" : "登记发现的智能体"}</h2>
+                <h2>{editingActor ? "编辑设备与模型绑定" : "登记发现的智能体"}</h2>
               </div>
               <button type="button" className="discovery-close" onClick={closeForm} aria-label="关闭">
                 <X size={16} />
@@ -399,7 +417,7 @@ export default function Roster({
             <p>
               {editingActor
                 ? "更新会立刻进入派单匹配；不会读取或移动该运行时中的对话。"
-                : "登记后需由该智能体使用自己的令牌同步会话元数据，才能显示真实在线与会话状态。"}
+                : "登记后需由该智能体使用自己的令牌同步会话元数据，才能显示认证上报与会话索引状态。"}
             </p>
             <div className="discovery-form-grid">
               <label>
@@ -421,7 +439,7 @@ export default function Roster({
                 />
               </label>
               <label>
-                运行时
+                运行端
                 <input
                   value={form.runtime}
                   onChange={(event) => setField("runtime", event.target.value)}
@@ -430,11 +448,11 @@ export default function Roster({
                 />
               </label>
               <label>
-                所在节点
+                所在设备
                 <input
                   value={form.node}
                   onChange={(event) => setField("node", event.target.value)}
-                  placeholder="windows、forge-linux、throne…"
+                  placeholder="windows、node-d-linux、node-a…"
                   required
                 />
               </label>
@@ -458,11 +476,11 @@ export default function Roster({
                 />
               </label>
               <label className="is-wide">
-                模型（可选）
+                登记模型（不确定可留空）
                 <input
                   value={form.model}
                   onChange={(event) => setField("model", event.target.value)}
-                  placeholder="例如 gpt-5.6"
+                  placeholder="填写已知型号；opus、sonnet 等属于配置别名"
                 />
               </label>
             </div>
@@ -480,12 +498,17 @@ export default function Roster({
 
       <Panel icon={<Bot size={15} />} kicker="AGENTS" title={vocab.membersRoster}>
         <div className="rt-agent-grid">
-          {agents.map((actor) => (
+          {workers.map((actor) => (
             <AgentCard key={actor.id} actor={actor} />
           ))}
-          {agents.length === 0 && <p className="muted">尚无智能体</p>}
+          {workers.length === 0 && <p className="muted">尚无执行成员</p>}
         </div>
       </Panel>
+
+      {syncAgents.length > 0 && <Panel icon={<RefreshCw size={15} />} kicker="SESSION SYNC" title="会话同步代理">
+        <p className="roster-sync-note">这些身份维护会话索引，不作为独立执行成员，也不计入型号完整度。</p>
+        <div className="rt-agent-grid">{syncAgents.map((actor) => <AgentCard key={actor.id} actor={actor} />)}</div>
+      </Panel>}
 
       {humans.length > 0 && (
         <Panel icon={<Users size={15} />} kicker="HUMANS" title="人类成员">

@@ -104,7 +104,9 @@ def stable_probe(monkeypatch):
         "_memory",
         lambda: {"total": 8, "available": 4, "swap_total": 2, "swap_free": 1},
     )
-    monkeypatch.setattr(probe.os, "getloadavg", lambda: (0.5, 0.25, 0.125))
+    # Windows has no getloadavg; install the same deterministic probe input
+    # there without changing the exact heartbeat/parity assertions below.
+    monkeypatch.setattr(probe.os, "getloadavg", lambda: (0.5, 0.25, 0.125), raising=False)
     usage = collections.namedtuple("usage", ["total", "used", "free"])
     monkeypatch.setattr(probe.shutil, "disk_usage", lambda root: usage(100, 40, 60))
     return probe
@@ -191,6 +193,92 @@ def test_runtimes_payload_matches_server_main(monkeypatch, token_file, capsys):
     for entry in payload["data_dirs"]:
         assert set(entry) == {"runtime", "path_hint", "last_changed_at"}
         assert entry["path_hint"].startswith("~/")
+
+
+def test_live_sessions_push_uses_node_token(monkeypatch, token_file, capsys):
+    import node.cli
+    import node.session_probe as session_probe
+
+    payload = {
+        "node_id": "node-a",
+        "backend": "tmux",
+        "server_id": "0123456789abcdef",
+        "available": True,
+        "status": "ok",
+        "panes": [],
+        "ignored_rows": 0,
+    }
+    monkeypatch.setattr(session_probe, "collect", lambda *args, **kwargs: payload)
+    sent = []
+    monkeypatch.setattr(
+        session_probe,
+        "push",
+        lambda url, token, body: sent.append((url, token, body)),
+    )
+
+    assert node.cli.main(
+        [
+            "sessions",
+            "--node",
+            "node-a",
+            "--push",
+            "--url",
+            URL,
+            "--token-file",
+            str(token_file),
+        ]
+    ) == 0
+
+    assert sent == [(URL, "synthetic-token", payload)]
+    assert "0 panes" in capsys.readouterr().out
+
+
+def test_live_cycle_reconciles_before_relay(monkeypatch, token_file, capsys):
+    import node.cli
+    import node.control_relay as control_relay
+    import node.session_probe as session_probe
+
+    payload = {
+        "node_id": "node-a",
+        "backend": "tmux",
+        "server_id": "0123456789abcdef",
+        "available": True,
+        "status": "ok",
+        "panes": [{"endpoint_id": "tmux-" + "a" * 24}],
+        "ignored_rows": 0,
+    }
+    calls = []
+    monkeypatch.setattr(
+        session_probe,
+        "collect",
+        lambda node, socket_path=None: payload,
+    )
+    monkeypatch.setattr(
+        session_probe,
+        "push",
+        lambda url, token, body: calls.append(("push", url, token, body)),
+    )
+    monkeypatch.setattr(
+        control_relay,
+        "relay_once",
+        lambda url, token, node, **kwargs: (
+            calls.append(("relay", url, token, node, kwargs)) or [{"status": "delivered"}]
+        ),
+    )
+
+    assert node.cli.main(
+        [
+            "live-cycle",
+            "--node",
+            "node-a",
+            "--url",
+            URL,
+            "--token-file",
+            str(token_file),
+        ]
+    ) == 0
+    assert [item[0] for item in calls] == ["push", "relay"]
+    assert "1 panes, 1 ACK" in capsys.readouterr().out
 
 
 def test_sync_sessions_payload_matches_server_main(monkeypatch, token_file, tmp_path, capsys):

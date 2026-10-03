@@ -1,190 +1,178 @@
-"""Community-preview export: promotions, quarantine, and scan placement."""
-
-from __future__ import annotations
-
+"""Public exports preserve working features, exclude runtime state and redact reports."""
 from pathlib import Path
+import json
+import hashlib
+import pytest
+from scripts.export_community import export_community, main, is_excluded, scan_export
 
-from scripts.export_community import (
-    _strip_isolated_app_pages,
-    _strip_isolated_operations_page,
-    main,
-    scan_fingerprints,
-    scan_internal_names,
-)
+def write(root, name, text):
+    path=root/name
+    path.parent.mkdir(parents=True,exist_ok=True)
+    path.write_text(text,encoding='utf-8')
 
-
-INTERNAL = "king" + "dom"
-REALM = "王" + "国"
-
-
-def _write(path: Path, text: str) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text, encoding="utf-8")
-
-
-def _fixture(root: Path) -> Path:
-    source = root / "src"
-    _write(source / "LICENSE.md", "FSL body\n")
-    _write(source / "LICENSE", "Apache body\n")
-    _write(source / "README.md", "internal readme\n")
-    _write(source / "README.community.md", "community readme\n")
-    _write(source / "SECURITY.md", "internal security\n")
-    _write(source / "SECURITY.community.md", "community security\n")
-    _write(source / "CONTRIBUTING.md", "internal contributing\n")
-    _write(source / "CONTRIBUTING.community.md", "community contributing\n")
-    _write(source / "NOTICE", "internal notice\n")
-    _write(source / "NOTICE.community", "community notice\n")
-    _write(source / "server" / "app.py", "print('ok')\n")
-    _write(source / "server" / f"{INTERNAL}.py", "raise SystemExit('internal')\n")
-    _write(
-        source / "docs" / "examples" / f"{INTERNAL}-context.md",
-        "internal theme\n",
-    )
-    _write(source / "docs" / "design" / "audit-2099.md", "internal audit\n")
-    _write(source / "docs" / "evidence" / "note.md", "internal evidence\n")
-    _write(source / "scripts" / "install-server.sh", "echo deploy\n")
-    _write(source / "scripts" / "backfill_data_governance.py", "print(0)\n")
-    _write(
-        source / "scripts" / "construction_ledger.yaml",
-        "sites:\n"
-        "- file: server/app.py\n"
-        "  entity: Task\n"
-        "  contexts: [create]\n"
-        "  decider: operator-command\n"
-        "  reason: kept because the file remains in the public tree after export.\n"
-        f"- file: server/{INTERNAL}_import.py\n"
-        "  entity: Actor\n"
-        "  contexts: [apply]\n"
-        "  decider: administrator-session\n"
-        "  reason: dropped because the target file is removed from the export.\n",
-    )
-    _write(source / "keep.py", "value = 1\n")
+def fixture(tmp_path):
+    source=tmp_path/'source'
+    write(source,'LICENSE','MIT License\n')
+    write(source,'LICENSE.md','MIT License\n')
+    write(source,'README.md','RETINUE MIT public README\n')
+    write(source,'README.community.md','old fallback must not override\n')
+    write(source,'server/kingdom.py','value = 1\n')
+    write(source,'server/kingdom_import.py','value = 2\n')
+    write(source,'webui/src/pages/KingdomHub.tsx','export const Hub = 1;\n')
+    write(source,'webui/src/pages/KingdomOperationsPage.tsx','export const Ops = 1;\n')
+    write(source,'webui/src/App.tsx','import Hub from "./pages/KingdomHub";\n')
+    write(source,'retinue-data/state.sqlite','private database fixture\n')
+    write(source,'.integration/config.json','private configuration fixture\n')
+    write(source,'docs/evidence/note.md','private audit note\n')
     return source
 
+def test_export_preserves_modules_metadata_and_existing_readme(tmp_path):
+    source=fixture(tmp_path)
+    dest=tmp_path/'public'
+    report=tmp_path/'scan.json'
+    result=export_community(source,dest,report)
+    assert result['scan'] == 'clean' and result['features_preserved']
+    for name in ('LICENSE','LICENSE.md','server/kingdom.py','server/kingdom_import.py',
+        'webui/src/pages/KingdomHub.tsx','webui/src/pages/KingdomOperationsPage.tsx','webui/src/App.tsx'):
+        assert (dest/name).read_bytes() == (source/name).read_bytes()
+    assert (dest/'README.md').read_bytes() == (source/'README.md').read_bytes()
+    assert not (dest/'.git').exists()
+    assert not (dest/'retinue-data').exists()
+    assert not (dest/'.integration').exists()
+    assert not (dest/'docs/evidence').exists()
+    assert report.is_file() and dest not in report.parents
 
-def test_export_promotes_community_files_and_drops_quarantine(tmp_path: Path):
-    source = _fixture(tmp_path)
-    dest = tmp_path / "dist" / "community-export"
-    report = tmp_path / "dist" / "community-export-scan.txt"
-
-    assert main(["--source", str(source), "--out", str(dest), "--report", str(report)]) == 0
-
-    assert (dest / "README.md").read_text(encoding="utf-8") == "community readme\n"
-    assert (dest / "SECURITY.md").read_text(encoding="utf-8") == "community security\n"
-    assert (dest / "CONTRIBUTING.md").read_text(encoding="utf-8") == "community contributing\n"
-    assert (dest / "NOTICE").read_text(encoding="utf-8") == "community notice\n"
-    assert (dest / "LICENSE.md").read_text(encoding="utf-8") == "FSL body\n"
-    assert not (dest / "LICENSE").exists()
-    assert not (dest / "README.community.md").exists()
-    assert not (dest / "server" / f"{INTERNAL}.py").exists()
-    assert not (dest / "docs" / "examples" / f"{INTERNAL}-context.md").exists()
-    assert not (dest / "docs" / "design" / "audit-2099.md").exists()
-    assert not (dest / "docs" / "evidence" / "note.md").exists()
-    assert not (dest / "scripts" / "install-server.sh").exists()
-    assert not (dest / "scripts" / "backfill_data_governance.py").exists()
-    assert (dest / "server" / "app.py").is_file()
-    assert (dest / "keep.py").is_file()
-    ledger = (dest / "scripts" / "construction_ledger.yaml").read_text(encoding="utf-8")
-    assert "server/app.py" in ledger
-    assert f"server/{INTERNAL}_import.py" not in ledger
-    assert report.is_file()
-    assert dest not in report.parents
-    assert "result: clean" in report.read_text(encoding="utf-8")
-    assert scan_internal_names(dest) == []
-
-
-def test_export_is_idempotent_and_keeps_the_scan_outside(tmp_path: Path):
-    source = _fixture(tmp_path)
-    dest = tmp_path / "out"
-    report = tmp_path / "scan.txt"
-    argv = ["--source", str(source), "--out", str(dest), "--report", str(report)]
+def test_export_is_idempotent_without_history_changes(tmp_path):
+    source=fixture(tmp_path)
+    dest=tmp_path/'public'
+    report=tmp_path/'scan.json'
+    argv=['--source',str(source),'--out',str(dest),'--report',str(report)]
     assert main(argv) == 0
-    first = (dest / "README.md").read_text(encoding="utf-8")
     assert main(argv) == 0
-    assert (dest / "README.md").read_text(encoding="utf-8") == first
-    assert report.is_file()
-    assert not (dest / report.name).exists()
+    assert not (dest/'.git').exists()
 
+def test_dirty_report_exposes_no_identifier_values_and_preserves_old_export(tmp_path):
+    source=fixture(tmp_path)
+    dest=tmp_path/'public'
+    report=tmp_path/'scan.json'
+    assert export_community(source,dest,report)['scan'] == 'clean'
+    identifier='someone'+'@'+'example.invalid'
+    write(source,'leak.md',identifier)
+    result=export_community(source,dest,report)
+    assert result['scan'] == 'needs_review'
+    assert result['identifier_hits'] == 1
+    assert identifier not in report.read_text(encoding='utf-8')
+    assert not (dest/'leak.md').exists()
 
-def test_export_reports_identifier_findings(tmp_path: Path):
-    source = _fixture(tmp_path)
-    address = "someone" + "@" + "example.invalid"
-    _write(source / "leak.md", f"contact {address} please\n")
-    dest = tmp_path / "out"
-    report = tmp_path / "scan.txt"
-    assert main(["--source", str(source), "--out", str(dest), "--report", str(report)]) == 2
-    text = report.read_text(encoding="utf-8")
-    assert "result: findings" in text
-    assert address in text
+@pytest.mark.parametrize('name',['.integration/config.json','retinue.db','capture.jsonl',
+    'private.key','private.token','.env','core.egg-info/PKG-INFO','node_modules/module.js',
+    'STATE.DB','SECRET.PEM','PRIVATE.PFX','.ENV','.Integration/config.json'])
+def test_private_artifacts_are_excluded(name):
+    assert is_excluded(name)
 
+def test_mit_source_metadata_is_consistent():
+    root=Path(__file__).resolve().parents[1]
+    assert (root/'LICENSE').read_bytes() == (root/'LICENSE.md').read_bytes()
+    assert 'MIT License' in (root/'LICENSE').read_text(encoding='utf-8')
+    assert 'Copyright (c) 2026 JKL Thinking' in (root/'LICENSE').read_text(encoding='utf-8')
+    assert 'license = {text = "MIT"}' in (root/'pyproject.toml').read_text(encoding='utf-8')
+    assert json.loads((root/'webui/package.json').read_text())['license'] == 'MIT'
+    assert json.loads((root/'webui/package-lock.json').read_text())['packages']['']['license'] == 'MIT'
 
-def test_internal_name_scan_finds_leftover_tokens(tmp_path: Path):
-    dest = tmp_path / "tree"
-    _write(dest / "note.md", f"mentions {INTERNAL} and {REALM}\n")
-    hits = scan_internal_names(dest)
-    assert len(hits) == 1
-    assert INTERNAL in hits[0]
-    assert REALM in hits[0]
+def test_loopback_does_not_hide_another_address_on_same_line(tmp_path):
+    write(tmp_path,'source.txt','localhost 127.0.0.1 and '+'8.8.'+'4.4')
+    identifiers,_=scan_export(tmp_path)
+    assert identifiers == ['source.txt:1:address']
 
+def test_documentation_cidr_does_not_hide_another_address_or_path(tmp_path):
+    write(tmp_path,'source.txt','10.0.0.0/8 then '+'10.2.'+'3.4'+' and /'+'root'+'/secret')
+    identifiers,_=scan_export(tmp_path)
+    assert identifiers == ['source.txt:1:address','source.txt:1:machine-path']
 
-def test_fingerprint_scan_finds_internal_cloud_mirrors(tmp_path: Path):
-    dest = tmp_path / "tree"
-    host = "mirrors." + "tencent" + "yun.com"
-    _write(dest / "package-lock.json", f'{{"resolved": "https://{host}/pypi/simple"}}\n')
-    hits = scan_fingerprints(dest)
-    assert len(hits) == 1
-    assert host in hits[0]
+def test_each_match_is_scanned_even_next_to_documentation_addresses(tmp_path):
+    write(tmp_path,'source.txt','192.0.2.3 and '+'10.2.'+'3.4'+' and '+'172.20.'+'1.4')
+    identifiers,_=scan_export(tmp_path)
+    assert identifiers == ['source.txt:1:address','source.txt:1:address']
 
+def test_fixed_documentation_addresses_and_networks_are_safe(tmp_path):
+    write(tmp_path,'source.txt','127.0.0.1 0.0.0.0 192.0.2.3 198.51.100.7 203.0.113.9 10.0.0.0/8')
+    assert scan_export(tmp_path) == ([],[])
 
-def test_app_transform_drops_isolated_hub_import_and_switch():
-    from scripts import export_community as exp
+def test_windows_paths_are_reported_without_values(tmp_path):
+    windows='C:'+chr(92)+'Users'+chr(92)+'example'
+    write(tmp_path,'source.txt',windows)
+    identifiers,_=scan_export(tmp_path)
+    assert identifiers == ['source.txt:1:machine-path']
+    assert windows not in identifiers[0]
 
-    raw = (
-        "import {\n  Castle,\n  Gauge,\n} from 'lucide-react';\n"
-        f'import {exp._CODE.capitalize()}Hub from "./pages/'
-        f'{exp._CODE.capitalize()}Hub";\n'
-        "type Page =\n  | \"home\"\n"
-        f'  | "{exp._CODE}"\n'
-        "  | \"admin\";\n"
-        "const NAV: {\n  key: Page;\n"
-        f"  {exp._CODE}Only?: boolean;\n"
-        "}[] = [\n"
-        f'  {{ key: "{exp._CODE}", label: "hub", icon: <Castle size={{16}} />, '
-        f"{exp._CODE}Only: true }},\n"
-        "];\n"
-        f"  const {exp._CODE}On = Boolean(me.site_console) && me.role === "
-        f'"admin";\n'
-        "          {NAV.filter(\n            (item) =>\n"
-        "              (!item.adminOnly || me.role === \"admin\") &&\n"
-        f"              (!item.{exp._CODE}Only || {exp._CODE}On) &&\n"
-        "              (!teacherMode || item.teacherVisible)\n"
-        "          ).map((item) => item)}\n"
-        f"        {{page === \"ops\" && <Operations {exp._CODE}On="
-        f"{{{exp._CODE}On}} />}}\n"
-        f'        {{page === "{exp._CODE}" && {exp._CODE}On && '
-        f"<{exp._CODE.capitalize()}Hub />}}\n"
-    )
-    out = _strip_isolated_app_pages(raw)
-    assert f"{exp._CODE.capitalize()}Hub" not in out
-    assert f"{exp._CODE}On" not in out
-    assert f"{exp._CODE}Only" not in out
-    assert "<Operations />" in out
-    assert "Castle" not in out
+@pytest.mark.parametrize('prefix',['sk-'+'proj-','sk-'+'ant-api03-','github'+'_pat_'])
+def test_provider_specific_tokens_are_reported(tmp_path,prefix):
+    write(tmp_path,'source.txt',prefix+'a'*40)
+    _,credentials=scan_export(tmp_path)
+    assert credentials == ['source.txt:1:credential']
 
+def test_jwt_and_quoted_keys_are_candidates_even_in_test_files(tmp_path):
+    jwt='eyJ'+'a'*12+'.'+'b'*16+'.'+'c'*24
+    write(tmp_path,'tests/fixture.txt',jwt+'\n'+json.dumps({'access_token':'synthetic-'+('x'*20)}))
+    _,credentials=scan_export(tmp_path)
+    assert credentials == ['tests/fixture.txt:1:credential','tests/fixture.txt:2:credential']
 
-def test_operations_transform_drops_isolated_pane():
-    from scripts import export_community as exp
+def test_synthetic_password_needs_review_and_does_not_replace_old_output(tmp_path):
+    source=fixture(tmp_path)
+    dest=tmp_path/'public'
+    report=tmp_path/'scan.json'
+    assert export_community(source,dest,report)['scan'] == 'clean'
+    write(source,'tests/new_fixture.txt',json.dumps({'password':'synthetic-'+('p'*20)}))
+    result=export_community(source,dest,report)
+    assert result['scan'] == 'needs_review'
+    assert result['credential_hits'] == 1
+    assert not (dest/'tests/new_fixture.txt').exists()
 
-    page = exp._CODE.capitalize() + "OperationsPage"
-    raw = (
-        f'import {page} from "./{page}";\n'
-        f"export default function Operations({{ {exp._CODE}On }}: "
-        f"{{ {exp._CODE}On: boolean }}) {{\n"
-        "      <Reports />\n"
-        f"      {{{exp._CODE}On && <{page} />}}\n"
-        "}\n"
-    )
-    out = _strip_isolated_operations_page(raw)
-    assert page not in out
-    assert f"{exp._CODE}On" not in out
-    assert "export default function Operations() {" in out
+def approved_fixture(root,line,category,matched):
+    write(root,'scripts/public_scan_allowlist.json',json.dumps({'version':1,'entries':[{
+        'file':'tests/fixture.txt','category':category,
+        'line_sha256':hashlib.sha256(line.encode()).hexdigest(),
+        'match_sha256':hashlib.sha256(matched.encode()).hexdigest(),
+        'reason':'negative-test','review_note':'Independently reviewed generated synthetic negative fixture.'}]}))
+
+def test_reviewed_exact_fixture_matches_only_same_file_line_and_candidate(tmp_path):
+    line=json.dumps({'password':'synthetic-'+('s'*20)})
+    from scripts.export_community import CREDENTIAL_RE
+    matched=CREDENTIAL_RE.search(line).group(0)
+    write(tmp_path,'tests/fixture.txt',line)
+    approved_fixture(tmp_path,line,'credential',matched)
+    assert scan_export(tmp_path) == ([],[])
+    write(tmp_path,'tests/fixture.txt',line+' '+json.dumps({'access_token':'unreviewed-'+('s'*20)}))
+    assert len(scan_export(tmp_path)[1]) == 2
+    write(tmp_path,'tests/fixture.txt',line)
+    write(tmp_path,'tests/another.txt',line)
+    assert scan_export(tmp_path)[1] == ['tests/another.txt:1:credential']
+
+def test_invalid_or_broad_allowlist_fails_closed(tmp_path):
+    line=json.dumps({'password':'synthetic-'+('s'*20)})
+    write(tmp_path,'tests/fixture.txt',line)
+    write(tmp_path,'scripts/public_scan_allowlist.json',json.dumps({'version':1,'entries':[
+        {'file':'tests/*','reason':'all-tests','category':'credential'}]}))
+    assert scan_export(tmp_path)[1] == ['tests/fixture.txt:1:credential']
+
+def test_shared_read_only_scan_does_not_write_export(tmp_path):
+    source=fixture(tmp_path)
+    dest=tmp_path/'public'
+    assert main(['--scan-only','--source',str(source),'--out',str(dest)]) == 0
+    assert not dest.exists()
+
+def test_atomic_export_retries_one_transient_directory_handle(tmp_path,monkeypatch):
+    source=fixture(tmp_path)
+    dest=tmp_path/'public'
+    report=tmp_path/'scan.json'
+    original=Path.rename
+    denied=[]
+    def rename(path,target):
+        if path.name.startswith('.public-export-') and not denied:
+            denied.append(True)
+            raise PermissionError('synthetic transient file handle')
+        return original(path,target)
+    monkeypatch.setattr(Path,'rename',rename)
+    assert export_community(source,dest,report)['scan'] == 'clean'
+    assert len(denied) == 1
+    assert (dest/'README.md').is_file()

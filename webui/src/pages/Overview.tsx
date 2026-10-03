@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import {
   Activity,
   BookOpen,
@@ -9,11 +9,15 @@ import {
   Server,
   Sparkles,
 } from "lucide-react";
-import { api, readErrorMessage } from "../api";
+import { api } from "../api";
 import { useVocab } from "../theme";
 import type { ActorInfo, NodeInfo, SkillInfo, StatusInfo, Status } from "../types";
 import { STATUS_LABEL, fmtUptime } from "../types";
 import { Ambient, DataState, Metric, PageHeader, Panel } from "../components/ui";
+import { isSessionSync } from "../lib/rosterIdentity";
+import { sourceTime, useOperationsRead } from "../lib/operations";
+import { observationState } from "../lib/observation";
+import "./operations.css";
 
 function Bar({ percent }: { percent: number }) {
   const cls = percent > 88 ? "is-red" : percent > 70 ? "is-amber" : "is-green";
@@ -26,43 +30,22 @@ function Bar({ percent }: { percent: number }) {
 
 const STATUS_ORDER: Status[] = ["queued", "doing", "handoff", "blocked", "done"];
 
-function heartbeatStaleAfterMs(nodeId: string) {
-  const normalized = nodeId.toLowerCase();
-  if (normalized === "windows") return 8 * 60 * 60 * 1000;
-  if (normalized === "bridge") return 3 * 60 * 60 * 1000;
-  return 2 * 60 * 60 * 1000;
-}
-
 export default function Overview() {
   const vocab = useVocab();
-  const [status, setStatus] = useState<StatusInfo | null>(null);
-  const [nodes, setNodes] = useState<NodeInfo[]>([]);
-  const [skills, setSkills] = useState<SkillInfo[]>([]);
-  const [actors, setActors] = useState<ActorInfo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    void (async () => {
-      try {
-        const [statusInfo, nodeRows, skillRows, actorRows] = await Promise.all([
+  const reader = useCallback(async () => {
+        const [status, nodes, skills, actors] = await Promise.all([
           api.get<StatusInfo>("/api/status"),
           api.get<NodeInfo[]>("/api/nodes"),
           api.get<SkillInfo[]>("/api/skills"),
           api.get<ActorInfo[]>("/api/actors"),
         ]);
-        setStatus(statusInfo);
-        setNodes(nodeRows);
-        setSkills(skillRows);
-        setActors(actorRows);
-        setError(null);
-      } catch (reason) {
-        setError(readErrorMessage(reason));
-      } finally {
-        setLoading(false);
-      }
-    })();
+        return { status, nodes, skills, actors };
   }, []);
+  const { data, refreshing: loading, error, fetchedAt } = useOperationsRead("system-overview", reader);
+  const status = data?.status;
+  const nodes = data?.nodes ?? [];
+  const skills = data?.skills ?? [];
+  const actors = data?.actors ?? [];
 
   const skillCats = useMemo(() => {
     const map = new Map<string, number>();
@@ -73,7 +56,7 @@ export default function Overview() {
     return [...map.entries()].sort((a, b) => b[1] - a[1]);
   }, [skills]);
 
-  const agents = actors.filter((a) => a.kind === "agent");
+  const agents = actors.filter((a) => a.kind === "agent" && !a.disabled && !isSessionSync(a));
   const counts = status?.task_counts ?? {};
   const totalTasks = Object.values(counts).reduce((a, b) => a + b, 0);
 
@@ -86,29 +69,31 @@ export default function Overview() {
         subtitle="一个界面掌握节点、智能体、任务与知识流的全局状态。"
       />
 
-      {loading && <DataState loading />}
-      {error && <DataState error={error} />}
+      {loading && !data && <DataState loading />}
+      {error && <DataState error={error} stale={!!data} />}
+      {data && <p className="ops-source-note">页面读取 {sourceTime(fetchedAt)} · 节点新鲜度按最后入库遥测时间及 30 分钟阈值判断，不代表 worker 在线或离线。</p>}
 
-      {!loading && !error && <>
+      {data && <>
 
       <div className="rt-metrics">
         <Metric
           icon={<Bot />}
-          label="智能体"
+          label="启用的模型 Worker"
           value={
             <>
-              {status?.online_actors ?? 0}
+              {agents.filter((actor) => actor.online).length}
               <em className="rt-metric__frac">/ {agents.length}</em>
             </>
           }
-          sub="在线 / 总数"
+          sub="近期认证上报 / 启用总数 · 不含同步代理"
           tone="green"
         />
+        {/* Fleet counts that used to live on Home: queued/doing/blocked stay here with agents/skills/nodes/knowledge. */}
         <Metric
           icon={<ListChecks />}
           label="任务"
           value={totalTasks}
-          sub={`进行中 ${counts["doing"] ?? 0} · 受阻 ${counts["blocked"] ?? 0}`}
+          sub={`待办/移交 ${(counts["queued"] ?? 0) + (counts["handoff"] ?? 0)} · 进行中 ${counts["doing"] ?? 0} · 受阻 ${counts["blocked"] ?? 0}`}
           tone="blue"
         />
         <Metric
@@ -150,9 +135,7 @@ export default function Overview() {
             const memUsedPct = memTotal
               ? ((memTotal - (node.memory.available ?? 0)) / memTotal) * 100
               : 0;
-            const stale =
-              node.updated_at !== null &&
-              Date.now() - new Date(node.updated_at).getTime() > heartbeatStaleAfterMs(node.id);
+            const observation = observationState(node.updated_at);
             return (
               <article key={node.id} className="rt-node-card">
                 <header>
@@ -163,10 +146,11 @@ export default function Overview() {
                       {node.load.length > 0 && ` · 负载 ${node.load[0].toFixed(2)}`}
                     </p>
                   </div>
-                  <span className={`rt-badge ${stale ? "rt-badge--warn" : "rt-badge--good"}`}>
-                    {stale ? "心跳过期" : "在线"}
+                  <span className={`rt-badge ${observation === "fresh" ? "rt-badge--good" : "rt-badge--warn"}`}>
+                    {({ fresh: "近期遥测", stale: "遥测已旧", unknown: "遥测时间未知", clock_skew: "时钟待核对" })[observation]}
                   </span>
                 </header>
+                <p className="ops-source-note">来源入库遥测 {sourceTime(node.updated_at)} · 时效阈值 30 分钟</p>
                 <div className="rt-resource">
                   <span>
                     <MemoryStick size={12} /> 内存 {memUsedPct.toFixed(0)}%

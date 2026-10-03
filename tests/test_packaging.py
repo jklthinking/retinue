@@ -79,7 +79,24 @@ def test_runtime_version_is_the_pyproject_version():
 
     declared = _manifest()["project"]["version"]
     assert __version__ == declared
-    assert declared == "0.2.0a3"
+    assert declared == "0.3.0a1"
+
+
+def test_python_artifacts_declare_the_built_webui_as_package_data():
+    package_data = _manifest()["tool"]["setuptools"]["package-data"]
+    assert package_data["server"] == ["static/*", "static/assets/*"]
+
+
+def test_distributions_keep_frontend_third_party_notices():
+    manifest = _manifest()
+    assert "docs/THIRD_PARTY_NOTICES.md" in manifest["tool"]["setuptools"]["license-files"]
+    dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+    assert "COPY docs/THIRD_PARTY_NOTICES.md ./docs/THIRD_PARTY_NOTICES.md" in dockerfile
+    notice = (ROOT / "docs" / "THIRD_PARTY_NOTICES.md").read_text(encoding="utf-8")
+    assert "## react 18.3.1" in notice and "## react-dom 18.3.1" in notice
+    assert "## scheduler 0.23.2" in notice and "## lucide-react 0.460.0" in notice
+    assert "Permission is hereby granted" in notice
+    assert "does\nnot relicense them" in notice
 
 
 def test_mcp_is_an_extra_and_the_documented_server_install_keeps_it():

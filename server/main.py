@@ -194,6 +194,25 @@ def cmd_sync_sessions(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_import_kingdom(args: argparse.Namespace) -> int:
+    from .kingdom_import import import_kingdom
+
+    alias = dict(pair.split("=", 1) for pair in (args.alias or []))
+    factory = _factory(args.data_dir)
+    with factory() as db:
+        result = import_kingdom(
+            db,
+            args.snapshot_dir,
+            created_by=args.created_by,
+            alias=alias,
+            performed_by=args.performed_by,
+        )
+        db.commit()
+    print(
+        f"王国观察完成: 新提案 {result['proposals']} 张, "
+        f"待批准变更 {result['proposed']} 条, 跳过 {result['skipped']} 条"
+    )
+    return 0
 
 
 def cmd_probe(args: argparse.Namespace) -> int:
@@ -367,6 +386,16 @@ def build_parser() -> argparse.ArgumentParser:
     sessions.add_argument("--max-messages", type=int, default=40)
     sessions.set_defaults(func=cmd_sync_sessions)
 
+    kingdom = sub.add_parser("import-kingdom", help="从王国观察快照发布名册变更提案(幂等)")
+    kingdom.add_argument("snapshot_dir", help="含 *-overview.json 的目录")
+    kingdom.add_argument("--created-by", required=True, help="授权者 actor slug")
+    kingdom.add_argument(
+        "--performed-by",
+        default="kingdom-import",
+        help="实际发布提案的自动化 agent slug",
+    )
+    kingdom.add_argument("--alias", action="append", help="profile=actor 别名映射,可多次")
+    kingdom.set_defaults(func=cmd_import_kingdom)
 
     probe = sub.add_parser("probe", help="上报本机节点健康心跳")
     probe.add_argument("--node", required=True)

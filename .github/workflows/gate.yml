@@ -20,8 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # scripts/check.sh scans the change rather than the tree, and needs the
-          # parent commit to diff against.
+          # Keep the public parent available for the whitespace/diff checks.
           fetch-depth: 2
 
       - uses: actions/setup-python@v5
@@ -43,18 +42,20 @@ jobs:
         # Present so the gate's frontend step type-checks rather than reporting
         # itself skipped. A change that touches the panel must not pass untested.
         working-directory: webui
-        run: |
-          npm install -g npm@11
-          npm ci --no-audit --no-fund || npm ci --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
       - name: Handoff gate
         run: bash scripts/check.sh
+
+      - name: Panel behavior tests
+        working-directory: webui
+        run: npm test -- --maxWorkers=2 --minWorkers=1
 
       - name: Whole-tree identifier and credential sweep
         # Rule 4 applies to the tree, not only to the diff. This step is expected
         # to pass; if it starts failing, something was committed that should not
         # have been.
-        run: bash scripts/check.sh --all
+        run: python scripts/export_community.py --scan-only --source .
 
   minimum-supported-python:
     # pyproject declares support from 3.10. Nothing checked it, and the fleet

@@ -99,6 +99,7 @@ def collect_metrics(
     last_active: datetime | None = None
     invalid_records = 0
     transcript_files = 0
+    session_records: dict[str, list[tuple[datetime, dict[str, int]]]] = defaultdict(list)
 
     for path in sorted(source.rglob("*.jsonl")):
         transcript_files += 1
@@ -139,12 +140,26 @@ def collect_metrics(
             continue
 
         all_sessions.add(session_id)
+        session_records[session_id].extend(records)
         for day in active_days:
             sessions_by_day[day].add(session_id)
             sessions_7d.add(session_id)
 
-        previous = {field: 0 for field in TOKEN_FIELDS}
+    # Resume/copy files can contain the same native session history. Convert
+    # cumulative counters once per native identity, not once per source file.
+    # Keep timestamp in the dedupe key: a later counter reset is real usage.
+    duplicate_snapshots = 0
+    for records in session_records.values():
+        unique = {}
         for timestamp, cumulative in records:
+            key = (timestamp, *(cumulative[field] for field in TOKEN_FIELDS))
+            if key in unique:
+                duplicate_snapshots += 1
+            else:
+                unique[key] = (timestamp, cumulative)
+        ordered = sorted(unique.values(), key=lambda item: (item[0], item[1]["total_tokens"]))
+        previous = {field: 0 for field in TOKEN_FIELDS}
+        for timestamp, cumulative in ordered:
             delta = _counter_delta(cumulative, previous)
             previous = cumulative
             local_day = timestamp.astimezone(tz).date()
@@ -175,6 +190,7 @@ def collect_metrics(
             "read_only": True,
             "files": transcript_files,
             "invalid_records": invalid_records,
+            "duplicate_usage_snapshots": duplicate_snapshots,
         },
         "token_accounting": {
             "included_fields": list(TOKEN_FIELDS),

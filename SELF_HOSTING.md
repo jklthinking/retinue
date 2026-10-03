@@ -111,6 +111,40 @@ and how it was found (`path`, `well-known`, or `pin`) — never an absolute
 path — and the session sync never writes into a runtime's own transcript
 directory.
 
+### Optional Live Sessions duty (Linux + tmux + Codex P0)
+
+Live control is never enabled by a normal upgrade or default enrollment.
+First inspect the local read-only inventory, then explicitly bind one exact
+Codex pane. The input-mode option is required before text can be delivered:
+
+```bash
+retinue-node sessions --node <node-id>
+retinue-node session-bind --node <node-id> --pane %12 \
+  --actor <agent-id> --session-id <live-session-id> --runtime codex \
+  --task <task-id> --input-mode codex-prompt
+retinue-node live-cycle --node <node-id> --url <hub-url> \
+  --token-file <node-token-file>
+```
+
+After a successful manual cycle, render and review the optional two-second
+Linux timer. It uses only the exact node token and does not collect historical
+conversation content:
+
+```bash
+retinue-node enroll --target linux-user --node <node-id> \
+  --url <hub-url> --token-file <node-token-file> --duties live
+retinue-node enroll --target linux-user --install --node <node-id> \
+  --url <hub-url> --token-file <node-token-file> --duties live
+```
+
+Disable the timer before unbinding or upgrading. Unbinding removes only the
+Retinue tmux user options and never sends terminal input:
+
+```bash
+systemctl --user disable --now retinue-node-live.timer
+retinue-node session-unbind --node <node-id> --pane %12
+```
+
 ## Enroll a node schedule
 
 `retinue-node enroll` installs the schedule for the duties the operator
@@ -287,6 +321,16 @@ Upgrade the server in this order:
 5. Start the server, inspect its board and overview, then re-enable its
    scheduled jobs. This is the complete writer sequence: **stop, migrate,
    start**.
+
+For `0.3.0a1`, the integrated production migration advances the database
+through schema v23-v25, adding live-session observations, explicit endpoint
+bindings, control envelopes,
+and append-only control events. Older server binaries intentionally refuse the
+new schema. A database downgrade is not performed in place: stop writers,
+restore the complete pre-migration data-directory backup, reinstall the prior
+binary, and start it against that restored directory. Controls created after
+the backup are not part of the rollback; task receipts remain in their
+separate ledger.
 
 For a file-backed panel deployment, stop the panel and every daemon, take and
 verify the portable-state backup below, install the reviewed release, run
@@ -477,7 +521,9 @@ read-only panel). Set an admin password of at least eight characters, then
 start:
 
 ```bash
-export RETINUE_ADMIN_PASSWORD=changeme1
+read -rsp 'Choose an admin password (at least 8 characters): ' RETINUE_ADMIN_PASSWORD
+printf '\n'
+export RETINUE_ADMIN_PASSWORD
 docker compose up --build
 ```
 

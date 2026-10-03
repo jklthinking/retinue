@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Collect redacted session summaries from internal nodes and push centrally."""
+"""Collect redacted session summaries from kingdom nodes and push centrally."""
 
 from __future__ import annotations
 

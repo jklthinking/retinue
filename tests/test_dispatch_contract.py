@@ -28,19 +28,19 @@ def env(tmp_path):
                     id="owner",
                     kind="human",
                     display_name="Owner",
-                    node="throne",
+                    node="node-a",
                 ),
                 Actor(
                     id="writer",
                     kind="agent",
                     display_name="Writer",
-                    node="castle",
+                    node="node-b",
                 ),
                 Actor(
                     id="checker",
                     kind="agent",
                     display_name="Checker",
-                    node="castle",
+                    node="node-b",
                 ),
             ]
         )
@@ -208,7 +208,7 @@ def test_dashboard_is_read_only_retinue_projection(env, monkeypatch):
     task = overview["tasks"][0]
     assert task["id"] == task_id
     assert task["holder_display"] == "Writer"
-    assert task["node"] == "castle"
+    assert task["node"] == "node-b"
     assert task["current_stage"]["name"] == "Draft"
     assert task["approval_status"] is None
     assert "chain" not in task
@@ -239,7 +239,7 @@ def test_review_comment_reply_are_idempotent_terminal_chain_events(env, monkeypa
     assert client.post(
         f"/api/tasks/{task_id}/update",
         json={
-            "refs": ["obsidian://open?vault=Internal&file=artifact"],
+            "refs": ["obsidian://open?vault=SharedKnowledge&file=artifact"],
             "note": "artifact linked",
         },
         headers=writer,
@@ -254,7 +254,7 @@ def test_review_comment_reply_are_idempotent_terminal_chain_events(env, monkeypa
 
     comment_body = {
         "body": "Please bind this QC thread to the canonical task.",
-        "artifact_ref": "obsidian://open?vault=Internal&file=artifact",
+        "artifact_ref": "obsidian://open?vault=SharedKnowledge&file=artifact",
         "idempotency_key": "board:comment:0001",
     }
     comment = client.post(f"/api/tasks/{task_id}/reviews", json=comment_body)
@@ -312,12 +312,12 @@ def test_review_comment_reply_are_idempotent_terminal_chain_events(env, monkeypa
         "/api/dashboard/overview",
         headers={"x-retinue-dashboard-token": "dashboard-test-token"},
     ).json()["tasks"][0]
-    assert projected["refs"] == ["obsidian://open?vault=Internal&file=artifact"]
+    assert projected["refs"] == ["obsidian://open?vault=SharedKnowledge&file=artifact"]
     assert projected["reviews"][0]["id"] == review_id
     assert projected["reviews"][0]["decision"] == "accepted"
 
 
-def test_throne_end_to_end_dispatch_to_owner_delivery(env, monkeypatch):
+def test_node_a_end_to_end_dispatch_to_owner_delivery(env, monkeypatch):
     client = env
     monkeypatch.setenv("RETINUE_DASHBOARD_TOKEN", "dashboard-test-token")
     writer = issue_token(client, "writer")
@@ -373,11 +373,12 @@ def test_mcp_worker_surface_and_dispatch_summary():
     assert {
         "dispatch_intent",
         "task_start",
-        "task_renew",
         "task_progress",
         "task_attempt",
         "stage_done",
         "stage_reject",
+        "todo_propose",
+        "todo_progress",
     } <= names
     summary = _summary(
         {

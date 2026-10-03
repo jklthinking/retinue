@@ -2,6 +2,7 @@
   "kind": "panel-demo",
   "template": "company",
   "demo_today": "2026-08-31",
+  "observed_at": "2026-08-31T09:43:05+00:00",
   "network_required": false,
-  "api_routes": 45
+  "api_routes": 82
 }

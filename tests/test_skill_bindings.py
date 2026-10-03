@@ -16,8 +16,8 @@ def _client(tmp_path) -> TestClient:
         db.add(Actor(id="owner", kind="human", display_name="Owner"))
         db.add(Actor(id="member", kind="human", display_name="Member"))
         db.add(Actor(id="scribe", kind="agent", display_name="Scribe", runtime="codex"))
-        db.add(Actor(id="throne-codex", kind="agent", display_name="Codex"))
-        db.add(Actor(id="windows-cursor", kind="agent", display_name="Cursor"))
+        db.add(Actor(id="node-a-codex", kind="agent", display_name="Codex"))
+        db.add(Actor(id="workstation-cursor", kind="agent", display_name="Cursor"))
         db.add(
             User(
                 username="owner",
@@ -278,16 +278,16 @@ def test_pilot_bindings_cover_both_executors(tmp_path):
     names_by_actor = {}
     for row in payload["applied"]:
         names_by_actor.setdefault(row["actor_id"], []).append(row["name"])
-    assert names_by_actor["throne-codex"] == list(PILOT_BINDINGS[0][1])
-    assert names_by_actor["windows-cursor"] == list(PILOT_BINDINGS[1][1])
-    assert len(client.get("/api/actors/throne-codex/skills").json()) == 3
-    assert len(client.get("/api/actors/windows-cursor/skills").json()) == 3
+    assert names_by_actor["node-a-codex"] == list(PILOT_BINDINGS[0][1])
+    assert names_by_actor["workstation-cursor"] == list(PILOT_BINDINGS[1][1])
+    assert len(client.get("/api/actors/node-a-codex/skills").json()) == 3
+    assert len(client.get("/api/actors/workstation-cursor/skills").json()) == 3
 
 
 def test_apply_pilot_bindings_skips_missing_rows(tmp_path):
     factory = make_session_factory(tmp_path / "empty-pilot.db")
     with factory() as db:
-        db.add(Actor(id="throne-codex", kind="agent", display_name="Codex"))
+        db.add(Actor(id="node-a-codex", kind="agent", display_name="Codex"))
         db.add(Skill(name="review", description="only one inventory row"))
         applied = apply_pilot_bindings(db, who="owner")
         db.commit()
@@ -309,9 +309,9 @@ def test_matching_uses_enabled_bindings_over_owners(tmp_path):
     # Binding on scribe switches it to the binding model, so the owner-only
     # review row no longer counts for that executor.
     client.post("/api/actors/scribe/skills", json={"name": "plan"})
-    client.post("/api/actors/windows-cursor/skills", json={"name": "review"})
+    client.post("/api/actors/workstation-cursor/skills", json={"name": "review"})
     ranked = client.get("/api/agent-match", params={"q": "review a change"})
     assert ranked.status_code == 200
     rows = {row["id"]: row for row in ranked.json()}
-    assert "review" in rows["windows-cursor"]["matched_skills"]
+    assert "review" in rows["workstation-cursor"]["matched_skills"]
     assert "review" not in rows["scribe"]["matched_skills"]

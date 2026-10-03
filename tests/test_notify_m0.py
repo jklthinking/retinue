@@ -232,14 +232,14 @@ def test_tenant_app_send_and_refresh_with_http_stub(tmp_path, monkeypatch):
     assert body["msg_type"] == "text"
 
 
-def test_migration_v18_to_v20(tmp_path):
-    """Fresh DB is v20; an explicit downgrade-to-18 stamp then migrate reaches 20."""
+def test_migration_v18_to_latest(tmp_path):
+    """A downgrade-to-v18 stamp migrates through notifier v20 to latest v25."""
     db_path = tmp_path / "migrate.db"
     factory = make_session_factory(db_path)
-    assert LATEST_SCHEMA_VERSION == 20
+    assert LATEST_SCHEMA_VERSION == 25
     with factory() as db:
         version = db.execute(text("SELECT version FROM schema_version WHERE id = 1")).scalar_one()
-        assert version == 20
+        assert version == 25
         # Table exists on the fresh schema.
         db.execute(text("SELECT dedupe_key FROM notification_deliveries LIMIT 0"))
         db.commit()
@@ -257,10 +257,10 @@ def test_migration_v18_to_v20(tmp_path):
         raw.close()
 
     result = migrate_database(db_path)
-    assert (result.from_version, result.to_version) == (18, 20)
+    assert (result.from_version, result.to_version) == (18, 25)
     factory2 = make_session_factory(db_path)
     with factory2() as db:
         version = db.execute(text("SELECT version FROM schema_version WHERE id = 1")).scalar_one()
-        assert version == 20
+        assert version == 25
         db.execute(text("SELECT dedupe_key, message_ref, attempts FROM notification_deliveries LIMIT 0"))
         db.commit()

@@ -481,6 +481,217 @@ class RuntimeSession(Base):
     )
 
 
+class LiveSession(Base):
+    """One currently reachable runtime instance, separate from transcript sync.
+
+    Actor identity is durable; this row is ephemeral runtime identity.  Its
+    current tmux/native location lives in :class:`SessionEndpointBinding` so a
+    backend move does not silently change who or what the session represents.
+    """
+
+    __tablename__ = "live_sessions"
+    __table_args__ = (
+        Index(
+            "ux_live_sessions_native",
+            "actor_id",
+            "runtime",
+            "native_session_id",
+            unique=True,
+        ),
+        Index("ix_live_sessions_actor_state", "actor_id", "state"),
+        Index("ix_live_sessions_task", "task_id"),
+        Index("ix_live_sessions_runtime_session", "runtime_session_id"),
+        Index("ix_live_sessions_last_seen", "last_seen_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    actor_id: Mapped[str] = mapped_column(ForeignKey("actors.id"))
+    runtime: Mapped[str] = mapped_column(String(64))
+    native_session_id: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    runtime_session_id: Mapped[int | None] = mapped_column(
+        ForeignKey("runtime_sessions.id"), nullable=True
+    )
+    task_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("tasks.id"), nullable=True
+    )
+    execution_mode: Mapped[str] = mapped_column(String(16), default="interactive")
+    state: Mapped[str] = mapped_column(String(16), default="unknown")
+    state_source: Mapped[str] = mapped_column(String(32), default="unknown")
+    state_confidence: Mapped[int] = mapped_column(Integer, default=0)
+    capabilities_json: Mapped[str] = mapped_column(Text, default="[]")
+    started_at: Mapped[dt.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    last_seen_at: Mapped[dt.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    ended_at: Mapped[dt.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
+
+
+class SessionEndpointBinding(Base):
+    """Generation-fenced location of a live session on an admitted node."""
+
+    __tablename__ = "session_endpoint_bindings"
+    __table_args__ = (
+        Index(
+            "ux_session_endpoint_generation",
+            "node_id",
+            "backend",
+            "endpoint_id",
+            "backend_generation",
+            unique=True,
+        ),
+        Index("ix_session_endpoint_live_active", "live_session_id", "invalidated_at"),
+        Index("ix_session_endpoint_node", "node_id"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    live_session_id: Mapped[str] = mapped_column(ForeignKey("live_sessions.id"))
+    node_id: Mapped[str] = mapped_column(ForeignKey("nodes.id"))
+    backend: Mapped[str] = mapped_column(String(32))
+    endpoint_id: Mapped[str] = mapped_column(String(128))
+    backend_generation: Mapped[str] = mapped_column(String(64))
+    display_location: Mapped[str] = mapped_column(String(256), default="")
+    binding_source: Mapped[str] = mapped_column(String(16), default="heuristic")
+    binding_confidence: Mapped[int] = mapped_column(Integer, default=0)
+    bound_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    last_verified_at: Mapped[dt.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    invalidated_at: Mapped[dt.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
+class SessionEndpointObservation(Base):
+    """Privacy-bounded endpoint inventory reported by an admitted node.
+
+    An untagged pane remains an observation only: without verified Retinue
+    identity it must never become an addressable control target.
+    """
+
+    __tablename__ = "session_endpoint_observations"
+    __table_args__ = (
+        Index(
+            "ux_session_observation_endpoint",
+            "node_id",
+            "backend",
+            "server_id",
+            "endpoint_id",
+            unique=True,
+        ),
+        Index("ix_session_observation_node_active", "node_id", "disappeared_at"),
+        Index("ix_session_observation_runtime_state", "runtime", "state"),
+        Index("ix_session_observation_live", "bound_live_session_id"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    node_id: Mapped[str] = mapped_column(ForeignKey("nodes.id"))
+    backend: Mapped[str] = mapped_column(String(32))
+    server_id: Mapped[str] = mapped_column(String(64))
+    endpoint_id: Mapped[str] = mapped_column(String(128))
+    backend_generation: Mapped[str] = mapped_column(String(64))
+    runtime: Mapped[str] = mapped_column(String(64), default="")
+    input_mode: Mapped[str] = mapped_column(String(32), default="")
+    actor_hint: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    live_session_hint: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    task_hint: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    explicit_binding: Mapped[bool] = mapped_column(Boolean, default=False)
+    occupant_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    control_eligible: Mapped[bool] = mapped_column(Boolean, default=False)
+    binding_status: Mapped[str] = mapped_column(String(16), default="unbound")
+    binding_source: Mapped[str] = mapped_column(String(16), default="heuristic")
+    binding_confidence: Mapped[int] = mapped_column(Integer, default=0)
+    state: Mapped[str] = mapped_column(String(16), default="unknown")
+    state_source: Mapped[str] = mapped_column(String(32), default="unknown")
+    state_confidence: Mapped[int] = mapped_column(Integer, default=0)
+    command: Mapped[str] = mapped_column(String(128), default="")
+    cwd_hint: Mapped[str] = mapped_column(String(128), default="")
+    display_location: Mapped[str] = mapped_column(String(256), default="")
+    backend_metadata_json: Mapped[str] = mapped_column(Text, default="{}")
+    bound_live_session_id: Mapped[str | None] = mapped_column(
+        ForeignKey("live_sessions.id"), nullable=True
+    )
+    observed_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
+    disappeared_at: Mapped[dt.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
+class ControlEnvelope(Base):
+    """One expiring, generation-fenced request for a narrow node action."""
+
+    __tablename__ = "control_envelopes"
+    __table_args__ = (
+        Index(
+            "ux_control_envelope_idempotency",
+            "requester_kind",
+            "requester_id",
+            "idempotency_key",
+            unique=True,
+        ),
+        Index("ix_control_envelope_node_status", "node_id", "status"),
+        Index("ix_control_envelope_expiry", "status", "expires_at"),
+        Index("ix_control_envelope_live", "live_session_id"),
+    )
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    requester_kind: Mapped[str] = mapped_column(String(16))
+    requester_id: Mapped[str] = mapped_column(String(64))
+    requester_actor_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    live_session_id: Mapped[str] = mapped_column(ForeignKey("live_sessions.id"))
+    node_id: Mapped[str] = mapped_column(ForeignKey("nodes.id"))
+    backend: Mapped[str] = mapped_column(String(32))
+    endpoint_id: Mapped[str] = mapped_column(String(128))
+    backend_generation: Mapped[str] = mapped_column(String(64))
+    verb: Mapped[str] = mapped_column(String(16))
+    payload_json: Mapped[str] = mapped_column(Text, default="{}")
+    request_hash: Mapped[str] = mapped_column(String(64))
+    idempotency_key: Mapped[str] = mapped_column(String(128))
+    status: Mapped[str] = mapped_column(String(16), default="queued")
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    result_json: Mapped[str] = mapped_column(Text, default="{}")
+    expires_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True))
+    leased_at: Mapped[dt.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    completed_at: Mapped[dt.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
+
+
+class ControlEvent(Base):
+    """Append-only lifecycle metadata for one control envelope."""
+
+    __tablename__ = "control_events"
+    __table_args__ = (
+        Index("ux_control_events_envelope_seq", "envelope_id", "seq", unique=True),
+        Index("ix_control_events_envelope", "envelope_id"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    envelope_id: Mapped[str] = mapped_column(ForeignKey("control_envelopes.id"))
+    seq: Mapped[int] = mapped_column(Integer)
+    event_type: Mapped[str] = mapped_column(String(32))
+    who_kind: Mapped[str] = mapped_column(String(16))
+    who: Mapped[str] = mapped_column(String(64))
+    detail_json: Mapped[str] = mapped_column(Text, default="{}")
+    at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 class SessionCapture(Base):
     """A queued, privacy-preserving export of one runtime session to a local vault."""
 
@@ -511,7 +722,7 @@ class Skill(Base):
     category: Mapped[str] = mapped_column(String(64), default="", index=True)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     owners_json: Mapped[str] = mapped_column(Text, default="[]")
-    source: Mapped[str] = mapped_column(String(32), default="local")  # local | internal
+    source: Mapped[str] = mapped_column(String(32), default="local")  # local | kingdom
     # local | workspace | repo | runtime | external — Multica two-level plus import
     source_kind: Mapped[str] = mapped_column(String(32), default="local")
     source_snapshot_json: Mapped[str] = mapped_column(Text, default="{}")
@@ -609,6 +820,11 @@ class Node(Base):
     # means this node's probes cannot tell us about local history, which must
     # not be misread as "no local history".
     data_dirs_probed_at: Mapped[dt.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    # An empty live-session report is still a successful probe.  NULL means
+    # this node has never reported the capability, not "zero panes".
+    sessions_probed_at: Mapped[dt.datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
     updated_at: Mapped[dt.datetime] = mapped_column(
@@ -831,6 +1047,7 @@ class TodoProposal(Base):
         ),
         Index("ix_todo_proposals_owner_status", "owner_user_id", "status"),
         Index("ix_todo_proposals_proposed_by", "proposed_by"),
+        Index("ix_todo_proposals_parent", "parent_id"),
     )
 
     id: Mapped[str] = mapped_column(String(40), primary_key=True)
@@ -839,6 +1056,11 @@ class TodoProposal(Base):
     title: Mapped[str] = mapped_column(String(256), nullable=False)
     notes: Mapped[str] = mapped_column(Text, default="")
     due_at: Mapped[dt.date | None] = mapped_column(Date, nullable=True)
+    event_on: Mapped[dt.date | None] = mapped_column(Date, nullable=True)
+    parent_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    children_json: Mapped[str] = mapped_column(
+        Text, default="[]", server_default=text("'[]'")
+    )
     remind_at: Mapped[dt.datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
@@ -865,6 +1087,8 @@ class TodoItem(Base):
         Index("ix_todo_items_owner_status", "owner_user_id", "status"),
         Index("ix_todo_items_owner_due", "owner_user_id", "due_at"),
         Index("ix_todo_items_remind_at", "remind_at"),
+        Index("ix_todo_items_owner_event", "owner_user_id", "event_on"),
+        Index("ix_todo_items_parent", "parent_id"),
     )
 
     id: Mapped[str] = mapped_column(String(40), primary_key=True)
@@ -873,6 +1097,11 @@ class TodoItem(Base):
     notes: Mapped[str] = mapped_column(Text, default="")
     status: Mapped[str] = mapped_column(String(16), default="open")
     due_at: Mapped[dt.date | None] = mapped_column(Date, nullable=True)
+    event_on: Mapped[dt.date | None] = mapped_column(Date, nullable=True)
+    parent_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    progress: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default=text("0")
+    )
     remind_at: Mapped[dt.datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
@@ -2431,6 +2660,451 @@ SCHEMA_MIGRATIONS = (
             ("notification_deliveries", "ix_notification_deliveries_message_ref"),
         ),
         tables=("notification_deliveries",),
+    ),
+    _Migration(
+        21,
+        (
+            _ColumnAddition(
+                "todo_items", Column("event_on", Date, nullable=True)
+            ),
+            _ColumnAddition(
+                "todo_items", Column("parent_id", String(40), nullable=True)
+            ),
+            _ColumnAddition(
+                "todo_items",
+                Column(
+                    "progress",
+                    Integer,
+                    nullable=False,
+                    server_default=text("0"),
+                ),
+            ),
+        ),
+        (
+            ("todo_items", "ix_todo_items_owner_event"),
+            ("todo_items", "ix_todo_items_parent"),
+        ),
+        tables=(),
+    ),
+    _Migration(
+        22,
+        (
+            _ColumnAddition(
+                "todo_proposals", Column("event_on", Date, nullable=True)
+            ),
+            _ColumnAddition(
+                "todo_proposals", Column("parent_id", String(40), nullable=True)
+            ),
+            _ColumnAddition(
+                "todo_proposals",
+                Column(
+                    "children_json",
+                    Text,
+                    nullable=False,
+                    server_default=text("'[]'"),
+                ),
+            ),
+        ),
+        (("todo_proposals", "ix_todo_proposals_parent"),),
+        tables=(),
+    ),
+    _Migration(
+        23,
+        (
+            _ColumnAddition("live_sessions", Column("id", String(64), primary_key=True)),
+            _ColumnAddition("live_sessions", Column("actor_id", String(64), nullable=False)),
+            _ColumnAddition("live_sessions", Column("runtime", String(64), nullable=False)),
+            _ColumnAddition(
+                "live_sessions", Column("native_session_id", String(256), nullable=True)
+            ),
+            _ColumnAddition(
+                "live_sessions", Column("runtime_session_id", Integer, nullable=True)
+            ),
+            _ColumnAddition("live_sessions", Column("task_id", String(32), nullable=True)),
+            _ColumnAddition(
+                "live_sessions",
+                Column(
+                    "execution_mode",
+                    String(16),
+                    nullable=False,
+                    server_default=text("'interactive'"),
+                ),
+            ),
+            _ColumnAddition(
+                "live_sessions",
+                Column(
+                    "state",
+                    String(16),
+                    nullable=False,
+                    server_default=text("'unknown'"),
+                ),
+            ),
+            _ColumnAddition(
+                "live_sessions",
+                Column(
+                    "state_source",
+                    String(32),
+                    nullable=False,
+                    server_default=text("'unknown'"),
+                ),
+            ),
+            _ColumnAddition(
+                "live_sessions",
+                Column(
+                    "state_confidence",
+                    Integer,
+                    nullable=False,
+                    server_default=text("0"),
+                ),
+            ),
+            _ColumnAddition(
+                "live_sessions",
+                Column(
+                    "capabilities_json",
+                    Text,
+                    nullable=False,
+                    server_default=text("'[]'"),
+                ),
+            ),
+            _ColumnAddition(
+                "live_sessions", Column("started_at", DateTime(timezone=True), nullable=True)
+            ),
+            _ColumnAddition(
+                "live_sessions", Column("last_seen_at", DateTime(timezone=True), nullable=True)
+            ),
+            _ColumnAddition(
+                "live_sessions", Column("ended_at", DateTime(timezone=True), nullable=True)
+            ),
+            _ColumnAddition(
+                "live_sessions", Column("created_at", DateTime(timezone=True), nullable=False)
+            ),
+            _ColumnAddition(
+                "live_sessions", Column("updated_at", DateTime(timezone=True), nullable=False)
+            ),
+            _ColumnAddition(
+                "session_endpoint_bindings", Column("id", Integer, primary_key=True)
+            ),
+            _ColumnAddition(
+                "session_endpoint_bindings",
+                Column("live_session_id", String(64), nullable=False),
+            ),
+            _ColumnAddition(
+                "session_endpoint_bindings", Column("node_id", String(64), nullable=False)
+            ),
+            _ColumnAddition(
+                "session_endpoint_bindings", Column("backend", String(32), nullable=False)
+            ),
+            _ColumnAddition(
+                "session_endpoint_bindings", Column("endpoint_id", String(128), nullable=False)
+            ),
+            _ColumnAddition(
+                "session_endpoint_bindings",
+                Column("backend_generation", String(64), nullable=False),
+            ),
+            _ColumnAddition(
+                "session_endpoint_bindings",
+                Column(
+                    "display_location",
+                    String(256),
+                    nullable=False,
+                    server_default=text("''"),
+                ),
+            ),
+            _ColumnAddition(
+                "session_endpoint_bindings",
+                Column(
+                    "binding_source",
+                    String(16),
+                    nullable=False,
+                    server_default=text("'heuristic'"),
+                ),
+            ),
+            _ColumnAddition(
+                "session_endpoint_bindings",
+                Column(
+                    "binding_confidence",
+                    Integer,
+                    nullable=False,
+                    server_default=text("0"),
+                ),
+            ),
+            _ColumnAddition(
+                "session_endpoint_bindings",
+                Column("bound_at", DateTime(timezone=True), nullable=False),
+            ),
+            _ColumnAddition(
+                "session_endpoint_bindings",
+                Column("last_verified_at", DateTime(timezone=True), nullable=True),
+            ),
+            _ColumnAddition(
+                "session_endpoint_bindings",
+                Column("invalidated_at", DateTime(timezone=True), nullable=True),
+            ),
+        ),
+        (
+            ("live_sessions", "ux_live_sessions_native"),
+            ("live_sessions", "ix_live_sessions_actor_state"),
+            ("live_sessions", "ix_live_sessions_task"),
+            ("live_sessions", "ix_live_sessions_runtime_session"),
+            ("live_sessions", "ix_live_sessions_last_seen"),
+            ("session_endpoint_bindings", "ux_session_endpoint_generation"),
+            ("session_endpoint_bindings", "ix_session_endpoint_live_active"),
+            ("session_endpoint_bindings", "ix_session_endpoint_node"),
+        ),
+        tables=("live_sessions", "session_endpoint_bindings"),
+    ),
+    _Migration(
+        24,
+        (
+            _ColumnAddition(
+                "nodes",
+                Column("sessions_probed_at", DateTime(timezone=True), nullable=True),
+            ),
+            _ColumnAddition(
+                "session_endpoint_observations", Column("id", Integer, primary_key=True)
+            ),
+            _ColumnAddition(
+                "session_endpoint_observations",
+                Column("node_id", String(64), nullable=False),
+            ),
+            _ColumnAddition(
+                "session_endpoint_observations",
+                Column("backend", String(32), nullable=False),
+            ),
+            _ColumnAddition(
+                "session_endpoint_observations",
+                Column("server_id", String(64), nullable=False),
+            ),
+            _ColumnAddition(
+                "session_endpoint_observations",
+                Column("endpoint_id", String(128), nullable=False),
+            ),
+            _ColumnAddition(
+                "session_endpoint_observations",
+                Column("backend_generation", String(64), nullable=False),
+            ),
+            _ColumnAddition(
+                "session_endpoint_observations",
+                Column("runtime", String(64), nullable=False, server_default=text("''")),
+            ),
+            _ColumnAddition(
+                "session_endpoint_observations",
+                Column("actor_hint", String(64), nullable=True),
+            ),
+            _ColumnAddition(
+                "session_endpoint_observations",
+                Column("live_session_hint", String(64), nullable=True),
+            ),
+            _ColumnAddition(
+                "session_endpoint_observations",
+                Column("task_hint", String(32), nullable=True),
+            ),
+            _ColumnAddition(
+                "session_endpoint_observations",
+                Column("explicit_binding", Boolean, nullable=False, server_default=false()),
+            ),
+            _ColumnAddition(
+                "session_endpoint_observations",
+                Column("occupant_verified", Boolean, nullable=False, server_default=false()),
+            ),
+            _ColumnAddition(
+                "session_endpoint_observations",
+                Column("control_eligible", Boolean, nullable=False, server_default=false()),
+            ),
+            _ColumnAddition(
+                "session_endpoint_observations",
+                Column(
+                    "binding_status",
+                    String(16),
+                    nullable=False,
+                    server_default=text("'unbound'"),
+                ),
+            ),
+            _ColumnAddition(
+                "session_endpoint_observations",
+                Column(
+                    "binding_source",
+                    String(16),
+                    nullable=False,
+                    server_default=text("'heuristic'"),
+                ),
+            ),
+            _ColumnAddition(
+                "session_endpoint_observations",
+                Column("binding_confidence", Integer, nullable=False, server_default=text("0")),
+            ),
+            _ColumnAddition(
+                "session_endpoint_observations",
+                Column("state", String(16), nullable=False, server_default=text("'unknown'")),
+            ),
+            _ColumnAddition(
+                "session_endpoint_observations",
+                Column(
+                    "state_source",
+                    String(32),
+                    nullable=False,
+                    server_default=text("'unknown'"),
+                ),
+            ),
+            _ColumnAddition(
+                "session_endpoint_observations",
+                Column("state_confidence", Integer, nullable=False, server_default=text("0")),
+            ),
+            _ColumnAddition(
+                "session_endpoint_observations",
+                Column("command", String(128), nullable=False, server_default=text("''")),
+            ),
+            _ColumnAddition(
+                "session_endpoint_observations",
+                Column("cwd_hint", String(128), nullable=False, server_default=text("''")),
+            ),
+            _ColumnAddition(
+                "session_endpoint_observations",
+                Column(
+                    "display_location",
+                    String(256),
+                    nullable=False,
+                    server_default=text("''"),
+                ),
+            ),
+            _ColumnAddition(
+                "session_endpoint_observations",
+                Column(
+                    "backend_metadata_json",
+                    Text,
+                    nullable=False,
+                    server_default=text("'{}'"),
+                ),
+            ),
+            _ColumnAddition(
+                "session_endpoint_observations",
+                Column("bound_live_session_id", String(64), nullable=True),
+            ),
+            _ColumnAddition(
+                "session_endpoint_observations",
+                Column("observed_at", DateTime(timezone=True), nullable=False),
+            ),
+            _ColumnAddition(
+                "session_endpoint_observations",
+                Column("updated_at", DateTime(timezone=True), nullable=False),
+            ),
+            _ColumnAddition(
+                "session_endpoint_observations",
+                Column("disappeared_at", DateTime(timezone=True), nullable=True),
+            ),
+        ),
+        (
+            ("session_endpoint_observations", "ux_session_observation_endpoint"),
+            ("session_endpoint_observations", "ix_session_observation_node_active"),
+            ("session_endpoint_observations", "ix_session_observation_runtime_state"),
+            ("session_endpoint_observations", "ix_session_observation_live"),
+        ),
+        tables=("session_endpoint_observations",),
+    ),
+    _Migration(
+        25,
+        (
+            _ColumnAddition(
+                "session_endpoint_observations",
+                Column("input_mode", String(32), nullable=False, server_default=text("''")),
+            ),
+            _ColumnAddition("control_envelopes", Column("id", String(64), primary_key=True)),
+            _ColumnAddition(
+                "control_envelopes", Column("requester_kind", String(16), nullable=False)
+            ),
+            _ColumnAddition(
+                "control_envelopes", Column("requester_id", String(64), nullable=False)
+            ),
+            _ColumnAddition(
+                "control_envelopes", Column("requester_actor_id", String(64), nullable=True)
+            ),
+            _ColumnAddition(
+                "control_envelopes", Column("live_session_id", String(64), nullable=False)
+            ),
+            _ColumnAddition(
+                "control_envelopes", Column("node_id", String(64), nullable=False)
+            ),
+            _ColumnAddition(
+                "control_envelopes", Column("backend", String(32), nullable=False)
+            ),
+            _ColumnAddition(
+                "control_envelopes", Column("endpoint_id", String(128), nullable=False)
+            ),
+            _ColumnAddition(
+                "control_envelopes",
+                Column("backend_generation", String(64), nullable=False),
+            ),
+            _ColumnAddition(
+                "control_envelopes", Column("verb", String(16), nullable=False)
+            ),
+            _ColumnAddition(
+                "control_envelopes",
+                Column("payload_json", Text, nullable=False, server_default=text("'{}'")),
+            ),
+            _ColumnAddition(
+                "control_envelopes", Column("request_hash", String(64), nullable=False)
+            ),
+            _ColumnAddition(
+                "control_envelopes", Column("idempotency_key", String(128), nullable=False)
+            ),
+            _ColumnAddition(
+                "control_envelopes",
+                Column("status", String(16), nullable=False, server_default=text("'queued'")),
+            ),
+            _ColumnAddition(
+                "control_envelopes",
+                Column("attempts", Integer, nullable=False, server_default=text("0")),
+            ),
+            _ColumnAddition(
+                "control_envelopes",
+                Column("result_json", Text, nullable=False, server_default=text("'{}'")),
+            ),
+            _ColumnAddition(
+                "control_envelopes", Column("expires_at", DateTime(timezone=True), nullable=False)
+            ),
+            _ColumnAddition(
+                "control_envelopes", Column("leased_at", DateTime(timezone=True), nullable=True)
+            ),
+            _ColumnAddition(
+                "control_envelopes", Column("completed_at", DateTime(timezone=True), nullable=True)
+            ),
+            _ColumnAddition(
+                "control_envelopes", Column("created_at", DateTime(timezone=True), nullable=False)
+            ),
+            _ColumnAddition(
+                "control_envelopes", Column("updated_at", DateTime(timezone=True), nullable=False)
+            ),
+            _ColumnAddition("control_events", Column("id", Integer, primary_key=True)),
+            _ColumnAddition(
+                "control_events", Column("envelope_id", String(64), nullable=False)
+            ),
+            _ColumnAddition("control_events", Column("seq", Integer, nullable=False)),
+            _ColumnAddition(
+                "control_events", Column("event_type", String(32), nullable=False)
+            ),
+            _ColumnAddition(
+                "control_events", Column("who_kind", String(16), nullable=False)
+            ),
+            _ColumnAddition(
+                "control_events", Column("who", String(64), nullable=False)
+            ),
+            _ColumnAddition(
+                "control_events",
+                Column("detail_json", Text, nullable=False, server_default=text("'{}'")),
+            ),
+            _ColumnAddition(
+                "control_events", Column("at", DateTime(timezone=True), nullable=False)
+            ),
+        ),
+        (
+            ("control_envelopes", "ux_control_envelope_idempotency"),
+            ("control_envelopes", "ix_control_envelope_node_status"),
+            ("control_envelopes", "ix_control_envelope_expiry"),
+            ("control_envelopes", "ix_control_envelope_live"),
+            ("control_events", "ux_control_events_envelope_seq"),
+            ("control_events", "ix_control_events_envelope"),
+        ),
+        tables=("control_envelopes", "control_events"),
     ),
 )
 LATEST_SCHEMA_VERSION = SCHEMA_MIGRATIONS[-1].version

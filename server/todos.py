@@ -50,6 +50,7 @@ TERMINAL_TASK_STATUSES = {"done", "cancelled"}
 CAPABILITY_PROPOSE = "todo:propose"
 REMINDER_CHANNEL_DEFAULT = "pending"
 MIN_ACCESS_REASON = 8
+CHILD_DRAFT_KEYS = frozenset({"title", "notes", "due_at", "event_on", "progress"})
 
 
 def _iso(value: dt.datetime | dt.date | None) -> str | None:
@@ -62,6 +63,112 @@ def _iso(value: dt.datetime | dt.date | None) -> str | None:
             value = value.astimezone(dt.timezone.utc)
         return value.isoformat().replace("+00:00", "Z")
     return value.isoformat()
+
+
+def _parse_calendar_date(
+    value: str | dt.date | None, *, field: str = "due_at"
+) -> dt.date | None:
+    try:
+        return parse_due_date(value)
+    except ProtocolError as exc:
+        if field != "due_at":
+            raise ProtocolError(str(exc).replace("due_at", field, 1)) from exc
+        raise
+
+
+def _parse_progress(progress: Any) -> int:
+    if (
+        not isinstance(progress, int)
+        or isinstance(progress, bool)
+        or not 0 <= progress <= 100
+    ):
+        raise ProtocolError("progress must be an integer between 0 and 100")
+    return progress
+
+
+def _normalize_parent_id(parent_id: str | None) -> str | None:
+    if parent_id is None:
+        return None
+    cleaned = parent_id.strip()
+    return cleaned or None
+
+
+def _assert_assignable_parent(
+    db: Session,
+    *,
+    owner_user_id: int,
+    parent_id: str,
+    item: TodoItem | None = None,
+) -> TodoItem:
+    # One-level children only: parent must be a root owned by the same user.
+    if item is not None and parent_id == item.id:
+        raise ProtocolError("a todo cannot be its own parent")
+    parent = db.get(TodoItem, parent_id)
+    if parent is None:
+        raise ProtocolError("parent_id does not exist")
+    if parent.owner_user_id != owner_user_id:
+        raise ProtocolError("parent_id must belong to the same owner")
+    if parent.parent_id:
+        raise ProtocolError("a child cannot be a parent")
+    if item is not None:
+        has_children = db.execute(
+            select(func.count())
+            .select_from(TodoItem)
+            .where(TodoItem.parent_id == item.id)
+        ).scalar_one()
+        if has_children:
+            raise ProtocolError(
+                "a parent cannot become a child while it has children"
+            )
+    return parent
+
+
+def _proposal_children(row: TodoProposal) -> list[dict[str, Any]]:
+    try:
+        raw = json.loads(row.children_json or "[]")
+    except json.JSONDecodeError:
+        return []
+    if not isinstance(raw, list):
+        return []
+    return [item for item in raw if isinstance(item, dict)]
+
+
+def _normalize_child_drafts(children: Any) -> list[dict[str, Any]]:
+    if children is None:
+        return []
+    if not isinstance(children, list):
+        raise ProtocolError("children must be a list")
+    drafts: list[dict[str, Any]] = []
+    for child in children:
+        if not isinstance(child, dict):
+            raise ProtocolError("each child must be an object")
+        extra = set(child) - CHILD_DRAFT_KEYS
+        if extra:
+            raise ProtocolError("child drafts are one-level only")
+        title = child.get("title")
+        if not isinstance(title, str) or not title.strip():
+            raise ProtocolError("child title must be non-empty")
+        notes = child.get("notes") or ""
+        if not isinstance(notes, str):
+            raise ProtocolError("child notes must be a string")
+        drafts.append(
+            {
+                "title": title.strip(),
+                "notes": notes.strip(),
+                "due_at": _iso(
+                    _parse_calendar_date(child.get("due_at"), field="due_at")
+                ),
+                "event_on": _iso(
+                    _parse_calendar_date(child.get("event_on"), field="event_on")
+                ),
+                "progress": (
+                    _parse_progress(child.get("progress"))
+                    if child.get("progress") is not None
+                    else 0
+                ),
+            }
+        )
+    return drafts
 
 
 def parse_remind_at(value: str | dt.datetime | None) -> dt.datetime | None:
@@ -231,6 +338,9 @@ def proposal_to_dict(row: TodoProposal) -> dict[str, Any]:
         "title": row.title,
         "notes": row.notes,
         "due_at": _iso(row.due_at),
+        "event_on": _iso(row.event_on),
+        "parent_id": row.parent_id,
+        "children": _proposal_children(row),
         "remind_at": _iso(row.remind_at),
         "source_session_id": row.source_session_id,
         "source_message_id": row.source_message_id,
@@ -277,6 +387,19 @@ def reminder_to_dict(row: ReminderDelivery) -> dict[str, Any]:
     }
 
 
+def _parent_ready_to_close(db: Session, row: TodoItem) -> bool:
+    """True when every live child is done and the parent is still open."""
+    if row.parent_id or row.status not in ACTIVE_ITEM_STATUSES:
+        return False
+    statuses = list(
+        db.execute(
+            select(TodoItem.status).where(TodoItem.parent_id == row.id)
+        ).scalars()
+    )
+    live = [status for status in statuses if status != ITEM_CANCELLED]
+    return bool(live) and all(status == ITEM_DONE for status in live)
+
+
 def item_to_dict(
     db: Session,
     row: TodoItem,
@@ -291,6 +414,10 @@ def item_to_dict(
         "notes": row.notes,
         "status": row.status,
         "due_at": _iso(row.due_at),
+        "event_on": _iso(row.event_on),
+        "parent_id": row.parent_id,
+        "progress": row.progress,
+        "ready_to_close": _parent_ready_to_close(db, row),
         "remind_at": _iso(row.remind_at),
         "proposal_id": row.proposal_id,
         "source_session_id": row.source_session_id,
@@ -416,6 +543,9 @@ def submit_proposal(
     notes: str = "",
     owner_username: str | None = None,
     due_at: str | dt.date | None = None,
+    event_on: str | dt.date | None = None,
+    parent_id: str | None = None,
+    children: list[dict[str, Any]] | None = None,
     remind_at: str | dt.datetime | None = None,
     source_session_id: int | None = None,
     source_message_id: str | None = None,
@@ -452,6 +582,15 @@ def submit_proposal(
         if existing is not None:
             return existing
 
+    resolved_parent = _normalize_parent_id(parent_id)
+    drafts = _normalize_child_drafts(children)
+    if resolved_parent is not None and drafts:
+        raise ProtocolError("a child proposal cannot include children")
+    if resolved_parent is not None:
+        _assert_assignable_parent(
+            db, owner_user_id=owner.id, parent_id=resolved_parent
+        )
+
     row = TodoProposal(
         id=next_proposal_id(db),
         owner_user_id=owner.id,
@@ -459,6 +598,9 @@ def submit_proposal(
         title=cleaned_title,
         notes=(notes or "").strip(),
         due_at=parse_due_date(due_at),
+        event_on=_parse_calendar_date(event_on, field="event_on"),
+        parent_id=resolved_parent,
+        children_json=json.dumps(drafts, ensure_ascii=False),
         remind_at=parse_remind_at(remind_at),
         source_session_id=source_session_id,
         source_message_id=(source_message_id or None),
@@ -531,6 +673,15 @@ def confirm_proposal(
     if proposal.status != PROPOSAL_PENDING:
         raise ProtocolError("only a pending proposal can be confirmed")
 
+    drafts = _normalize_child_drafts(_proposal_children(proposal))
+    resolved_parent = _normalize_parent_id(proposal.parent_id)
+    if resolved_parent is not None and drafts:
+        raise ProtocolError("a child proposal cannot include children")
+    if resolved_parent is not None:
+        _assert_assignable_parent(
+            db, owner_user_id=owner.id, parent_id=resolved_parent
+        )
+
     item = TodoItem(
         id=next_item_id(db),
         owner_user_id=owner.id,
@@ -538,6 +689,9 @@ def confirm_proposal(
         notes=proposal.notes,
         status=ITEM_OPEN,
         due_at=proposal.due_at,
+        event_on=proposal.event_on,
+        parent_id=resolved_parent,
+        progress=0,
         remind_at=proposal.remind_at,
         proposal_id=proposal.id,
     )
@@ -563,6 +717,21 @@ def confirm_proposal(
             item,
             scheduled_for=item.remind_at,
             channel=REMINDER_CHANNEL_DEFAULT,
+        )
+    for draft in drafts:
+        create_item(
+            db,
+            principal,
+            title=draft["title"],
+            notes=draft["notes"],
+            due_at=draft["due_at"],
+            event_on=draft["event_on"],
+            parent_id=item.id,
+            progress=draft["progress"],
+            source_session_id=proposal.source_session_id,
+            source_message_id=proposal.source_message_id,
+            source_channel=proposal.source_channel,
+            source_backlink=proposal.source_backlink,
         )
     return item
 
@@ -594,6 +763,9 @@ def create_item(
     title: str,
     notes: str = "",
     due_at: str | dt.date | None = None,
+    event_on: str | dt.date | None = None,
+    parent_id: str | None = None,
+    progress: int | None = None,
     remind_at: str | dt.datetime | None = None,
     source_session_id: int | None = None,
     source_message_id: str | None = None,
@@ -604,6 +776,11 @@ def create_item(
     cleaned_title = (title or "").strip()
     if not cleaned_title:
         raise ProtocolError("title must be non-empty")
+    resolved_parent = _normalize_parent_id(parent_id)
+    if resolved_parent is not None:
+        _assert_assignable_parent(
+            db, owner_user_id=owner.id, parent_id=resolved_parent
+        )
     item = TodoItem(
         id=next_item_id(db),
         owner_user_id=owner.id,
@@ -611,6 +788,9 @@ def create_item(
         notes=(notes or "").strip(),
         status=ITEM_OPEN,
         due_at=parse_due_date(due_at),
+        event_on=_parse_calendar_date(event_on, field="event_on"),
+        parent_id=resolved_parent,
+        progress=_parse_progress(progress) if progress is not None else 0,
         remind_at=parse_remind_at(remind_at),
         source_session_id=source_session_id,
         source_message_id=(source_message_id or None),
@@ -671,6 +851,11 @@ def update_item(
     notes: str | None = None,
     due_at: str | dt.date | None = None,
     clear_due_at: bool = False,
+    event_on: str | dt.date | None = None,
+    clear_event_on: bool = False,
+    parent_id: str | None = None,
+    clear_parent_id: bool = False,
+    progress: int | None = None,
 ) -> TodoItem:
     assert_item_writable(principal, item)
     if item.status in {ITEM_DONE, ITEM_CANCELLED}:
@@ -695,6 +880,45 @@ def update_item(
         if parsed != item.due_at:
             changes["due_at"] = {"before": _iso(item.due_at), "after": _iso(parsed)}
             item.due_at = parsed
+    if clear_event_on:
+        if item.event_on is not None:
+            changes["event_on"] = {"before": _iso(item.event_on), "after": None}
+            item.event_on = None
+    elif event_on is not None:
+        parsed_event = _parse_calendar_date(event_on, field="event_on")
+        if parsed_event != item.event_on:
+            changes["event_on"] = {
+                "before": _iso(item.event_on),
+                "after": _iso(parsed_event),
+            }
+            item.event_on = parsed_event
+    if clear_parent_id:
+        if item.parent_id is not None:
+            changes["parent_id"] = {"before": item.parent_id, "after": None}
+            item.parent_id = None
+    elif parent_id is not None:
+        resolved_parent = _normalize_parent_id(parent_id)
+        if resolved_parent != item.parent_id:
+            if resolved_parent is not None:
+                _assert_assignable_parent(
+                    db,
+                    owner_user_id=item.owner_user_id,
+                    parent_id=resolved_parent,
+                    item=item,
+                )
+            changes["parent_id"] = {
+                "before": item.parent_id,
+                "after": resolved_parent,
+            }
+            item.parent_id = resolved_parent
+    if progress is not None:
+        parsed_progress = _parse_progress(progress)
+        if parsed_progress != item.progress:
+            changes["progress"] = {
+                "before": item.progress,
+                "after": parsed_progress,
+            }
+            item.progress = parsed_progress
     if not changes:
         return item
     item.updated_at = utcnow()
@@ -705,6 +929,44 @@ def update_item(
         did="updated private todo",
         item=item,
         payload={"changes": changes},
+    )
+    return item
+
+
+def record_progress(
+    db: Session,
+    principal: Principal,
+    item: TodoItem,
+    *,
+    percent: int,
+    note: str,
+) -> TodoItem:
+    assert_not_viewer(principal)
+    cleaned_note = (note or "").strip()
+    if not cleaned_note:
+        raise ProtocolError("progress note is required")
+    parsed = _parse_progress(percent)
+    if principal.kind == "agent":
+        owner = db.get(User, item.owner_user_id)
+        if owner is None or not _agent_may_propose_for(owner, principal):
+            raise Forbidden("agent is not granted todo:propose by this owner")
+    elif principal.kind == "user" and principal.user is not None:
+        if principal.user.id != item.owner_user_id:
+            raise Forbidden("only the owner can record progress")
+    else:
+        raise Forbidden("only the owner or a granted agent can record progress")
+    if item.status in {ITEM_DONE, ITEM_CANCELLED}:
+        raise ProtocolError("a closed todo cannot be edited")
+    before = item.progress
+    item.progress = parsed
+    item.updated_at = utcnow()
+    append_todo_event(
+        db,
+        principal=principal,
+        event_type="progress",
+        did=cleaned_note[:240],
+        item=item,
+        payload={"progress": {"before": before, "after": parsed}},
     )
     return item
 
@@ -902,9 +1164,39 @@ def promote_item(db: Session, principal: Principal, item: TodoItem) -> tuple[Tod
     return item, task
 
 
+def _nest_children(db: Session, payloads: list[dict[str, Any]]) -> None:
+    """Attach one-level children so the agenda UI can group without a second fetch."""
+    ids = list(dict.fromkeys(row["id"] for row in payloads))
+    grouped: dict[str, list[dict[str, Any]]] = {item_id: [] for item_id in ids}
+    if ids:
+        child_rows = list(
+            db.execute(
+                select(TodoItem)
+                .where(
+                    TodoItem.parent_id.in_(ids),
+                    TodoItem.status != ITEM_CANCELLED,
+                )
+                .order_by(TodoItem.created_at.asc())
+            ).scalars()
+        )
+        for child in child_rows:
+            parent_id = child.parent_id
+            if parent_id in grouped:
+                grouped[parent_id].append(item_to_dict(db, child))
+    for payload in payloads:
+        payload["children"] = grouped.get(payload["id"], [])
+
+
+def _lane_payloads(db: Session, rows: list[TodoItem]) -> list[dict[str, Any]]:
+    payloads = [item_to_dict(db, row) for row in rows]
+    _nest_children(db, payloads)
+    return payloads
+
+
 def home_inbox(db: Session, principal: Principal) -> dict[str, Any]:
     owner = require_owner_user(db, principal)
     today = _today()
+    tomorrow = today + dt.timedelta(days=1)
     pending = list(
         db.execute(
             select(TodoProposal)
@@ -938,6 +1230,29 @@ def home_inbox(db: Session, principal: Principal) -> dict[str, Any]:
             .order_by(TodoItem.due_at)
         ).scalars()
     )
+    events_tomorrow = list(
+        db.execute(
+            select(TodoItem)
+            .where(
+                TodoItem.owner_user_id == owner.id,
+                TodoItem.status.in_(ACTIVE_ITEM_STATUSES),
+                TodoItem.event_on == tomorrow,
+            )
+            .order_by(TodoItem.event_on, TodoItem.created_at)
+        ).scalars()
+    )
+    anytime = list(
+        db.execute(
+            select(TodoItem)
+            .where(
+                TodoItem.owner_user_id == owner.id,
+                TodoItem.status.in_(ACTIVE_ITEM_STATUSES),
+                TodoItem.event_on.is_(None),
+                TodoItem.due_at.is_(None),
+            )
+            .order_by(TodoItem.created_at.desc())
+        ).scalars()
+    )
     waiting_rows = db.execute(
         select(TodoItem, Task)
         .join(TodoTaskLink, TodoTaskLink.todo_item_id == TodoItem.id)
@@ -953,16 +1268,20 @@ def home_inbox(db: Session, principal: Principal) -> dict[str, Any]:
         )
         .order_by(TodoItem.updated_at.desc())
     ).all()
+    waiting = [
+        {
+            **item_to_dict(db, item),
+            "task_holder": task.holder,
+            "task_status": task.status,
+        }
+        for item, task in waiting_rows
+    ]
+    _nest_children(db, waiting)
     return {
         "pending_proposals": [proposal_to_dict(row) for row in pending],
-        "due_today": [item_to_dict(db, row) for row in due_today],
-        "overdue": [item_to_dict(db, row) for row in overdue],
-        "waiting_on_others": [
-            {
-                **item_to_dict(db, item),
-                "task_holder": task.holder,
-                "task_status": task.status,
-            }
-            for item, task in waiting_rows
-        ],
+        "due_today": _lane_payloads(db, due_today),
+        "overdue": _lane_payloads(db, overdue),
+        "waiting_on_others": waiting,
+        "events_tomorrow": _lane_payloads(db, events_tomorrow),
+        "anytime": _lane_payloads(db, anytime),
     }

@@ -63,12 +63,14 @@ already-authorized event and gains no write authority. The local CLI and direct
 file access are administrative surfaces without identity authentication, so
 do not expose them to untrusted agents.
 
-A claim lease fences writers that present a stale or expired numeric term.
-Interactive holder writes that omit a term may remint after expiry while they
-still hold the card, so they can report progress instead of sitting at 0%
-behind a `409`. Once the sweeper returns the card to the dispatch hall, remint
-is closed; the next writer must claim. This does not weaken holder-only
-writes: a different actor still cannot mutate the card.
+Structured collaboration uses separately held child cards, never peer write
+access to a parent. Cross-actor delegation requires an operator's explicit,
+root-scoped actor allowlist and bounded depth/count; an agent cannot grant that
+scope. Run reports are fenced by their original holder and lease term. A terminal
+receipt may close an expired run only if the same actor still holds the card,
+the term has not changed, and an already-stored same-task, same-actor, same-term
+attempt proves that outcome. This does not renew a lease or resume execution.
+See [the collaboration protocol](protocol/collaboration.md).
 
 Execution attempts use a separate append-only ledger and cannot mutate task
 fields or the task event chain. Actor-attributed reports require that actor's
@@ -97,11 +99,13 @@ directories. Optional IM adapters contact only the service an operator
 explicitly configures; enabling one is an intentional exception to the
 no-outbound default.
 
-Canonical Retinue state lives in one operator-chosen directory: `org.yaml`,
-`tasks/`, `metrics/`, and `nodes/`. Stop processes and copy that directory to
-take the data away or restore it elsewhere. Runtime transcripts and credentials
-remain outside it. Retinue has no hosted control plane, remote account, or
-mandatory network dependency.
+File-mode canonical state lives in one operator-chosen data directory:
+`org.yaml`, `tasks/`, `metrics/`, and `nodes/`. Stop writers before copying it.
+The server stores canonical state in `retinue.db`; its backup requires a
+consistent SQLite snapshot. Runtime source records, external artifacts,
+plaintext credentials and deployment configuration have separate recovery
+paths; see [Backup](../SELF_HOSTING.md#backup). Retinue has no hosted control
+plane, remote account, or mandatory network dependency.
 
 ## SEC-7 Interactive-login throttling
 
@@ -147,6 +151,31 @@ that card is an explicit holder-authorised action; node items reuse the same
 admission service as the administrative admission endpoint. The event chain
 keeps the authority in `who` and records the performing automation in its
 acted-on-behalf-of payload.
+
+Live-session probes use the same exact admitted-node credential boundary. An
+untagged pane is stored only as an observation and never acquires control
+authority through discovery. The Hub ignores the probe's `control_eligible`
+claim and recomputes it from explicit metadata, enabled Actor identity, Actor
+runtime, optional task-holder ownership, verified foreground occupant, live
+state, and endpoint generation. Absolute socket/cwd paths, arguments,
+environment, scrollback, transcripts, and credentials are rejected or omitted.
+When an endpoint generation changes or disappears, the previous binding is
+invalidated before any replacement can become active.
+
+Control envelopes are short-lived and idempotent, capture the exact endpoint
+generation at authorization time, and may be pulled only with the token of the
+target node. The Node repeats identity, occupant, task, pane, and generation
+checks immediately before execution. A tell additionally requires an explicit
+`codex-prompt` input contract; message text is passed to `tmux load-buffer` on
+stdin, never interpolated into a shell or `send-keys`. A leased tell is not
+automatically retried after uncertain delivery. Peek is owner/operator-only,
+bounded, and redacted on the Node before its result reaches the Hub.
+
+Soft interrupt is a separate permission: only an operator or the owning Actor
+may request it. Its envelope expires after 30 seconds, and the Node repeats all
+endpoint, generation, occupant, Actor, and task checks before sending exactly
+one `C-c`. P0 provides no process termination, pane killing, or worktree cleanup
+verb.
 
 ## Enforcement summary
 

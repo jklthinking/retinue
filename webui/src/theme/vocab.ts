@@ -18,9 +18,9 @@ export interface ThemeVocab {
   centralHub: string;
   /** Eyebrow line above the overview page title. */
   overviewEyebrow: string;
-  /** Display label for the throne node. */
-  nodeThrone: string;
-  /** Display label for the castle node. */
+  /** Display label for the node-a node. */
+  nodePrimary: string;
+  /** Display label for the node-b node. */
   nodeCastle: string;
   /** Node filter that spans every node. */
   allNodes: string;
@@ -99,8 +99,8 @@ export const neutralVocab: ThemeVocab = {
   overviewLabel: "全局总览",
   centralHub: "任务中枢",
   overviewEyebrow: "RETINUE · 任务中枢",
-  nodeThrone: "Throne 主节点",
-  nodeCastle: "Castle 节点",
+  nodePrimary: "Node A 主节点",
+  nodeCastle: "Node B 节点",
   allNodes: "全部节点",
   connectingNodes: "正在连接各节点",
   skillRegistryMeta: "全局能力注册表",
@@ -145,15 +145,15 @@ export const neutralVocab: ThemeVocab = {
 /** Court preset: the original flavour wording, kept as an option. */
 export const courtVocab: ThemeVocab = {
   appTitle: "众卿任务台",
-  liveBanner: "组织实盘 · 只读观察",
-  overviewLabel: "组织总览",
-  centralHub: "组织中枢",
-  overviewEyebrow: "JKL 神思记 · 组织中枢",
-  nodeThrone: "王座 Throne",
-  nodeCastle: "城堡 Castle",
-  allNodes: "全组织",
-  connectingNodes: "正在连接组织节点",
-  skillRegistryMeta: "全组织能力注册表",
+  liveBanner: "王国实盘 · 只读观察",
+  overviewLabel: "王国总览",
+  centralHub: "王国中枢",
+  overviewEyebrow: "JKL 神思记 · 王国中枢",
+  nodePrimary: "节点 A",
+  nodeCastle: "节点 B",
+  allNodes: "全王国",
+  connectingNodes: "正在连接王国节点",
+  skillRegistryMeta: "全王国能力注册表",
   membersAgents: "众卿 AGENTS",
   membersRoster: "众卿阵容",
   tellMembers: "告诉众卿你想完成什么",
@@ -161,21 +161,21 @@ export const courtVocab: ThemeVocab = {
   membersAuthNote:
     "众卿只接收你授权的层级：默认仅索引；摘要和最近消息需在同步端主动开启。",
   dataCatalogLoading: "正在读取众卿数据目录…",
-  dataLayerTitle: "组织数据层",
+  dataLayerTitle: "王国数据层",
   dataBoundary:
-    "组织中枢只负责结构化运行数据；Obsidian 仍保存纪要正文。二者通过 source、refs、双链和更新时间互相指向，不复制全文。",
+    "王国中枢只负责结构化运行数据；Obsidian 仍保存纪要正文。二者通过 source、refs、双链和更新时间互相指向，不复制全文。",
   nodeSyncHint:
-    "尚无节点心跳。在各节点运行 probe 命令或配置组织同步即可接入。",
+    "尚无节点心跳。在各节点运行 probe 命令或配置王国同步即可接入。",
   conflictsHint:
     "冲突文件在王座本地 Vault 处理，Syncthing 会把结果同步到四方节点；所有删除均先移入 ~/.hermes/trash/vault-conflicts。",
-  adminReadError: "无法读取组织现状",
-  adminBoundary: "登记成员、发放接入凭证，并维护组织的可见边界。",
-  onboardTitle: "让新 BOT 先认识组织，再开始工作",
+  adminReadError: "无法读取王国现状",
+  adminBoundary: "登记成员、发放接入凭证，并维护王国的可见边界。",
+  onboardTitle: "让新 BOT 先认识王国，再开始工作",
   onboardDesc:
-    "向导会登记执行者、账号和一次性令牌，并生成可随时刷新的组织上下文包。上下文包只读、脱敏，不会复制会话正文或私有记忆。",
-  adminLoading: "正在读取组织现状…",
-  contextPackLabel: "组织上下文包（可复制）",
-  deptPlaceholder: "如：组织中枢、研发、教学",
+    "向导会登记执行者、账号和一次性令牌，并生成可随时刷新的王国上下文包。上下文包只读、脱敏，不会复制会话正文或私有记忆。",
+  adminLoading: "正在读取王国现状…",
+  contextPackLabel: "王国上下文包（可复制）",
+  deptPlaceholder: "如：王国中枢、研发、教学",
   affairsLabel: "御前事务",
   affairsEyebrow: "JKL 神思记 · 御前事务",
   affairsTitle: "御前事务总揽",

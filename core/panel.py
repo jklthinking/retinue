@@ -131,8 +131,28 @@ def overview_payload(root: Path, now: datetime | None = None) -> dict:
     }
 
 
+# Static-demo pages are the only copies of this shell that ever get crawled.
+# The tags stay URL-free: tests/test_static_demo.py asserts the offline
+# snapshot contains no absolute URL at all.
+DESCRIPTION = (
+    "Retinue (众卿) is a self-hosted task board where people and AI agents "
+    "work the same cards: one holder per card, acceptance checks, and an "
+    "append-only receipt chain. Local-first, no telemetry."
+)
+
+
 def _layout(title: str, content: str) -> bytes:
-    return f"<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width'><title>{escape(title)}</title><style>{CSS}</style></head><body>{content}</body></html>".encode()
+    head = (
+        "<meta charset='utf-8'>"
+        "<meta name='viewport' content='width=device-width'>"
+        f"<title>{escape(title)} \u00b7 Retinue 众卿</title>"
+        f"<meta name='description' content=\"{escape(DESCRIPTION)}\">"
+        "<meta property='og:type' content='website'>"
+        f"<meta property='og:title' content=\"{escape(title)} \u00b7 Retinue 众卿\">"
+        f"<meta property='og:description' content=\"{escape(DESCRIPTION)}\">"
+        "<meta name='twitter:card' content='summary'>"
+    )
+    return f"<!doctype html><html lang='en'><head>{head}<style>{CSS}</style></head><body>{content}</body></html>".encode()
 
 
 def render_board(tasks: list[dict], *, ready_only: bool = False) -> bytes:

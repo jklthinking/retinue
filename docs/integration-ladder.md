@@ -8,6 +8,7 @@ Retinue separates registration, observation, dispatch, and native coordination s
 | L1 Observe | Activity and token visibility | One read-only exporter |
 | L2 Dispatch | Automatic work after assignment | One single-shot `on_claim` CLI command |
 | L3 Collaborate | Native claim, update, handoff, and receipt flow | Retinue MCP or a native protocol wrapper |
+| L4 Supervise | Discover, address, steer, and interrupt a live runtime session | One authenticated runtime-relay adapter |
 
 ## L0 — Register
 
@@ -68,6 +69,36 @@ Connect `retinue mcp` or implement the same operations through the runtime's nat
 
 MCP-capable runtimes can use the bundled onboarding package without custom code. Runtimes with plugin systems may provide a native L3 wrapper, but the wrapper should call the public Retinue protocol instead of copying third-party implementation code.
 
+## L4 — Supervise
+
+Bind a currently running runtime session to its Retinue actor and, optionally,
+the card it is executing. L4 adds human-in-the-loop observation and control;
+it does not grant the node or another agent authority to mutate that card.
+
+- P0 capability: discover, explicitly bind, bounded peek, message,
+  soft-interrupt, and resolve a jump location
+- P0 integration: the bundled tmux + Codex node-side adapter; native steer,
+  wait, and resume capabilities remain future adapter work
+- Identity rule: actor, live runtime session, and terminal endpoint are three
+  different identities; a pane name is never an authorization identity
+- Safety rule: automatic discovery is read-only, while control requires an
+  explicit binding and a matching endpoint generation
+- Delivery rule: a native inbox is preferred; terminal text injection is a
+  conservative fallback and must fail closed for a shell, modal, unreadable,
+  or otherwise unknown composer
+- Governance rule: consultation may use the control ledger directly, but
+  durable delegated work still requires a card, holder, and acceptance
+
+The P0 command path is `retinue-node live-cycle`: it reports the latest
+privacy-bounded observations before pulling controls. Operators can run it
+manually or explicitly enroll the optional `live` duty. The default enrollment
+continues to install only the three lower-frequency duties, so an upgrade never
+silently enables terminal control.
+
+L4 does not replace L3. The task card remains the durable work baton and its
+receipt chain remains authoritative. A live session is an ephemeral executor;
+tmux, Herdr, or another backend only describes its current location.
+
 ## Choosing a starting level
 
 | Need | Start at | Next step |
@@ -76,6 +107,7 @@ MCP-capable runtimes can use the bundled onboarding package without custom code.
 | Monitor an existing runtime | L1 | Add `on_claim` after its CLI is stable |
 | Assign work from Retinue | L2 | Add MCP when the agent should manage its own cards |
 | Full agent-to-agent coordination | L3 | Keep L1 for independent, failure-resistant telemetry |
+| Reach and correct a running agent | L4 | Add native state and message capabilities after read-only discovery |
 
 L3 does not replace L1. Native coordination is the control path; exporters are the independent observation path and remain useful when an agent crashes, forgets to report, or cannot spend tokens on self-reporting.
 

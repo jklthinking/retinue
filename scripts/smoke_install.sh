@@ -42,7 +42,16 @@ while [ "$tries" -lt 30 ]; do
             echo "smoke: health payload was not ok" >&2
             exit 1
         }
+        page=$(curl -fsS "http://127.0.0.1:${port}/" 2>/dev/null) || {
+            echo "smoke: packaged Web UI was not served" >&2
+            exit 1
+        }
+        printf '%s\n' "$page" | grep -qi '<title>Retinue' || {
+            echo "smoke: packaged Web UI marker was missing" >&2
+            exit 1
+        }
         echo "smoke: health ok"
+        echo "smoke: packaged Web UI ok"
         exit 0
     fi
     tries=$((tries + 1))

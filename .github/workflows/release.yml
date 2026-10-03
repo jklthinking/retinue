@@ -20,6 +20,18 @@ jobs:
         with:
           python-version: "3.12"
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: webui/package-lock.json
+
+      - name: Build the Web UI before packaging
+        working-directory: webui
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+
       - name: Build wheel and sdist
         run: |
           python -m pip install --upgrade pip build
@@ -32,12 +44,6 @@ jobs:
           sha256sum retinue-*.whl retinue-*.tar.gz > SHA256SUMS
           sha256sum -c SHA256SUMS
           cat SHA256SUMS
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: webui/package-lock.json
 
       - name: CycloneDX SBOMs
         run: |

@@ -41,6 +41,16 @@ def _api_routes(app) -> list[APIRoute]:
 
 # (path, methods, endpoint name, dependency chain) for every API route.
 EXPECTED_ROUTES = {
+    ("/api/tasks/{task_id}/collaboration", ("GET",), "get_collaboration", ("require_auth", "get_db", "get_db")),
+    ("/api/tasks/{task_id}/context", ("GET",), "get_task_context", ("require_auth", "get_db", "get_db")),
+    ("/api/tasks/{task_id}/collaboration/events", ("GET",), "get_collaboration_events", ("require_auth", "get_db", "get_db")),
+    ("/api/tasks/{task_id}/delegations", ("POST",), "post_delegation", ("require_auth", "get_db", "get_db")),
+    ("/api/tasks/{task_id}/runs", ("POST",), "post_run", ("require_auth", "get_db", "get_db")),
+    ("/api/tasks/{task_id}/runs/{run_id}/events", ("POST",), "post_run_event", ("require_auth", "get_db", "get_db")),
+    ("/api/tasks/{task_id}/runs/{run_id}/authorize-execution", ("POST",), "post_execution_authorization", ("require_auth", "get_db", "get_db")),
+    ("/api/tasks/{task_id}/collaboration/retry", ("POST",), "post_collaboration_retry", ("require_auth", "get_db", "get_db")),
+    ("/api/tasks/{task_id}/collaboration/policy", ("POST",), "post_delegation_policy", ("require_auth", "get_db", "get_db")),
+
     ("/api/orientation/context", ("GET",), "orientation_context", ("require_auth", "get_db", "get_db")),
     ("/api/data-catalog", ("GET",), "data_catalog", ("require_auth", "get_db", "get_db")),
     ("/api/health", ("GET",), "health", ()),
@@ -106,6 +116,12 @@ EXPECTED_ROUTES = {
     ("/api/metrics/summary", ("GET",), "metrics_summary", ("require_auth", "get_db", "get_db")),
     ("/api/sessions/sync", ("POST",), "sync_runtime_session", ("require_auth", "get_db", "get_db")),
     ("/api/sessions", ("GET",), "list_runtime_sessions", ("require_auth", "get_db", "get_db")),
+    ("/api/live-sessions", ("GET",), "list_live_sessions", ("require_auth", "get_db", "get_db")),
+    ("/api/live-sessions/probe", ("POST",), "post_live_session_probe", ("get_db",)),
+    ("/api/live-sessions/control/pull", ("POST",), "pull_live_session_controls", ("get_db",)),
+    ("/api/live-sessions/control/ack", ("POST",), "ack_live_session_control", ("get_db",)),
+    ("/api/live-sessions/control/{envelope_id}", ("GET",), "get_live_session_control", ("require_auth", "get_db", "get_db")),
+    ("/api/live-sessions/{live_session_id}/control", ("POST",), "create_live_session_control", ("require_auth", "get_db", "get_db")),
     ("/api/sessions/{session_id}", ("GET",), "get_runtime_session", ("require_auth", "get_db", "get_db")),
     ("/api/sessions/{session_id}/captures", ("GET",), "get_session_captures", ("require_auth", "get_db", "get_db")),
     ("/api/sessions/{session_id}/capture-obsidian", ("POST",), "queue_obsidian_capture", ("require_auth", "get_db", "get_db")),
@@ -127,6 +143,7 @@ EXPECTED_ROUTES = {
     ("/api/todos/{item_id}", ("GET",), "get_todo", ("require_auth", "get_db", "get_db")),
     ("/api/todos/{item_id}/events", ("GET",), "get_todo_events", ("require_auth", "get_db", "get_db")),
     ("/api/todos/{item_id}/update", ("POST",), "post_todo_update", ("require_auth", "get_db", "get_db")),
+    ("/api/todos/{item_id}/progress", ("POST",), "post_todo_progress", ("require_auth", "get_db", "get_db")),
     ("/api/todos/{item_id}/complete", ("POST",), "post_todo_complete", ("require_auth", "get_db", "get_db")),
     ("/api/todos/{item_id}/cancel", ("POST",), "post_todo_cancel", ("require_auth", "get_db", "get_db")),
     ("/api/todos/{item_id}/snooze", ("POST",), "post_todo_snooze", ("require_auth", "get_db", "get_db")),

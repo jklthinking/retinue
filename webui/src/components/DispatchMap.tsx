@@ -3,13 +3,8 @@ import type { ActorInfo, Status, TaskSummary } from "../types";
 import { STATUS_LABEL } from "../types";
 import { hueOf } from "../avatar";
 import { useVocab } from "../theme";
-
-const EDGE_COLOR: Record<string, string> = {
-  queued: "#5c574c",
-  doing: "#186b5e",
-  handoff: "#c9a227",
-  blocked: "#9b3333",
-};
+import { isSessionSync, rosterIdentity } from "../lib/rosterIdentity";
+import { STATUS_COLOR } from "../lib/statusColors";
 
 const ACTIVE: Status[] = ["queued", "doing", "handoff", "blocked"];
 
@@ -23,25 +18,30 @@ const R = 15;
 interface Props {
   tasks: TaskSummary[];
   actors: ActorInfo[];
+  onOpenTask?: (taskId: string) => void;
 }
 
 function clip(name: string, max: number): string {
   return name.length > max ? name.slice(0, max - 1) + "…" : name;
 }
 
-export default function DispatchMap({ tasks, actors }: Props) {
+export default function DispatchMap({ tasks, actors, onOpenTask }: Props) {
   const vocab = useVocab();
   const model = useMemo(() => {
-    const active = tasks.filter((t) => ACTIVE.includes(t.status));
+    const active = tasks.filter((t) => !t.archived && ACTIVE.includes(t.status));
     const nameOf = (id: string) => actors.find((a) => a.id === id)?.display_name || id;
+    const identityOf = (id: string) => {
+      const actor = actors.find((a) => a.id === id);
+      return actor ? (isSessionSync(actor) ? "会话同步" : rosterIdentity(actor)) : "身份待登记";
+    };
 
-    const dispatcherIds = [...new Set(active.map((t) => t.created_by))].slice(0, 8);
+    const dispatcherIds = [...new Set(active.map((t) => t.created_by))];
     const agentIds = [
       ...new Set([
-        ...actors.filter((a) => a.kind === "agent" && !a.disabled).map((a) => a.id),
         ...active.map((t) => t.holder),
+        ...actors.filter((a) => a.kind === "agent" && !a.disabled && !isSessionSync(a)).map((a) => a.id).slice(0, 12),
       ]),
-    ].slice(0, 12);
+    ];
 
     const leftY = new Map(dispatcherIds.map((id, i) => [id, TOP + i * ROW]));
     const rightY = new Map(agentIds.map((id, i) => [id, TOP + i * ROW]));
@@ -51,6 +51,7 @@ export default function DispatchMap({ tasks, actors }: Props) {
     return {
       active,
       nameOf,
+      identityOf,
       dispatcherIds,
       agentIds,
       leftY,
@@ -60,10 +61,6 @@ export default function DispatchMap({ tasks, actors }: Props) {
       height: TOP + Math.max(dispatcherIds.length, agentIds.length, 1) * ROW - 6,
     };
   }, [tasks, actors]);
-
-  if (model.active.length === 0 && model.agentIds.length === 0) {
-    return <p className="muted">暂无进行中的派单</p>;
-  }
 
   return (
     <div className="dispatch-wrap">
@@ -79,6 +76,9 @@ export default function DispatchMap({ tasks, actors }: Props) {
         <text x={RIGHT_CX} y={18} textAnchor="middle" className="dm-col-label">
           {vocab.membersAgents}
         </text>
+        {model.active.length === 0 && model.agentIds.length === 0 && (
+          <text x={WIDTH / 2} y={TOP + 4} textAnchor="middle" className="dm-empty">暂无进行中的派单</text>
+        )}
 
         {model.active.map((task) => {
           const y1 = model.leftY.get(task.created_by);
@@ -92,15 +92,25 @@ export default function DispatchMap({ tasks, actors }: Props) {
           return (
             <path
               key={task.id}
+              role={onOpenTask ? "button" : undefined}
+              tabIndex={onOpenTask ? 0 : undefined}
+              aria-label={onOpenTask ? `查看派单：${task.title}` : undefined}
+              onClick={() => onOpenTask?.(task.id)}
+              onKeyDown={(event) => {
+                if (onOpenTask && (event.key === "Enter" || event.key === " ")) {
+                  event.preventDefault();
+                  onOpenTask(task.id);
+                }
+              }}
               className={`dm-edge ${task.status === "doing" ? "dm-edge-doing" : ""}`}
               d={`M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}`}
-              stroke={EDGE_COLOR[task.status] ?? "#a49d8d"}
+              stroke={STATUS_COLOR[task.status]}
               strokeWidth={width}
               fill="none"
               opacity={task.status === "queued" ? 0.5 : 0.85}
             >
               <title>
-                {task.id} {task.title} · {STATUS_LABEL[task.status]}
+                {task.id} {task.title} · {STATUS_LABEL[task.status]} · {model.nameOf(task.created_by)} → {model.nameOf(task.holder)}
               </title>
             </path>
           );
@@ -112,6 +122,7 @@ export default function DispatchMap({ tasks, actors }: Props) {
           const hue = hueOf(name);
           return (
             <g key={id}>
+              <title>{name} · {model.identityOf(id)}</title>
               <text x={LEFT_CX - R - 10} y={y + 4} textAnchor="end" className="dm-name">
                 {clip(name, 8)}
               </text>
@@ -137,6 +148,7 @@ export default function DispatchMap({ tasks, actors }: Props) {
           const count = model.perAgent.get(id) ?? 0;
           return (
             <g key={id} opacity={count === 0 ? 0.42 : 1}>
+              <title>{name} · {model.identityOf(id)}</title>
               <rect
                 x={RIGHT_CX - R}
                 y={y - R}
@@ -154,6 +166,7 @@ export default function DispatchMap({ tasks, actors }: Props) {
               <text x={RIGHT_CX + R + 10} y={y + 4} className="dm-name">
                 {clip(name, 9)}
               </text>
+              <text x={RIGHT_CX - R} y={y + 30} className="dm-worker-identity">{clip(model.identityOf(id), 30)}</text>
               {count > 0 && (
                 <g>
                   <circle cx={RIGHT_CX + R + 128} cy={y} r={9} className="dm-count" />
@@ -174,7 +187,7 @@ export default function DispatchMap({ tasks, actors }: Props) {
       <div className="dm-legend">
         {ACTIVE.map((s) => (
           <span key={s}>
-            <i style={{ background: EDGE_COLOR[s] }} />
+            <i style={{ background: STATUS_COLOR[s] }} />
             {STATUS_LABEL[s]}
           </span>
         ))}

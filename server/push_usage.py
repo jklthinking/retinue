@@ -17,17 +17,21 @@ from .http_client import RequestClass, open_url
 INPUT_FIELDS = ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens")
 
 
-def collect(runtime: str, source: str, actor_id: str) -> dict[str, Any]:
+def collect(runtime: str, source: str, actor_id: str, *, timezone_name: str | None = None) -> dict[str, Any]:
     if runtime == "claude-code":
         from adapters.exporters.claude_code import collect_metrics
     elif runtime == "codex":
         from adapters.exporters.codex import collect_metrics
     else:
         raise ValueError(f"unsupported runtime: {runtime!r}")
-    return collect_metrics(source, agent_id=actor_id)
+    return collect_metrics(source, agent_id=actor_id, timezone_name=timezone_name)
 
 
 def daily_rows(snapshot: dict[str, Any], actor_id: str, runtime: str) -> list[dict[str, Any]]:
+    # An empty source is unknown coverage, not seven days of measured zero.
+    # Existing reports remain stored; do not erase history after a bad mount.
+    if snapshot.get("source", {}).get("files") == 0:
+        return []
     rows = []
     for bucket in snapshot["last_7_days"]["daily"]:
         rows.append(
@@ -60,6 +64,7 @@ def push(url: str, token: str, rows: list[dict[str, Any]]) -> int:
     return pushed
 
 
-def push_usage(*, runtime: str, source: str, actor_id: str, url: str, token: str) -> int:
-    snapshot = collect(runtime, source, actor_id)
+def push_usage(*, runtime: str, source: str, actor_id: str, url: str, token: str,
+               timezone_name: str | None = None) -> int:
+    snapshot = collect(runtime, source, actor_id, timezone_name=timezone_name)
     return push(url, token, daily_rows(snapshot, actor_id, runtime))

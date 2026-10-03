@@ -176,7 +176,7 @@ def test_kimi_and_hermes_exporters_create_redacted_recaps(tmp_path):
                 "created_at": "2026-07-30T10:01:00Z",
                 "message": {
                     "role": "user",
-                    "content": [{"type": "text", "text": "整理组织周报"}],
+                    "content": [{"type": "text", "text": "整理王国周报"}],
                 },
             },
             {
@@ -192,7 +192,7 @@ def test_kimi_and_hermes_exporters_create_redacted_recaps(tmp_path):
     (kimi_session / "state.json").write_text(
         json.dumps(
             {
-                "title": "组织周报",
+                "title": "王国周报",
                 "createdAt": "2026-07-30T10:00:00Z",
                 "updatedAt": "2026-07-30T10:02:00Z",
             }
@@ -203,7 +203,7 @@ def test_kimi_and_hermes_exporters_create_redacted_recaps(tmp_path):
         kimi_source, runtime="kimi", agent_id="helper", privacy="summary"
     )[0]
     assert kimi["external_id"] == "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
-    assert kimi["title"] == "组织周报"
+    assert kimi["title"] == "王国周报"
     assert "三项行动" in kimi["summary"]
 
     hermes_source = tmp_path / "hermes"

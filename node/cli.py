@@ -3,6 +3,11 @@
 Subcommands:
     heartbeat      report an infrastructure health heartbeat
     runtimes       report which agent CLIs exist (basename + availability only)
+    sessions       discover live tmux Agent panes (local output or Node report)
+    session-bind   attach verified Retinue metadata to one exact tmux pane
+    session-unbind remove Retinue metadata from one exact tmux pane
+    relay-once     pull, verify, execute, and acknowledge narrow controls once
+    live-cycle     probe live panes, then relay narrow controls once
     sync-sessions  sync the privacy-scoped session index (read-only sources)
     whoami         print what this node would send, without sending anything
     enroll         render (default) or install the schedule for the selected duties
@@ -119,6 +124,95 @@ def cmd_runtimes(args: argparse.Namespace) -> int:
     print(
         f"Runtime inventory reported: {node} "
         f"({len(payload['runtimes'])} CLI, {len(payload['data_dirs'])} data directories)"
+    )
+    return 0
+
+
+def cmd_sessions(args: argparse.Namespace) -> int:
+    """Collect a privacy-bounded live tmux inventory."""
+    from . import session_probe
+
+    node = _resolve_node(args)
+    payload = session_probe.collect(node, socket_path=args.socket)
+    if args.push:
+        session_probe.push(_resolve_url(args), _read_token(args), payload)
+        print(
+            f"Live session inventory reported: {node} "
+            f"({len(payload['panes'])} panes, {payload['status']})"
+        )
+        return 0
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
+    return 0
+
+
+def cmd_session_bind(args: argparse.Namespace) -> int:
+    """Bind one exact pane by writing tmux user options, never terminal input."""
+    from . import session_probe
+
+    pane = session_probe.bind(
+        _resolve_node(args),
+        pane_id=args.pane,
+        actor_id=args.actor,
+        live_session_id=args.session_id,
+        runtime=args.runtime,
+        task_id=args.task,
+        input_mode=args.input_mode,
+        socket_path=args.socket,
+    )
+    print(
+        f"Live session bound: {pane['live_session_id']} -> "
+        f"{pane['display_location']} ({pane['runtime']})"
+    )
+    return 0
+
+
+def cmd_session_unbind(args: argparse.Namespace) -> int:
+    """Remove Retinue metadata from one exact pane, fail closed on ambiguity."""
+    from . import session_probe
+
+    pane = session_probe.unbind(
+        _resolve_node(args), pane_id=args.pane, socket_path=args.socket
+    )
+    print(f"Live session unbound: {pane['display_location']}")
+    return 0
+
+
+def cmd_relay_once(args: argparse.Namespace) -> int:
+    """Run one bounded pull/execute/ACK cycle for live controls."""
+    from .control_relay import relay_once
+
+    node = _resolve_node(args)
+    acknowledgements = relay_once(
+        _resolve_url(args),
+        _read_token(args),
+        node,
+        socket_path=args.socket,
+        limit=args.limit,
+    )
+    print(f"Live control relay complete: {node} ({len(acknowledgements)} ACK)")
+    return 0
+
+
+def cmd_live_cycle(args: argparse.Namespace) -> int:
+    """Reconcile observations, then run one bounded control relay cycle."""
+    from . import session_probe
+    from .control_relay import relay_once
+
+    node = _resolve_node(args)
+    url = _resolve_url(args)
+    token = _read_token(args)
+    payload = session_probe.collect(node, socket_path=args.socket)
+    session_probe.push(url, token, payload)
+    acknowledgements = relay_once(
+        url,
+        token,
+        node,
+        socket_path=args.socket,
+        limit=args.limit,
+    )
+    print(
+        f"Live cycle complete: {node} "
+        f"({len(payload['panes'])} panes, {len(acknowledgements)} ACK)"
     )
     return 0
 
@@ -261,6 +355,75 @@ def build_parser() -> argparse.ArgumentParser:
         "只打印不发送, 不需要令牌",
     )
     runtimes.set_defaults(func=cmd_runtimes)
+
+    live_sessions = sub.add_parser(
+        "sessions",
+        help="只读枚举本机 tmux Agent pane；默认本地输出，--push 使用节点令牌上报",
+    )
+    live_sessions.add_argument("--node", help=f"节点 id(或 {ENV_NODE})")
+    live_sessions.add_argument("--url", help=f"服务器地址(或 {ENV_URL}, 默认 {DEFAULT_URL})")
+    live_sessions.add_argument("--token-file", help=f"节点令牌文件(或 {ENV_TOKEN_FILE})")
+    live_sessions.add_argument(
+        "--socket",
+        help="可选 tmux socket 路径；仅传给本机 tmux，不进入输出",
+    )
+    live_sessions.add_argument(
+        "--push",
+        action="store_true",
+        help="用节点令牌把观察结果上报 Hub；不发送任何终端输入",
+    )
+    live_sessions.set_defaults(func=cmd_sessions)
+
+    session_bind = sub.add_parser(
+        "session-bind",
+        help="给一个已验证 occupant 的精确 tmux pane 写入 Retinue 元数据",
+    )
+    session_bind.add_argument("--node", help=f"节点 id(或 {ENV_NODE})")
+    session_bind.add_argument("--pane", required=True, help="精确 tmux pane id，例如 %%4")
+    session_bind.add_argument("--actor", required=True, help="Retinue actor slug")
+    session_bind.add_argument("--session-id", required=True, help="LiveSession id")
+    session_bind.add_argument("--runtime", required=True, help="预期 occupant runtime slug")
+    session_bind.add_argument("--task", help="可选 Retinue task id")
+    session_bind.add_argument(
+        "--input-mode",
+        choices=("codex-prompt",),
+        help="显式允许 tell 的输入契约；省略时该 pane 仍只允许 peek",
+    )
+    session_bind.add_argument(
+        "--socket", help="可选 tmux socket 路径；只用于本机寻址"
+    )
+    session_bind.set_defaults(func=cmd_session_bind)
+
+    session_unbind = sub.add_parser(
+        "session-unbind", help="从一个精确 tmux pane 移除 Retinue 元数据"
+    )
+    session_unbind.add_argument("--node", help=f"节点 id(或 {ENV_NODE})")
+    session_unbind.add_argument("--pane", required=True, help="精确 tmux pane id，例如 %%4")
+    session_unbind.add_argument(
+        "--socket", help="可选 tmux socket 路径；只用于本机寻址"
+    )
+    session_unbind.set_defaults(func=cmd_session_unbind)
+
+    relay_once = sub.add_parser(
+        "relay-once", help="拉取并执行一批 generation-fenced 实时控制"
+    )
+    add_common(relay_once)
+    relay_once.add_argument(
+        "--socket", help="可选 tmux socket 路径；只用于本机寻址，不会上报"
+    )
+    relay_once.add_argument("--limit", type=int, default=8, choices=range(1, 33))
+    relay_once.set_defaults(func=cmd_relay_once)
+
+    live_cycle = sub.add_parser(
+        "live-cycle",
+        help="先上报实时 tmux 会话，再拉取、验证、执行并确认一批控制",
+    )
+    add_common(live_cycle)
+    live_cycle.add_argument(
+        "--socket", help="可选 tmux socket 路径；只用于本机寻址，不会上报"
+    )
+    live_cycle.add_argument("--limit", type=int, default=8, choices=range(1, 33))
+    live_cycle.set_defaults(func=cmd_live_cycle)
 
     sessions = sub.add_parser(
         "sync-sessions", help="只读同步本机 Agent 会话索引、摘要或最近消息"

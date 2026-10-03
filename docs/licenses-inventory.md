@@ -1,5 +1,10 @@
 # Dependency license inventory
 
+The frontend distribution includes complete original copyright and permission
+texts in [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES.md), generated from the actual
+installed production dependency tree by `scripts/generate_third_party_notices.py`.
+RETINUE’s own MIT license does not change those third-party licenses.
+
 Generated from the CycloneDX documents in `dist/` (`sbom-python.cdx.json`,
 `sbom-frontend.cdx.json`). Re-run `bash scripts/generate_sbom.sh` then
 `python scripts/generate_licenses_inventory.py` after a dependency change.

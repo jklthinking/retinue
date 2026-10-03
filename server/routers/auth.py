@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -89,9 +89,9 @@ def demo_login(
     request: Request,
     response: Response,
     db: Session = Depends(get_db, scope="function"),
+    seat: str | None = Query(default=None),
 ) -> dict[str, Any]:
-    """One-click login as the configured demo account. Only active when the
-    operator has explicitly set demo_user in site-config.json."""
+    """One-click login as the configured work or observer account."""
     retry_after = request.app.state.login_throttle.source_retry_after(
         login_source(request)
     )
@@ -101,7 +101,11 @@ def demo_login(
             detail="登录请求过于频繁，请稍后重试",
             headers={"Retry-After": str(retry_after)},
         )
-    demo_user = site_config(request.app.state.data_dir).get("demo_user")
+    config = site_config(request.app.state.data_dir)
+    if (seat or "").lower() in {"observe", "observer"}:
+        demo_user = config.get("observer_user") or config.get("demo_user")
+    else:
+        demo_user = config.get("demo_user")
     if not demo_user:
         raise HTTPException(status_code=404, detail="demo login is not enabled here")
     user = db.execute(select(User).where(User.username == demo_user)).scalar()
@@ -148,7 +152,7 @@ def me(request: Request, principal: Principal = Depends(require_auth)) -> dict[s
         "role": principal.role,
         "actor_id": principal.actor_id,
         "display_name": principal.user.display_name if principal.user else principal.name,
-        "site_console": bool(os.environ.get("RETINUE_INTERNAL_ROOT")),
+        "site_console": bool(os.environ.get("RETINUE_KINGDOM_ROOT")),
         "mode": site_config(data_dir).get("mode", ""),
         "site_label": site_config(data_dir).get("label", ""),
         "readonly": principal.role == "viewer",

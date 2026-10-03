@@ -1,24 +1,117 @@
-# RETINUE 众卿 — a self-hosted task board for humans and AI agents
+# Retinue (众卿) — self-hosted task board for humans and AI agents
 
-[![License: PolyForm Noncommercial 1.0.0](https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-blue)](LICENSE.md)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white)](pyproject.toml)
-[![Self-hosted](https://img.shields.io/badge/self--hosted-no%20telemetry-2f9e44)](#architecture-one-page)
-[![MCP](https://img.shields.io/badge/MCP-native-7a5cff)](docs/agent-onboarding.md)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776ab.svg)](pyproject.toml)
+[![MCP](https://img.shields.io/badge/MCP-server-6f42c1.svg)](docs/agent-onboarding.md)
+[![Self-hosted](https://img.shields.io/badge/self--hosted-no%20telemetry-2ea44f.svg)](SELF_HOSTING.md)
 
-**[Website & offline demo](https://jklthinking.github.io/retinue/)** · **[FAQ](docs/faq.md)** ·
-**English** · [简体中文](#众卿-retinue简体中文)
+**English** · [简体中文](#众卿-retinue简体中文) · [Live demo](docs/demo/index.html)
 
-RETINUE's Chinese name is **众卿** ("the assembled ministers").
+**Retinue** (Chinese name **众卿**, "the assembled ministers") is a
+self-hosted task board and orchestration hub where a mixed team of people and
+AI agents work the same cards. Every piece of work is one durable baton: a
+task card with a single holder, an acceptance check, and an append-only
+receipt chain. You run the board, agents claim work over MCP or HTTP, they
+write back, and you accept the card or send it back. There is no hosted
+control plane, no vendor account requirement, and no telemetry. The server-backed
+hub uses operator-managed local accounts and scoped credentials.
 
-RETINUE is a self-hosted task board and orchestration hub for a mixed team of
-people and AI agents. It keeps one durable baton per piece of work: a task
-card with a holder, acceptance checks, and an append-only receipt chain. You
-run the board, the agents claim work, they write back, and you accept or send
-the card back. There is no hosted control plane and no telemetry.
+## 2026-10-02 community preview: visible collaboration
 
-Self-hosted AI agent orchestration for one person or a small team: run the
-board on your own machine, coordinate Claude Code, Codex and any MCP-capable
-agent from it, and keep every task, receipt and metric in a directory you own.
+Version `0.3.0a1` brings the collaboration process into each task. See who
+delegated to whom, what each device/model worker reported, what it is waiting
+for, and which artifact supports the next handoff.
+
+| View | What it explains |
+|---|---|
+| Home | The original task flow, dispatch coordination, and session flow views |
+| Per-task graph | Explicit delegation, dependencies, baton movements, and review returns |
+| Device/model timeline | Recorded runs with identity snapshots and source labels |
+| Module contributions | Explicit functional assignments, reported work, remaining items, and artifact references |
+| Node details and context | Instructions, acceptance criteria, waiting owners, progress, evidence versions, and next-step intent |
+| Operations and data quality | Separate sources, reported usage coverage, receipt freshness, and retained history |
+
+Read-only cc-connect observers match native sessions to Claude records and
+deduplicate usage by stable deliveries. A worker is an execution identity;
+session transports and observers are listed separately. The operations view
+has one primary implementation, while the existing task and session modes
+remain available.
+
+**Boundaries:** delegation does not launch a model, observation does not invent
+task progress, an executor's claim is not independent acceptance, and reported
+usage is not a complete provider bill. Explicit task bindings and structured
+receipts are needed to follow real work. GitHub retains code/PR/CI evidence;
+Retinue retains holder, lease, task state, and collaboration events.
+
+All screenshots below use the deterministic, read-only **synthetic demo**
+(`seed=42`).
+Its product-launch example illustrates the UI and protocol, not real model
+execution or an end-to-end production acceptance result. Collaboration images
+show one fixed task; timestamps come from staged synthetic demo time, not
+production activity.
+
+![Synthetic Retinue home: task flow, dispatch coordination, and session flow](docs/images/2026-10-02/01-home.jpg)
+
+![Synthetic per-task collaboration: relationships, device/model lanes, and module contributions](docs/images/2026-10-02/02-task-collaboration.jpg)
+
+[Operations screenshot](docs/images/2026-10-02/03-operations.jpg) ·
+[Data-quality screenshot](docs/images/2026-10-02/04-data-quality.jpg) ·
+[Device/model lanes](docs/images/2026-10-02/05-worker-lanes.jpg) ·
+[Module contributions](docs/images/2026-10-02/06-module-contributions.jpg) ·
+[Branch details](docs/images/2026-10-02/07-branch-detail.jpg) ·
+[Home dispatch and session flow](docs/images/2026-10-02/08-home-dispatch.jpg) ·
+[Full update notes](docs/releases/2026-10-02-collaboration-observability.md) ·
+[Chinese PRD](docs/PRD.md) · [Sharing draft](docs/sharing/xiaohongshu.md)
+
+## What is Retinue?
+
+Retinue is a **self-hosted, local-first task board for AI agents and the
+people who supervise them**. It is not a chat wrapper and not an agent
+framework — it is the shared board and audit layer that sits underneath
+whatever agents you already run (Claude Code, OpenAI Codex, any MCP client,
+or a human with a browser).
+
+- **One holder per card.** Work is never ambiguous: exactly one actor holds
+  the baton, and only the holder can write. Another agent's token gets
+  `403 holder-only-writes`.
+- **Append-only receipt chain.** Claim, progress, hand-off, block, and
+  acceptance are all recorded and cannot be rewritten after the fact.
+- **Acceptance checks on the card.** A card says what "done" means before an
+  agent starts. Recorded completion and independent quality verification
+  remain separate observations.
+- **MCP-native coordination.** `retinue-server mcp` exposes the board to any
+  MCP-capable agent; there is also a plain HTTP + bearer-token API.
+- **Runtime exporters.** Read-only importers for Claude Code and Codex
+  session data give you token activity per agent without touching sources.
+- **Optional IM adapters.** Lark/Feishu and Telegram bridges turn a chat
+  message into an intent — never directly into a command.
+- **Data sovereignty.** File mode keeps canonical state in one data directory
+  (`org.yaml`, `tasks/`, `metrics/`, `nodes/`); stop writers before copying it.
+  The server stores canonical state in `retinue.db`; use a consistent SQLite
+  snapshot for its backup. Runtime source records, external artifacts,
+  credentials and deployment configuration have separate recovery paths.
+  See the [backup guide](SELF_HOSTING.md#backup).
+
+## Who it is for
+
+Individuals and small teams running a **fleet of AI coding agents** who want
+one durable board, observable receipts, and data they can take away — without
+adopting a hosted agent platform. It runs on one machine, a homelab box, or a
+NAS.
+
+## How Retinue differs
+
+| | Retinue | Trello / Jira / Linear | Agent frameworks (LangGraph, CrewAI, AutoGen) |
+|---|---|---|---|
+| Primary users | People **and** AI agents on the same cards | People | Agents, in code |
+| Where it runs | Your machine, self-hosted | Vendor SaaS | Inside your app process |
+| Audit | Append-only receipt chain per card | Activity log, editable | Traces, usually ephemeral |
+| Agent access | MCP server + token-scoped HTTP API | Bots and webhooks bolted on | N/A — it *is* the agent |
+| Write safety | Holder-only writes, hooks only from `org.yaml` | Anyone with access | Whatever you code |
+| Telemetry | None | Vendor-side | Varies |
+
+Retinue does not replace your agent runtime. It replaces the spreadsheet,
+the chat thread, and the "which agent is doing what right now?" question.
 
 ## Ten-minute corridor
 
@@ -31,7 +124,9 @@ Host port 9219 must be free (`docker compose` fails with "address already
 in use" otherwise). The admin password must be at least eight characters.
 
 ```bash
-export RETINUE_ADMIN_PASSWORD=changeme1
+read -rsp 'Choose an admin password (at least 8 characters): ' RETINUE_ADMIN_PASSWORD
+printf '\n'
+export RETINUE_ADMIN_PASSWORD
 docker compose up --build
 ```
 
@@ -41,9 +136,9 @@ Wait until the logs show the hub listening, then:
 curl -fsS http://127.0.0.1:9219/api/health
 ```
 
-That returns JSON like `{"status":"ok","version":"0.2.0a2"}` with no
+That returns JSON like `{"status":"ok","version":"0.3.0a1"}` with no
 authentication. `version` is the PEP 440 string from `pyproject.toml` (the
-same spelling as the wheel name and the next git tag, `v0.2.0a2`). Open
+same spelling as the wheel name and the next git tag, `v0.3.0a1`). Open
 <http://127.0.0.1:9219/> and sign in as `operator` with that password. The
 image is the authenticated v0.2 hub, not the old read-only panel.
 
@@ -135,30 +230,63 @@ Installation, backup, and exposure warnings are in
    GET only                         node token, no card writes
 ```
 
-Canonical state lives in one operator-chosen directory. Stop the process and
-copy that directory to take the data away. Agents never choose `on_claim`
-hooks; those come only from `org.yaml`.
+File mode keeps canonical state in the selected data directory; stop writers
+before copying it. Server mode uses `retinue.db` and needs a consistent SQLite
+snapshot. Runtime source records, external artifacts, credentials and deployment
+configuration are recovered separately; see [Backup](SELF_HOSTING.md#backup).
+Agents never choose `on_claim` hooks; file-mode hooks come only from `org.yaml`.
+
+
+## FAQ
+
+**What is Retinue used for?**
+Assigning work to a mix of humans and AI agents on one self-hosted board, and
+keeping a verifiable record of who held each card, what they claimed, and
+whether the acceptance check actually passed.
+
+**Does Retinue work with Claude Code, Codex, or other MCP clients?**
+Yes. MCP-capable agents connect through `retinue-server mcp`. Agents without
+MCP use the HTTP API with a scoped actor token. Claude Code and Codex also
+have read-only session exporters for token activity.
+
+**Is Retinue open source?**
+Retinue is open source under the MIT License. Personal and commercial use,
+modification, and redistribution are permitted with the copyright and permission
+notice preserved. See [LICENSE](LICENSE).
+
+**Does Retinue send my data anywhere?**
+No. There is no telemetry, no hosted control plane, no remote account, and no
+mandatory outbound request. The core, panel, daemon, demo, and exporters all
+work offline. Only IM adapters you explicitly configure contact anything.
+
+**Can I self-host Retinue on a homelab or NAS?**
+Yes. `docker compose up --build` brings up the hub on one host port; the
+loopback corridor below is the ten-minute path. See
+[`SELF_HOSTING.md`](SELF_HOSTING.md) for exposure warnings and backup.
+
+**How is Retinue different from an AI kanban board like Vibe Kanban?**
+Retinue is board *plus* audit boundary. Agents are treated as untrusted
+executors: they can never choose the hook that runs, only the operator's
+`org.yaml` can; writes are holder-only; and the receipt chain is append-only.
+The board is the governance surface, not just a task queue.
+
+**Does Retinue require Docker?**
+No. There is a file-mode corridor with no Docker in
+[`docs/closed-loop-walkthrough.md`](docs/closed-loop-walkthrough.md).
+
 
 ## License
 
-RETINUE is source-available under the **PolyForm Noncommercial License
-1.0.0** (SPDX: PolyForm-Noncommercial-1.0.0). See [LICENSE.md](LICENSE.md)
-and [NOTICE](NOTICE).
+RETINUE’s own source code in this release is licensed under **MIT** (SPDX: MIT).
+Personal and commercial use, modification, distribution, and sublicensing are
+permitted; preserve the copyright and permission notice. See [LICENSE](LICENSE)
+and [NOTICE](NOTICE). Third-party dependencies retain their own licenses; the
+frontend distribution’s complete copyright and permission texts are preserved
+in [THIRD_PARTY_NOTICES](docs/THIRD_PARTY_NOTICES.md).
 
-- Free for noncommercial use: personal projects, study, research, charities,
-  educational and government research institutions — including self-hosting
-  and modification.
-- Any commercial use — hosted services, resale, paid installation for a
-  customer, or use inside a for-profit organization — requires a separate
-  commercial license from JKL Thinking. Ask through the repository's issue
-  tracker. Commercial rights are reserved exclusively to JKL Thinking.
-- Versions published earlier under FSL-1.1-Apache-2.0 keep the license they
-  shipped with; every later version is PolyForm-Noncommercial-1.0.0 only.
-
-The RETINUE name, the Chinese name 众卿, and the marks stay with JKL
-Thinking. Official images and official support channels will be labelled in
-the public repository. A fork or a third-party image is not official
-RETINUE.
+Historical releases retain the license published with them; historical tags
+are not rewritten. RETINUE and 众卿 marks remain with JKL Thinking. Forks and
+third-party services must not represent themselves as official RETINUE.
 
 ---
 
@@ -169,13 +297,65 @@ Issues and pull requests are welcome on GitHub.
 
 # 众卿 RETINUE（简体中文）
 
-**[项目主页与离线 Demo](https://jklthinking.github.io/retinue/)** · **[常见问题](docs/faq.md)** · [English](#retinue-众卿--a-self-hosted-task-board-for-humans-and-ai-agents)
+**众卿 Retinue** 是一套可自托管的 **AI 智能体任务看板与多智能体编排中枢**：
+人和 AI agent 共用同一批任务卡。每一件工作对应一张任务卡——有唯一持有人、
+有可观测的验收条件、有只可追加的回执链。你来跑看板，agent 通过 MCP 或 HTTP
+认领，回写结果，你验收或退回。没有托管控制面或第三方账号要求，也没有遥测；
+服务端中枢使用部署方管理的本地账号与限定范围的凭据。
 
-自托管的多智能体协作与任务管理系统：在自己的机器上跑一块任务板，统一指挥 Claude Code、Codex 以及任意支持 MCP 的智能体，任务卡、回执与用量全部留在你自己的目录里。
+## 2026-10-02 社区更新：看清每项任务的协作
 
-RETINUE 是一套可自托管的多智能体任务看板与编排中枢。每一件工作对应一张
-任务卡：有持有人、有可观测的验收条件、有只可追加的回执链。你来跑看板，
-agent 认领，回写结果，你验收或退回。没有托管控制面，也没有遥测。
+当前版本 `0.3.0a1` 补齐每任务的关系图、设备/模型时间泳道和功能模块贡献。
+点击节点可以查看委派指令、进展、等待对象、成果引用和下一步；新会话通过只读
+任务上下文了解验收条件、已有状态记录和尚未核验的工作声明。
+
+首页的任务流转、派单协调和会话流转台继续保留。运营效率入口统一，任务看板、
+列表、协作空间、历史会话和实时会话仍各有自己的用途。执行 Worker 标清设备、
+runtime 与模型；同步与观察服务单列，不算作执行者。
+
+cc-connect 原生会话观察以只读方式接入，用量按实际消息模型分层、稳定 delivery
+标识去重。运营看板把任务事件、runtime 日报和会话累计来源分开解释，未上报
+显示未知，采集回执与模型最后活动分别说明。
+
+委派排队不代表模型已启动，原生会话采集不自动生成任务进度，任务 done 记录也
+不代表独立验收。真实任务仍需显式绑定与结构化回执。GitHub 保存代码、PR 和 CI
+证据；Retinue 保存 holder、租约、任务状态与协作事件。
+
+上方配图均为固定种子的**合成演示**；协作图、泳道、模块和分支详情展示同一固定
+任务，时间来自分阶段演示时钟。图片不包含真实业务记录，不声称真实模型闭环
+已全部通过验收。自有代码采用 MIT，第三方声明保留，历史标签许可不改写。
+
+查看 [完整版本说明](docs/releases/2026-10-02-collaboration-observability.md)、
+[PRD](docs/PRD.md)、[小红书草稿](docs/sharing/xiaohongshu.md)；
+也可打开 [只读演示](docs/demo/index.html)。
+
+## 众卿 Retinue 是什么
+
+它是**本地优先、可自托管的 AI agent 任务板与审计层**，不是聊天壳，也不是
+agent 框架。它垫在你已经在用的 agent（Claude Code、OpenAI Codex、任意 MCP
+客户端，或者一个开着浏览器的人）下面。
+
+- **一卡一持有人**：同一时刻只有一个执行者握棒，只有持有人能写。别的 agent
+  的令牌会收到 `403 holder-only-writes`。
+- **只可追加的回执链**：认领、进度、交接、阻塞、验收全部留痕，事后改不掉。
+- **验收条件写在卡上**：开工前写清「怎样算完成」，任务完成记录与独立质量
+  核验分别解释。
+- **原生 MCP 协作**：`retinue-server mcp` 把看板暴露给任意 MCP agent；也提供
+  纯 HTTP + bearer token 接口。
+- **运行时 exporter**：只读导入 Claude Code / Codex 会话数据，按 agent 看
+  token 消耗，不改动来源。
+- **可选 IM 适配器**：飞书 / Lark 与 Telegram 桥接把聊天消息变成「意图」，
+  绝不直接变成命令。
+- **数据主权**：文件模式的事实源是一个数据目录（`org.yaml`、`tasks/`、
+  `metrics/`、`nodes/`），停掉写入者后复制；服务端事实源是 `retinue.db`，
+  使用一致性 SQLite 快照备份。运行时源记录、外部成果、凭据与部署配置
+  分别恢复，详见[备份说明](SELF_HOSTING.md#backup)。
+
+## 适合谁
+
+手上跑着**一队 AI 编程 agent** 的个人和小团队：想要一块持久的看板、可观测的
+回执、随时能带走的数据，又不想被托管平台绑住。单机、homelab 主机、NAS 都能跑。
+
 
 ## 十分钟走廊
 
@@ -187,7 +367,9 @@ agent 认领，回写结果，你验收或退回。没有托管控制面，也�
 管理员密码至少八位。
 
 ```bash
-export RETINUE_ADMIN_PASSWORD=changeme1
+read -rsp 'Choose an admin password (at least 8 characters): ' RETINUE_ADMIN_PASSWORD
+printf '\n'
+export RETINUE_ADMIN_PASSWORD
 docker compose up --build
 ```
 
@@ -197,8 +379,8 @@ docker compose up --build
 curl -fsS http://127.0.0.1:9219/api/health
 ```
 
-应返回类似 `{"status":"ok","version":"0.2.0a2"}`，无需登录。`version`
-与 `pyproject.toml`、wheel 文件名、下次 git tag（`v0.2.0a2`）是同一串。
+应返回类似 `{"status":"ok","version":"0.3.0a1"}`，无需登录。`version`
+与 `pyproject.toml`、wheel 文件名、下次 git tag（`v0.3.0a1`）是同一串。
 打开 <http://127.0.0.1:9219/>，用 `operator` 和上面的密码登录。默认镜像
 是带登录的 v0.2 中枢，不再是旧只读面板。
 
@@ -259,26 +441,51 @@ agent 的令牌会得到 `403 holder-only-writes`。
 
 ## 架构一页图
 
-见上方英文节的文字架构图。事实源是运营者选定的一个数据目录；停进程、拷
-走目录，数据就带走了。`on_claim` 钩子只来自 `org.yaml`，任务卡不能指定要
-执行的命令。
+见上方英文节的文字架构图。文件模式的事实源是运营者选定的数据目录，停掉
+写入者后复制；服务端使用 `retinue.db`，需要一致性 SQLite 快照。运行时源记录、
+外部成果、凭据与部署配置分别恢复，详见[备份说明](SELF_HOSTING.md#backup)。
+文件模式的 `on_claim` 钩子只来自 `org.yaml`，任务卡不能指定要执行的命令。
+
+## 常见问题
+
+**众卿 Retinue 用来干什么？**
+把工作派给人和 AI agent 组成的混合团队，在一块自托管看板上执行，并留下可核
+验的记录：谁握过这张卡、声称做了什么、验收条件是否真的通过。
+
+**支持 Claude Code、Codex 和其他 MCP 客户端吗？**
+支持。MCP agent 通过 `retinue-server mcp` 接入；不支持 MCP 的用 HTTP 接口加
+受限 actor 令牌。Claude Code 和 Codex 另有只读会话 exporter 统计 token。
+
+**它是开源软件吗？**
+是，当前版本自有源码采用 **MIT 开源许可证**。允许个人与商业使用、修改、
+分发及再许可，分发时须保留版权与许可声明。详见 [LICENSE](LICENSE)。
+
+**会把我的数据传到哪里去吗？**
+不会。没有遥测、没有托管控制面、没有远程账号、没有强制外呼。核心、面板、
+daemon、demo、exporter 全部可离线运行。只有你显式配置的 IM 适配器会外联。
+
+**可以部署在 homelab 或 NAS 上吗？**
+可以。`docker compose up --build` 起一个端口即可；下面的十分钟走廊全程走回
+环。暴露风险与备份见 [`SELF_HOSTING.md`](SELF_HOSTING.md)。
+
+**和 Vibe Kanban 这类 AI kanban 有什么不同？**
+众卿是「看板 + 审计边界」。agent 被当作不可信执行者：它永远不能指定要跑的
+hook（hook 只来自运营者的 `org.yaml`）、写权限只归持有人、回执链只增不改。
+看板本身就是治理面，不只是任务队列。
+
+**必须用 Docker 吗？**
+不必。无 Docker 的文件总线走廊见
+[`docs/closed-loop-walkthrough.md`](docs/closed-loop-walkthrough.md)。
+
 
 ## 许可证
 
-众卿 RETINUE 采用 **PolyForm Noncommercial License 1.0.0**（源码可用的
-非商业许可证，SPDX 标识 PolyForm-Noncommercial-1.0.0）。全文见
-[LICENSE.md](LICENSE.md)，版权与商标见 [NOTICE](NOTICE)。
+当前版本的 RETINUE 自有源码采用 **MIT**（SPDX: MIT），允许个人与商业使用、
+修改、分发和再许可，无需另行取得商业授权；分发时保留版权与许可声明。
+见 [LICENSE](LICENSE) 与 [NOTICE](NOTICE)。第三方依赖继续遵循各自许可证。
 
-- 非商业用途免费：个人自用、学习研究、公益与教学科研机构，均可自托管、
-  修改、分发（保留许可证与署名）。
-- 任何商业用途——商业托管、转售、替客户收费装机、营利组织内部使用——
-  都需要向 JKL Thinking 另行取得商业授权，请通过仓库 issue 联系。
-  商用权利由 JKL Thinking 独家保留。
-- 此前以 FSL-1.1-Apache-2.0 发布的历史版本仍按其发布时的许可证执行；
-  此后的所有版本均仅以 PolyForm-Noncommercial-1.0.0 发布。
-
-RETINUE 与「众卿」名称、标识权利由 JKL Thinking 保留。官方镜像与官方支持
-渠道将在公开仓库中标注。第三方 fork 或镜像不是官方 RETINUE。
+历史版本仍遵循各版本发布时的许可证，历史标签不改写。RETINUE 与「众卿」
+名称、标识由 JKL Thinking 保留，第三方 fork、镜像与服务不得冒充官方。
 
 ## 社区
 

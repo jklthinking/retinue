@@ -6,42 +6,19 @@
 # inspection in rule 8 cannot be automated, so changed images are listed for a
 # human (or agent) to open.
 #
-# Reserved and documentation CIDR ranges (RFC 1918, RFC 6598, RFC 5737) are
-# allowlisted below alongside loopback: they name no machine, and rejecting them
-# only pushes authors into writing the same constant obscurely to get past this
-# scan, which is worse than the literal.
+# Loopback and standard documentation addresses/network constants are allowed
+# per match. A safe address never exempts another candidate on the same line.
 #
-# Rule 4 (no live identifiers, machine paths, or credentials) is enforced
-# against the lines this change adds, which is what a handoff gate is for. Pass
-# --all to sweep every tracked file instead; that mode reports pre-existing
-# debt as well and is not expected to be clean.
+# Rule 4 uses the same strict per-match scanner as public exports. Both the
+# default and --all gates sweep all public source files, including generated
+# JavaScript. Exact hash-bound synthetic/rule/license exceptions require review.
 set -uo pipefail
 
 cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-scan_all=0
-[ "${1:-}" = "--all" ] && scan_all=1
-
 failures=0
 step() { printf '\n== %s ==\n' "$1"; }
 fail() { printf 'FAIL: %s\n' "$1"; failures=$((failures + 1)); }
-
-TEXT_GLOBS=('*.py' '*.md' '*.sh' '*.toml' '*.yaml' '*.yml' '*.ts' '*.tsx' '*.json' '*.html')
-
-# Emit the content to scan, one grep-able line per source line. Added lines have
-# their diff marker stripped: leaving it made '+@pytest.fixture' look like an
-# e-mail address, which failed a clean change and then vanished once the change
-# was committed and the diff went empty.
-scan_source() {
-  if [ "$scan_all" -eq 1 ]; then
-    git ls-files -z -- "${TEXT_GLOBS[@]}" | xargs -0 grep -nHI '' 2>/dev/null
-    return
-  fi
-  git diff HEAD -U0 --no-color -- "${TEXT_GLOBS[@]}" \
-    | grep -E '^\+' | grep -vE '^\+\+\+' | sed 's/^+//'
-  git ls-files -z --others --exclude-standard -- "${TEXT_GLOBS[@]}" \
-    | xargs -0 -r grep -nHI '' 2>/dev/null
-}
 
 step "test suite"
 # Resolve the interpreter once. An activated venv puts `python` first, which is what a
@@ -79,37 +56,11 @@ step "compile"
 step "construction ledger"
 "$PY" scripts/check_construction_ledger.py || fail "construction ledger"
 
-step "identifier scan ($([ "$scan_all" -eq 1 ] && echo 'whole tree' || echo 'this change'))"
-identifiers=$(
-  scan_source | grep -EI '([0-9]{1,3}\.){3}[0-9]{1,3}|/(root|home|Users)/|[A-Za-z0-9][A-Za-z0-9._%+-]*@[A-Za-z0-9.-]+\.[A-Za-z]{2,}' \
-    | grep -vE '127\.0\.0\.1|0\.0\.0\.0|localhost' \
-    | grep -vE '(10|100\.64|127|169\.254|172\.16|192\.0\.2|192\.168|198\.51\.100|203\.0\.113)\.[0-9.]*/[0-9]{1,2}'
-)
-if [ -n "$identifiers" ]; then
-  printf '%s\n' "$identifiers"
-  fail "identifier scan (non-loopback address, machine path, or e-mail)"
-fi
-
-step "credential scan ($([ "$scan_all" -eq 1 ] && echo 'whole tree' || echo 'this change'))"
-credentials=$(
-  scan_source | grep -EI 'sk-[A-Za-z0-9]{16,}|ghp_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|\b(rtn|rts|rtd)_[A-Za-z0-9_-]{30,}|(app_secret|client_secret|secret_key|password)[[:space:]]*[:=][[:space:]]*[\"'][^\"']{8,}'
-)
-if [ -n "$credentials" ]; then
-  printf '%s\n' "$credentials"
-  fail "credential scan"
-fi
-
-# Internal cloud mirror hostnames. The pattern is assembled from pieces so
-# this file does not itself contain the fingerprint it is hunting.
-step "mirror fingerprint ($([ "$scan_all" -eq 1 ] && echo 'whole tree' || echo 'this change'))"
-_cloud=tencent
-mirrors=$(
-  scan_source | grep -EI "${_cloud}yun|${_cloud}cloudcr|mirrors\\.cloud\\.${_cloud}\\.com" || true
-)
-if [ -n "$mirrors" ]; then
-  printf '%s\n' "$mirrors"
-  fail "mirror fingerprint (internal cloud registry or package mirror)"
-fi
+step "public identifier, credential, and mirror scan (whole source tree)"
+# Shared per-match rules and exact reviewed exceptions are identical to the exporter.
+# Results expose paths and categories only. No test directory is exempt.
+"$PY" scripts/export_community.py --scan-only --source . \
+  || fail "public source candidates require review"
 
 # The panel is TypeScript, and nothing above type-checks it. A change that
 # compiled cleanly in Python while the frontend failed to build got as far as

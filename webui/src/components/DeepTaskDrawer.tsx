@@ -18,11 +18,13 @@ export default function DeepTaskDrawer({
   me,
   onClose,
   onOpenTask,
+  onOpenFlow,
 }: {
   taskId: string;
   me: Me;
   onClose: () => void;
   onOpenTask: (taskId: string) => void;
+  onOpenFlow?: (taskId: string) => void;
 }) {
   const [actors, setActors] = useState<ActorInfo[]>([]);
 
@@ -41,6 +43,7 @@ export default function DeepTaskDrawer({
       onClose={onClose}
       onChanged={notifyTasksChanged}
       onOpenTask={onOpenTask}
+      onOpenFlow={onOpenFlow}
     />
   );
 }

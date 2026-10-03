@@ -19,7 +19,7 @@ These rules apply to every automated contributor in this repository.
    thin adapter.
 6. Never write exporter output into its transcript/session source. Preserve
    read-only inputs and use atomic destination replacement.
-7. Rebuild `docs/demo` with `python scripts/build_panel_demo.py` after panel or demo API changes
+7. Rebuild `docs/demo` with `python scripts/build_static_demo.py` after changes
    to demo data or panel rendering. The committed site must remain seed-42,
    deterministic, and free of external URLs.
 8. Before handoff, run focused tests, full pytest, `git diff --check`, Python

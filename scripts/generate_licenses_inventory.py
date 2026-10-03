@@ -179,7 +179,7 @@ def main() -> int:
         conclusion = (
             "Every listed production dependency is under a permissive SPDX "
             "license. That is compatible with self-hosting, forking, and the "
-            "PolyForm-Noncommercial-1.0.0 licensing of RETINUE itself."
+            "MIT licensing of RETINUE itself."
         )
     body = f"""# Dependency license inventory
 

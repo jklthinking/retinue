@@ -9,7 +9,7 @@ from __future__ import annotations
 import datetime as dt
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class LoginBody(BaseModel):
@@ -427,7 +427,7 @@ class SkillImportBody(BaseModel):
     name: str = Field(min_length=1, max_length=128)
     description: str = ""
     category: str = ""
-    source: str = Field(default="local", pattern=r"^(local|internal)$")
+    source: str = Field(default="local", pattern=r"^(local|kingdom)$")
     source_kind: str = Field(
         default="runtime",
         pattern=r"^(local|workspace|repo|runtime|external)$",
@@ -493,6 +493,107 @@ class RuntimeProbeBody(BaseModel):
     # history". An empty list means this probe checked and found nothing.
     data_dirs: list[DataDirItemBody] | None = Field(default=None, max_length=64)
 
+
+class LiveTmuxRefBody(BaseModel):
+    session_id: str = Field(pattern=r"^\$[0-9]+$")
+    window_id: str = Field(pattern=r"^@[0-9]+$")
+    pane_id: str = Field(pattern=r"^%[0-9]+$")
+    session_name: str = Field(
+        default="", max_length=80, pattern=r"^[^/\\\x00-\x1f\x7f]*$"
+    )
+    window_name: str = Field(
+        default="", max_length=80, pattern=r"^[^/\\\x00-\x1f\x7f]*$"
+    )
+
+
+class LiveSessionPaneBody(BaseModel):
+    endpoint_id: str = Field(pattern=r"^tmux-[a-f0-9]{24}$")
+    generation: str = Field(pattern=r"^[a-f0-9]{32}$")
+    backend: str = Field(pattern=r"^tmux$")
+    runtime: str = Field(default="", pattern=r"^(?:|[a-z0-9]+(?:-[a-z0-9]+)*)$")
+    input_mode: str = Field(default="", pattern=r"^(?:|codex-prompt)$")
+    actor_id: str | None = Field(
+        default=None, pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    )
+    live_session_id: str | None = Field(
+        default=None, pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$"
+    )
+    task_id: str | None = Field(default=None, pattern=r"^task-[0-9]{8}-[0-9]{3,}$")
+    explicit_binding: bool = False
+    binding_source: str = Field(pattern=r"^(explicit|process|heuristic)$")
+    binding_confidence: int = Field(ge=0, le=100)
+    occupant_verified: bool = False
+    state: str = Field(pattern=r"^(unknown|idle|busy|waiting|blocked|disconnected)$")
+    state_source: str = Field(pattern=r"^[a-z][a-z0-9-]{0,31}$")
+    state_confidence: int = Field(ge=0, le=100)
+    command: str = Field(default="", max_length=128, pattern=r"^[A-Za-z0-9._-]*$")
+    cwd_hint: str = Field(default="", max_length=128, pattern=r"^[^/\\\x00-\x1f\x7f]*$")
+    display_location: str = Field(
+        default="", max_length=256, pattern=r"^[^/\\\x00-\x1f\x7f]*$"
+    )
+    tmux: LiveTmuxRefBody
+    # Diagnostic claim from the probe only.  The Hub always recomputes the
+    # authoritative value from actor/task/generation/occupant checks.
+    control_eligible: bool = False
+
+
+class LiveSessionProbeBody(BaseModel):
+    node_id: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+    backend: str = Field(pattern=r"^tmux$")
+    server_id: str = Field(pattern=r"^[a-f0-9]{16}$")
+    available: bool
+    status: str = Field(pattern=r"^(ok|no-server|unavailable)$")
+    panes: list[LiveSessionPaneBody] = Field(default_factory=list, max_length=256)
+    ignored_rows: int = Field(default=0, ge=0, le=10000)
+
+
+class ControlCreateBody(BaseModel):
+    verb: str = Field(pattern=r"^(tell|peek|interrupt)$")
+    message: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=4000,
+        pattern=r"^[^\x00-\x08\x0b\x0c\x0e-\x1f\x7f]*$",
+    )
+    lines: int | None = Field(default=None, ge=1, le=100)
+    idempotency_key: str = Field(
+        min_length=8, max_length=128, pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]+$"
+    )
+
+    @model_validator(mode="after")
+    def validate_verb_payload(self):
+        if self.verb == "tell" and (self.message is None or self.lines is not None):
+            raise ValueError("tell requires message and forbids lines")
+        if self.verb == "peek" and self.message is not None:
+            raise ValueError("peek forbids message")
+        if self.verb == "peek" and self.lines is None:
+            self.lines = 20
+        if self.verb == "interrupt" and (
+            self.message is not None or self.lines is not None
+        ):
+            raise ValueError("interrupt forbids message and lines")
+        return self
+
+
+class ControlPullBody(BaseModel):
+    node_id: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+    limit: int = Field(default=8, ge=1, le=32)
+
+
+class ControlAckBody(BaseModel):
+    node_id: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+    envelope_id: str = Field(pattern=r"^ctl-[a-f0-9]{24}$")
+    generation: str = Field(pattern=r"^[a-f0-9]{32}$")
+    outcome: str = Field(pattern=r"^(delivered|failed)$")
+    result: str = Field(
+        default="",
+        max_length=8000,
+        pattern=r"^[^\x00-\x08\x0b\x0c\x0e-\x1f\x7f]*$",
+    )
+    detail: str = Field(
+        default="", max_length=240, pattern=r"^[^\x00-\x1f\x7f]*$"
+    )
+
 class KnowledgeBody(BaseModel):
     name: str = Field(min_length=1, max_length=128)
     kind: str = "corpus"
@@ -506,11 +607,23 @@ class TodoGrantBody(BaseModel):
     actor_id: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 
+class TodoProposalChildBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    title: str = Field(min_length=1, max_length=256)
+    notes: str = Field(default="", max_length=4000)
+    due_at: str | None = None
+    event_on: str | None = None
+    progress: int | None = Field(default=None, ge=0, le=100, strict=True)
+
+
 class TodoProposalBody(BaseModel):
     title: str = Field(min_length=1, max_length=256)
     notes: str = Field(default="", max_length=4000)
     owner_username: str | None = Field(default=None, min_length=2, max_length=64)
     due_at: str | None = None
+    event_on: str | None = None
+    parent_id: str | None = Field(default=None, max_length=40)
+    children: list[TodoProposalChildBody] = Field(default_factory=list)
     remind_at: str | None = None
     source_session_id: int | None = Field(default=None, ge=1)
     source_message_id: str | None = Field(default=None, max_length=128)
@@ -527,6 +640,9 @@ class TodoCreateBody(BaseModel):
     title: str = Field(min_length=1, max_length=256)
     notes: str = Field(default="", max_length=4000)
     due_at: str | None = None
+    event_on: str | None = None
+    parent_id: str | None = Field(default=None, max_length=40)
+    progress: int | None = Field(default=None, ge=0, le=100, strict=True)
     remind_at: str | None = None
     source_session_id: int | None = Field(default=None, ge=1)
     source_message_id: str | None = Field(default=None, max_length=128)
@@ -538,6 +654,14 @@ class TodoUpdateBody(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=256)
     notes: str | None = Field(default=None, max_length=4000)
     due_at: str | None = None
+    event_on: str | None = None
+    parent_id: str | None = Field(default=None, max_length=40)
+    progress: int | None = Field(default=None, ge=0, le=100, strict=True)
+
+
+class TodoProgressBody(BaseModel):
+    percent: int = Field(ge=0, le=100, strict=True)
+    note: str = Field(min_length=1, max_length=240)
 
 
 class TodoSnoozeBody(BaseModel):

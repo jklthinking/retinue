@@ -39,6 +39,7 @@ class Principal:
     actor_id: str | None
     role: str  # admin | member | viewer | agent | channel
     user: User | None = None
+    credential_id: str | None = None  # audit reference, never a token or worker identity
 
     @property
     def privileged(self) -> bool:
@@ -109,6 +110,7 @@ def authenticate(request: Request, db: Session) -> Principal | None:
                     name=record.actor_id,
                     actor_id=record.actor_id,
                     role="agent",
+                    credential_id=f"agent-token:{record.id}",
                 )
             return None
         channel = db.execute(

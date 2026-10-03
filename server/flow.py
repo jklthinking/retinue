@@ -24,7 +24,7 @@ from sqlalchemy.orm import Session
 from core.protocol.task import ID_RE, ProtocolError
 
 from .db import Actor, Approval, Task, utcnow
-from .engine import Conflict, update_task
+from .engine import Conflict, append_annotation_event, update_task
 from .security import hash_token, new_token
 
 GATES = ("auto", "review", "queen")
@@ -114,6 +114,7 @@ def _enter_stage(
     if not 0 <= index < len(stages):
         raise ProtocolError(f"pipeline stage out of range: {index}")
     stage = stages[index]
+    previous_index = task.pipeline_stage
     update_task(
         db,
         task,
@@ -124,6 +125,19 @@ def _enter_stage(
         progress=0,
         note=note,
         flow_driven=True,
+    )
+    transition = task.events[-1]
+    # Append a typed receipt beside the state event. Existing/legacy history
+    # stays immutable; consumers never infer a rejection from free-form text.
+    append_annotation_event(
+        db, task, who=who, did=note, event_type="pipeline_transition",
+        event_key=f"pipeline-transition:{transition.id}",
+        payload={"pipeline_transition": {
+            "kind": "review_return" if index < previous_index else "handoff",
+            "from_stage": previous_index, "to_stage": index,
+            "from_holder": transition.from_holder, "to_holder": transition.to_holder,
+            "transition_event_id": transition.id,
+        }},
     )
     task.pipeline_stage = index
     _void_pending_approvals(

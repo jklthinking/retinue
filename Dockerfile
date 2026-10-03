@@ -9,6 +9,7 @@ FROM python:3.12-slim
 WORKDIR /app
 COPY pyproject.toml README.md ./
 COPY LICENSE* NOTICE* ./
+COPY docs/THIRD_PARTY_NOTICES.md ./docs/THIRD_PARTY_NOTICES.md
 COPY core ./core
 COPY adapters ./adapters
 COPY server ./server

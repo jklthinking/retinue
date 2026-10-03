@@ -75,8 +75,13 @@ def collect_metrics(
     agent_id: str,
     timezone_name: str | None = None,
     now: datetime | None = None,
+    records: Iterable[tuple[Path, int, dict[str, Any] | None]] | None = None,
 ) -> dict[str, Any]:
-    """Collect deduplicated usage without writing to the Claude data directory."""
+    """Collect deduplicated usage without writing to the Claude data directory.
+
+    Native adapters may supply a whitelisted, scoped record stream. The same
+    accounting and deduplication then apply without scanning unrelated sessions.
+    """
     source = Path(source).expanduser().resolve()
     if not source.is_dir():
         raise ProtocolError(f"Claude Code transcript directory does not exist: {source}")
@@ -99,7 +104,7 @@ def collect_metrics(
     transcript_files: set[Path] = set()
     messages: dict[tuple[str, str], tuple[datetime, dict[str, int]]] = {}
 
-    for path, number, record in _iter_records(source):
+    for path, number, record in _iter_records(source) if records is None else records:
         transcript_files.add(path)
         if record is None:
             invalid_records += 1
@@ -165,6 +170,7 @@ def collect_metrics(
             "read_only": True,
             "files": len(transcript_files),
             "invalid_records": invalid_records,
+            "usage_records": len(messages),
         },
         "token_accounting": {
             "included_fields": list(TOKEN_FIELDS),

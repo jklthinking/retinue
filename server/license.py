@@ -6,9 +6,9 @@ Vendor side (keep the private key OFF customer machines):
         --customer "某教培机构" --edition pro --seats 50 --days 365 \
         --out license.json
 
-Customer side: drop license.json into the server data directory. Absent or
-invalid licenses degrade to trial mode (banner only) — the product never
-bricks a paying customer over a clock or file problem.
+Customer side: drop license.json into the server data directory. This optional signed support certificate is informational only.
+The MIT community edition remains fully usable without a certificate; invalid
+or expired certificates never turn the open-source product into a trial.
 """
 
 from __future__ import annotations
@@ -67,7 +67,7 @@ def load_license(data_dir: Path | str | None) -> dict[str, Any]:
     status: dict[str, Any] = {
         "present": False,
         "valid": False,
-        "trial": True,
+        "trial": False,
         "customer": None,
         "edition": None,
         "seats": None,

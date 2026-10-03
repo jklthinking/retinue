@@ -126,6 +126,7 @@ def _call(method: str, path: str, body: dict[str, Any] | None = None) -> Any:
 
 def _summary(task: dict[str, Any]) -> dict[str, Any]:
     return {
+        **{key: task[key] for key in ("lease", "start_briefing", "skill_briefing") if key in task},
         "id": task["id"],
         "title": task["title"],
         "status": task["status"],
@@ -158,18 +159,26 @@ def create_server() -> FastMCP:
         "Retinue",
         instructions=(
             "Coordinate through Retinue task cards. Read before writing. States: "
+            "At a new session call orientation and task_context for a shared, "
+            "evidence-labelled handoff packet; never infer progress from heartbeat. "
             "queued -> doing -> done or handoff; doing may also become blocked; "
             "handoff/blocked return to doing. You may only mutate cards you hold. "
             "Every status or holder transition needs a receipt-quality note. "
-            "Status doing does not move the progress bar; call task_progress with "
-            "a percent and a receipt note while you work. A live lease is extended "
-            "by that write. If the lease expired and you still hold the card, call "
-            "task_renew (or task_start) to remint, then task_progress; if the card "
-            "is back on the dispatch hall, claim it first. "
+            "doing and task_progress are for TASK CARDS. Private agenda uses "
+            "todo_propose then owner confirm; agents never create, list, or "
+            "complete the owner's todos. todo_progress does not complete an "
+            "agenda item, even at 100. "
             "Report each completed execution with task_attempt; this records an "
             "outcome without changing task state. "
+            "For visible collaboration use task_delegate to create a separately held "
+            "child card; never let a peer write your parent card. After task_start, "
+            "call task_run_start and task_run_report for measured progress or waiting "
+            "with an owner. Finish by linking the task_attempt id to the terminal run "
+            "report. Run reports never complete the task automatically. "
             "For natural-language intake, dispatch_intent requires the stable source "
-            "message ID as idempotency_key."
+            "message ID as idempotency_key. Use live_tell only for a short message to "
+            "an already-bound Agent session; use task cards for delegated work. Live "
+            "peek and interrupt remain subject to Hub ownership and operator policy."
         ),
         json_response=True,
     )
@@ -178,6 +187,88 @@ def create_server() -> FastMCP:
     def whoami() -> dict[str, Any]:
         """Show which Retinue actor this bridge writes as."""
         return _call("GET", "/api/auth/me")
+
+    @server.tool(name="live_sessions")
+    def live_sessions() -> list[dict[str, Any]]:
+        """List live Agent endpoints visible to this identity.
+
+        These are verified node observations, not historical conversation records.
+        A row is controllable only when ``control_eligible`` is true and it has a
+        ``bound_live_session_id``.
+        """
+        return list(_call("GET", "/api/live-sessions"))
+
+    @server.tool(name="live_tell")
+    def live_tell(
+        live_session_id: str,
+        message: str,
+        idempotency_key: str,
+    ) -> dict[str, Any]:
+        """Queue one short message for a verified Codex prompt.
+
+        Use a stable, unique idempotency_key for the source request. This is direct
+        communication, not a substitute for a Retinue task card.
+        """
+        return _call(
+            "POST",
+            f"/api/live-sessions/{live_session_id}/control",
+            {
+                "verb": "tell",
+                "message": message,
+                "idempotency_key": idempotency_key,
+            },
+        )
+
+    @server.tool(name="live_peek")
+    def live_peek(
+        live_session_id: str,
+        idempotency_key: str,
+        lines: int = 20,
+    ) -> dict[str, Any]:
+        """Queue a bounded, redacted terminal-tail request for an owned session."""
+        return _call(
+            "POST",
+            f"/api/live-sessions/{live_session_id}/control",
+            {
+                "verb": "peek",
+                "lines": lines,
+                "idempotency_key": idempotency_key,
+            },
+        )
+
+    @server.tool(name="live_interrupt")
+    def live_interrupt(
+        live_session_id: str,
+        idempotency_key: str,
+    ) -> dict[str, Any]:
+        """Queue one permissioned soft interrupt (Ctrl-C), never a process kill."""
+        return _call(
+            "POST",
+            f"/api/live-sessions/{live_session_id}/control",
+            {"verb": "interrupt", "idempotency_key": idempotency_key},
+        )
+
+    @server.tool(name="live_control_status")
+    def live_control_status(envelope_id: str) -> dict[str, Any]:
+        """Read delivery status and any bounded result for one control envelope."""
+        return _call("GET", f"/api/live-sessions/control/{envelope_id}")
+
+    @server.tool(name="orientation")
+    def orientation() -> dict[str, Any]:
+        """Read organisation rules, roster and current task summaries without private chats."""
+        return _call("GET", "/api/orientation/context")
+
+    @server.tool(name="task_context")
+    def task_context(task_id: str) -> dict[str, Any]:
+        """Read a versioned task handoff packet before resuming work.
+
+        Contains task state, recorded device/model identities, valid leases,
+        executor progress claims, evidence references and next actions. Claims
+        and referenced revisions are not independent acceptance or verified code.
+        Old progress is labelled stale even if the lease heartbeat is current.
+        Never includes runtime conversation messages, summaries or native IDs.
+        """
+        return _call("GET", f"/api/tasks/{task_id}/context")
 
     @server.tool(name="task_list")
     def task_list(status: TaskStatus | None = None, holder: str | None = None) -> list[dict[str, Any]]:
@@ -286,45 +377,15 @@ def create_server() -> FastMCP:
         return _summary(result["task"])
 
     @server.tool(name="task_start")
-    def task_start(
-        task_id: str,
-        note: str = "接棒开工",
-        percent: int | None = None,
-    ) -> dict[str, Any]:
-        """Start or resume work on a card you hold.
-
-        Moving to doing does not by itself change the progress bar. Pass
-        ``percent`` to record how far you already are, or call task_progress
-        after this. If your lease expired and you still hold the card, this
-        remints a new term (续租) so later writes are not fenced.
-        """
-        body: dict[str, Any] = {"status": "doing", "note": note}
-        if percent is not None:
-            body["progress"] = percent
-        return _summary(_call("POST", f"/api/tasks/{task_id}/update", body))
-
-    @server.tool(name="task_renew")
-    def task_renew(task_id: str, note: str = "续租") -> dict[str, Any]:
-        """Remint the lease on a card you still hold after expiry.
-
-        Use this when task_progress or another write was refused with
-        ``lease expired; stale writer is fenced`` and the card has not returned
-        to the dispatch hall. After renew, call task_progress. If the card is
-        already on the hall, claim it instead (重新认领).
-        """
+    def task_start(task_id: str, note: str = "接棒开工") -> dict[str, Any]:
+        """Start or resume the current pipeline stage on a card you hold."""
         return _summary(
             _call("POST", f"/api/tasks/{task_id}/update", {"status": "doing", "note": note})
         )
 
     @server.tool(name="task_progress")
     def task_progress(task_id: str, percent: int, note: str) -> dict[str, Any]:
-        """Report progress (0-100) on a card you hold, with a receipt note.
-
-        The bar reads this field only. Notes, status doing, and heartbeats do
-        not infer a percent. A live lease is extended by this write. If the
-        lease has expired and you still hold the card, the write remints a
-        new term so the percent can land.
-        """
+        """Report progress (0-100) on a card you hold, with a receipt note."""
         return _summary(
             _call("POST", f"/api/tasks/{task_id}/update", {"progress": percent, "note": note})
         )
@@ -392,6 +453,9 @@ def create_server() -> FastMCP:
         idempotency_key: str,
         reason: str | None = None,
         exit_status: int | None = None,
+        lease_term: int | None = None,
+        session_ref: str | None = None,
+        checkpoint_ref: str | None = None,
     ) -> dict[str, Any]:
         """Record one completed execution attempt on a card you currently hold.
 
@@ -409,8 +473,111 @@ def create_server() -> FastMCP:
                 "idempotency_key": idempotency_key,
                 "reason": reason,
                 "exit_status": exit_status,
+                "lease_term": lease_term,
+                "session_ref": session_ref,
+                "checkpoint_ref": checkpoint_ref,
             },
         )
+
+    @server.tool(name="task_collaboration")
+    def task_collaboration(task_id: str) -> dict[str, Any]:
+        """Read the recorded delegation tree, runs, waiting owners and retry capabilities.
+
+        Historical tasks without run reports remain uninstrumented. Model sources
+        distinguish executor reports, opening-time registration and unknown data.
+        """
+        return _call("GET", f"/api/tasks/{task_id}/collaboration")
+
+    @server.tool(name="task_delegate")
+    def task_delegate(task_id: str, delegated_to: str, title: str, instruction: str,
+                      acceptance: list[str], idempotency_key: str,
+                      parent_run_id: str | None = None,
+                      lease_term: int | None = None) -> dict[str, Any]:
+        """Delegate from a card you hold to a registered peer through a new child card.
+
+        Cross-actor delegation requires an operator policy naming both actors on
+        this root task; use task_collaboration to inspect delegation_targets.
+        This records the instruction and acceptance criteria, keeping your baton
+        on the parent. The peer alone holds its new child. It queues the child;
+        it does not launch the peer runtime. Reuse the same key on transport retry.
+        Supply short summaries only, never commands, paths, secrets or transcripts.
+        """
+        return _call("POST", f"/api/tasks/{task_id}/delegations", {
+            "delegated_to": delegated_to, "title": title, "instruction": instruction,
+            "acceptance": acceptance, "idempotency_key": idempotency_key,
+            "parent_run_id": parent_run_id, "lease_term": lease_term,
+        })
+
+    @server.tool(name="task_run_start")
+    def task_run_start(task_id: str, title: str, idempotency_key: str,
+                       model: str | None = None, session_ref: str | None = None,
+                       lease_term: int | None = None,
+                       runtime_session_id: int | None = None,
+                       execution_state: Literal["prepared", "started"] = "started") -> dict[str, Any]:
+        """Record an actual execution after task_start has put your card in doing.
+
+        Only one active run is allowed per card lease; delegate parallel work to
+        child cards. Report the model only when known; this is executor-reported, not verified. Keep the returned
+        run.id and lease_term for all later reports; a replaced lease fences it.
+        Device/runtime registration is snapshotted at start. runtime_session_id
+        optionally binds a synced session owned by this actor on this task with
+        matching registered device/runtime; it never shares conversation text.
+        execution_state=prepared is reserved for an integrated execution adapter:
+        it must consume the HTTP one-use launch permission before invoking its
+        trusted runtime, then report started after launch succeeds.
+        """
+        return _call("POST", f"/api/tasks/{task_id}/runs", {
+            "title": title, "idempotency_key": idempotency_key, "model": model,
+            "session_ref": session_ref, "lease_term": lease_term,
+            "runtime_session_id": runtime_session_id,
+            "execution_state": execution_state,
+        })
+
+    @server.tool(name="task_run_report")
+    def task_run_report(task_id: str, run_id: str,
+                        status: Literal["running", "waiting", "succeeded", "failed", "cancelled"],
+                        note: str, idempotency_key: str,
+                        lease_term: int | None = None,
+                        progress: dict[str, Any] | None = None,
+                        waiting: dict[str, Any] | None = None,
+                        refs: list[str] | None = None,
+                        attempt_id: str | None = None,
+                        progress_report: dict[str, Any] | None = None,
+                        execution_state: Literal["started"] | None = None) -> dict[str, Any]:
+        """Append evidence on your current run without changing task state.
+
+        progress is {completed: integer, total: positive integer, unit: string};
+        omit it when there is no reliable denominator. For status waiting supply
+        {kind: input|review|human|external|dependency, owner: registered actor ID,
+        reason: short summary}. Resume running before reporting success. Link
+        task_attempt's id with the same lease_term for every terminal outcome. Completed runs cannot reopen.
+        Old holder/lease runs are fenced even if lease_term is omitted. Never
+        submit secrets, paths, commands or transcripts in notes/references.
+        progress_report is {completed: [{summary, refs: [artifact labels],
+        revision: optional immutable version}], remaining: [short work items],
+        next_action: optional summary, next_owner: optional registered actor ID}.
+        Supply the current complete work snapshot; every completed item is an
+        unverified claim. next_owner records intent and does not move authority.
+        execution_state=started closes an adapter's prepared phase only after its
+        one-use permission was consumed and the actual runtime launch succeeded.
+        """
+        return _call("POST", f"/api/tasks/{task_id}/runs/{run_id}/events", {
+            "status": status, "note": note, "idempotency_key": idempotency_key,
+            "lease_term": lease_term, "progress": progress, "waiting": waiting,
+            "refs": refs or [], "attempt_id": attempt_id,
+            "progress_report": progress_report,
+            "execution_state": execution_state,
+        })
+
+    @server.tool(name="task_prepare_retry")
+    def task_prepare_retry(task_id: str, note: str) -> dict[str, Any]:
+        """Prepare the existing retry lease for one blocked card you hold.
+
+        Preserves other branches and refuses unfinished prerequisites or human
+        approval gates. execution_started=false means no runtime was launched;
+        arrange execution, then report a new run. This is not a process restart.
+        """
+        return _call("POST", f"/api/tasks/{task_id}/collaboration/retry", {"note": note})
 
     @server.tool(name="stage_done")
     def stage_done(task_id: str, note: str, confidence: float | None = None) -> dict[str, Any]:
@@ -438,6 +605,66 @@ def create_server() -> FastMCP:
             f"状态:{event.get('from_status') or '—'} → {event.get('to_status') or task['status']}　"
             f"持棒:{event.get('from_holder') or '—'} → {event.get('to_holder') or task['holder']}　"
             f"备注:{event['did']}"
+        )
+
+    @server.tool(name="todo_propose")
+    def todo_propose(
+        title: str,
+        owner_username: str,
+        dedup_key: str,
+        notes: str = "",
+        due_at: str | None = None,
+        event_on: str | None = None,
+        parent_id: str | None = None,
+        children: list[dict[str, Any]] | None = None,
+        remind_at: str | None = None,
+        source_session_id: int | None = None,
+        source_message_id: str | None = None,
+        source_channel: str | None = None,
+        source_backlink: str | None = None,
+    ) -> dict[str, Any]:
+        """Propose a private agenda item. The owner must confirm before it exists.
+
+        Agents never create, list, or complete the owner's todos. This posts a
+        proposal only. owner_username and dedup_key are required for agents.
+        """
+        body: dict[str, Any] = {
+            "title": title,
+            "owner_username": owner_username,
+            "dedup_key": dedup_key,
+            "notes": notes,
+        }
+        if due_at is not None:
+            body["due_at"] = due_at
+        if event_on is not None:
+            body["event_on"] = event_on
+        if parent_id is not None:
+            body["parent_id"] = parent_id
+        if children is not None:
+            body["children"] = children
+        if remind_at is not None:
+            body["remind_at"] = remind_at
+        if source_session_id is not None:
+            body["source_session_id"] = source_session_id
+        if source_message_id is not None:
+            body["source_message_id"] = source_message_id
+        if source_channel is not None:
+            body["source_channel"] = source_channel
+        if source_backlink is not None:
+            body["source_backlink"] = source_backlink
+        return _call("POST", "/api/todos/proposals", body)
+
+    @server.tool(name="todo_progress")
+    def todo_progress(item_id: str, percent: int, note: str) -> dict[str, Any]:
+        """Report 0-100 progress on a confirmed private agenda item.
+
+        Does not complete the item; progress=100 leaves status open. Requires
+        todo:propose from the item's owner. doing/task_progress is for task cards.
+        """
+        return _call(
+            "POST",
+            f"/api/todos/{item_id}/progress",
+            {"percent": percent, "note": note},
         )
 
     return server

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Activity,
   ArrowRight,
@@ -9,6 +9,7 @@ import {
   ListTodo,
   MessageSquareText,
   Network,
+  Route,
   ScrollText,
   Server,
   ShieldAlert,
@@ -21,9 +22,11 @@ import type {
   Me,
   RuntimeSessionInfo,
   StatusInfo,
+  Status,
 } from "../types";
 import { STATUS_LABEL, localTodayISO } from "../types";
 import DispatchMap from "../components/DispatchMap";
+import TaskFlowDiagram from "../components/TaskFlowDiagram";
 import ActionQueue from "../components/ActionQueue";
 import InboxLanes from "../components/InboxLanes";
 import { Ambient, DataState, Metric, PageHeader, Panel } from "../components/ui";
@@ -31,6 +34,8 @@ import { useVocab } from "../theme";
 import { Avatar } from "../avatar";
 import { BOARD_REFRESH_MS, DATA_REFRESH_EVENT } from "../lib/refresh";
 import { demoToday } from "../demo";
+import { isSessionSync } from "../lib/rosterIdentity";
+import "./home-visual.css";
 
 function greeting(): string {
   const hour = new Date().getHours();
@@ -75,27 +80,33 @@ export default function Home({
     error: summaryError,
     loading: summaryLoading,
     loaded: summaryLoaded,
+    reload: reloadSummary,
   } = useSummary({ today: demoToday() ?? localTodayISO() });
   const [status, setStatus] = useState<StatusInfo | null>(null);
   const [sessions, setSessions] = useState<RuntimeSessionInfo[]>([]);
   const [auxLoading, setAuxLoading] = useState(true);
   const [auxLoaded, setAuxLoaded] = useState(false);
   const [auxError, setAuxError] = useState<string | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<Status | null>(null);
+  const auxSeq = useRef(0);
 
   const loadAux = useCallback(async () => {
+    const ticket = ++auxSeq.current;
     try {
       const [statusInfo, sessionRows] = await Promise.all([
         api.get<StatusInfo>("/api/status"),
         api.get<RuntimeSessionInfo[]>("/api/sessions?limit=24"),
       ]);
+      if (ticket !== auxSeq.current) return;
       setStatus(statusInfo);
       setSessions(sessionRows);
       setAuxLoaded(true);
       setAuxError(null);
     } catch (reason) {
+      if (ticket !== auxSeq.current) return;
       setAuxError(readErrorMessage(reason));
     } finally {
-      setAuxLoading(false);
+      if (ticket === auxSeq.current) setAuxLoading(false);
     }
   }, []);
 
@@ -107,6 +118,7 @@ export default function Home({
     return () => {
       clearInterval(timer);
       window.removeEventListener(DATA_REFRESH_EVENT, onManual);
+      auxSeq.current += 1;
     };
   }, [loadAux]);
 
@@ -118,7 +130,7 @@ export default function Home({
   const doing = counts.doing ?? 0;
   const blocked = counts.blocked ?? 0;
   const queued = (counts.queued ?? 0) + (counts.handoff ?? 0);
-  const agents = actors.filter((actor) => actor.kind === "agent");
+  const agents = actors.filter((actor) => actor.kind === "agent" && !actor.disabled && !isSessionSync(actor));
 
   const recent = summary?.recent_events ?? [];
 
@@ -133,9 +145,10 @@ export default function Home({
     (session) => session.privacy !== "metadata" && Boolean(session.summary)
   ).length;
   const delivered = recent.filter((event) => event.to_status === "done").length;
+  const selectedTasks = tasks.filter((task) => !task.archived && task.status === selectedStatus);
 
   return (
-    <div className="rt-page">
+    <div className="rt-page rt-home-visual">
       <Ambient />
       <PageHeader
         kicker="RETINUE · COMMAND HOME"
@@ -160,11 +173,7 @@ export default function Home({
       />
 
       {loading && !loaded && <DataState loading />}
-      {error && <DataState error={error} stale={loaded} />}
-
-      <InboxLanes onOpenTask={onOpenTask} />
-
-      <ActionQueue onOpenTask={onOpenTask} />
+      {error && <DataState error={error} stale={loaded} onRetry={() => { reloadSummary(); void loadAux(); }} />}
 
       {loaded && <>
       <div className="rt-metrics">
@@ -194,14 +203,14 @@ export default function Home({
         />
         <Metric
           icon={<Bot />}
-          label="在线智能体"
+          label="近期上报的模型 Worker"
           value={
             <>
-              {status?.online_actors ?? 0}
+              {agents.filter((actor) => actor.online).length}
               <em className="rt-metric__frac">/ {agents.length}</em>
             </>
           }
-          sub="15 分钟活跃推断"
+          sub="15 分钟认证 API 活动，不代表正在执行"
           tone="green"
           onClick={() => onNavigate("agents")}
         />
@@ -231,6 +240,33 @@ export default function Home({
         />
       </div>
 
+      <Panel
+        icon={<Route size={15} />}
+        kicker="TASK FLOW"
+        title="任务流转"
+        tools={
+          <button className="rt-button rt-button--soft" onClick={() => onNavigate("board")}>
+            <SquareKanban size={14} /> 打开看板
+          </button>
+        }
+      >
+        <TaskFlowDiagram counts={counts} recentEvents={recent} onSelectStatus={setSelectedStatus} selectedStatus={selectedStatus} />
+        <p className="rt-home-note">节点显示当前任务数量，亮线表示最近记录的状态变化。完成状态不等于成果已验收。</p>
+        {selectedStatus && (
+          <section className="rt-home-task-list" aria-label={`${STATUS_LABEL[selectedStatus]}任务`}>
+            <header><strong>{STATUS_LABEL[selectedStatus]} · {selectedTasks.length} 个任务</strong><button type="button" className="rt-button rt-button--soft" onClick={() => setSelectedStatus(null)}>收起</button></header>
+            <div>
+              {selectedTasks.map((task) => (
+                <button key={task.id} type="button" className="rt-home-task" onClick={() => onOpenTask(task.id)}>
+                  <span><strong>{task.title}</strong><small>{nameOf(task.holder)}{task.blocked_reason ? ` · ${task.blocked_reason}` : ""}</small></span><ArrowRight size={14} />
+                </button>
+              ))}
+              {selectedTasks.length === 0 && <p className="rt-home-note">这个状态暂时没有任务。</p>}
+            </div>
+          </section>
+        )}
+      </Panel>
+
       <div className="rt-layout rt-layout--hero">
         <Panel
           icon={<Network size={15} />}
@@ -242,7 +278,8 @@ export default function Home({
             </button>
           }
         >
-          <DispatchMap tasks={tasks} actors={actors} />
+          <DispatchMap tasks={tasks} actors={actors} onOpenTask={onOpenTask} />
+          <p className="rt-home-note">连线显示任务创建者 → 当前持有人；点击连线查看该任务的实际协作记录。</p>
         </Panel>
 
         <Panel
@@ -261,8 +298,9 @@ export default function Home({
               <span><MessageSquareText size={13} /><b>{summarySessions}</b><em>可提取摘要</em></span>
               <span><ScrollText size={13} /><b>{linkedSessions}</b><em>已转任务</em></span>
               <span><Activity size={13} /><b>{doing}</b><em>正在执行</em></span>
-              <span><CircleCheckBig size={13} /><b>{delivered}</b><em>最近交付</em></span>
+              <span><CircleCheckBig size={13} /><b>{delivered}</b><em>最近完成记录</em></span>
             </div>
+            <p className="rt-home-note">会话计数来自最近 {sessions.length} 条记录；任务进展以状态事件为准。</p>
 
             <section className="rt-command-sessions" aria-label="最近可提取会话">
               <header>
@@ -281,7 +319,7 @@ export default function Home({
                     <span>
                       <strong>{session.title || "未命名会话"}</strong>
                       <em>{session.actor_name} · {runtimeLabel(session.runtime)}</em>
-                      <small>{session.summary || `${session.message_count} 条原生消息，正文未同步`}</small>
+                      <small>{session.privacy === "metadata" ? `${session.message_count} 条原生消息，仅同步元数据` : session.summary || `${session.message_count} 条原生消息，正文未同步`}</small>
                     </span>
                     <ArrowRight size={14} />
                   </button>
@@ -299,7 +337,8 @@ export default function Home({
               </header>
               <div className="rt-receipt-list" role="list">
                 {recent.slice(0, 3).map((event, index) => (
-                  <article key={`${event.task_id}-${index}`} className="rt-receipt-row" role="listitem">
+                  <div key={`${event.task_id}-${index}`} role="listitem">
+                  <button type="button" className="rt-receipt-row rt-home-receipt-open" onClick={() => onOpenTask(event.task_id)} aria-label={`查看任务：${event.task_title}`}>
                     <Avatar name={nameOf(event.who)} size={28} square />
                     <div className="rt-receipt-row__content">
                       <div className="rt-receipt-row__meta">
@@ -314,7 +353,8 @@ export default function Home({
                       <p className="rt-receipt-row__action" title={event.did}>{event.did}</p>
                       <p className="rt-receipt-row__task" title={event.task_title}>{event.task_title}</p>
                     </div>
-                  </article>
+                  </button>
+                  </div>
                 ))}
                 {recent.length === 0 && <p className="rt-receipt-empty">还没有任何回执</p>}
               </div>
@@ -327,6 +367,8 @@ export default function Home({
         </Panel>
       </div>
       </>}
+      <InboxLanes onOpenTask={onOpenTask} />
+      <ActionQueue onOpenTask={onOpenTask} />
     </div>
   );
 }
