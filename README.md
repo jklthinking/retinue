@@ -5,7 +5,12 @@
 [![MCP](https://img.shields.io/badge/MCP-server-6f42c1.svg)](docs/agent-onboarding.md)
 [![Self-hosted](https://img.shields.io/badge/self--hosted-no%20telemetry-2ea44f.svg)](SELF_HOSTING.md)
 
-**English** · [简体中文](#众卿-retinue简体中文) · [Live demo](docs/demo/index.html)
+**English** · [简体中文](#众卿-retinue简体中文) · [English demo](https://jklthinking.github.io/retinue/demo-en/?lang=en) · [中文演示](https://jklthinking.github.io/retinue/demo/?lang=zh-CN)
+
+The dashboard now switches between English and 简体中文. The language preference
+is saved locally and preserves the selected task/page. User-authored task content
+is retained. See the [English PRD](docs/PRD.en.md), [English screenshots and release
+notes](docs/releases/2026-10-03-english-edition.md), and [English sharing draft](docs/sharing/english.md).
 
 **Retinue** (Chinese name **众卿**, "the assembled ministers") is a
 self-hosted task board and orchestration hub where a mixed team of people and
@@ -16,7 +21,7 @@ write back, and you accept the card or send it back. There is no hosted
 control plane, no vendor account requirement, and no telemetry. The server-backed
 hub uses operator-managed local accounts and scoped credentials.
 
-## 2026-10-02 community preview: visible collaboration
+## 2026-10-03 English edition: visible collaboration
 
 Version `0.3.0a1` brings the collaboration process into each task. See who
 delegated to whom, what each device/model worker reported, what it is waiting
@@ -50,18 +55,18 @@ execution or an end-to-end production acceptance result. Collaboration images
 show one fixed task; timestamps come from staged synthetic demo time, not
 production activity.
 
-![Synthetic Retinue home: task flow, dispatch coordination, and session flow](docs/images/2026-10-02/01-home.jpg)
+![Synthetic Retinue home: task flow, dispatch coordination, and session flow](docs/images/2026-10-03-en/01-home.jpg)
 
-![Synthetic per-task collaboration: relationships, device/model lanes, and module contributions](docs/images/2026-10-02/02-task-collaboration.jpg)
+![Synthetic per-task collaboration: relationships, device/model lanes, and module contributions](docs/images/2026-10-03-en/02-task-collaboration.jpg)
 
-[Operations screenshot](docs/images/2026-10-02/03-operations.jpg) ·
-[Data-quality screenshot](docs/images/2026-10-02/04-data-quality.jpg) ·
-[Device/model lanes](docs/images/2026-10-02/05-worker-lanes.jpg) ·
-[Module contributions](docs/images/2026-10-02/06-module-contributions.jpg) ·
-[Branch details](docs/images/2026-10-02/07-branch-detail.jpg) ·
-[Home dispatch and session flow](docs/images/2026-10-02/08-home-dispatch.jpg) ·
-[Full update notes](docs/releases/2026-10-02-collaboration-observability.md) ·
-[Chinese PRD](docs/PRD.md) · [Sharing draft](docs/sharing/xiaohongshu.md)
+[Operations screenshot](docs/images/2026-10-03-en/03-operations.jpg) ·
+[Data-quality screenshot](docs/images/2026-10-03-en/04-data-quality.jpg) ·
+[Device/model lanes](docs/images/2026-10-03-en/05-worker-lanes.jpg) ·
+[Module contributions](docs/images/2026-10-03-en/06-module-contributions.jpg) ·
+[Branch details](docs/images/2026-10-03-en/07-branch-detail.jpg) ·
+[Home dispatch and session flow](docs/images/2026-10-03-en/08-home-dispatch.jpg) ·
+[Full update notes](docs/releases/2026-10-03-english-edition.md) ·
+[English PRD](docs/PRD.en.md) · [Sharing draft](docs/sharing/english.md)
 
 ## What is Retinue?
 
@@ -144,9 +149,9 @@ image is the authenticated v0.2 hub, not the old read-only panel.
 
 ### 2. Open a card
 
-Onboard the agent first: sidebar **管理** → prepare an executor with actor
+Onboard the agent first: sidebar **Administration** → prepare an executor with actor
 id `worker-1`, save the one-time token outside the data volume. Then open
-**任务看板** → **新建任务** and publish:
+**Task workspace** → **Task board** → **New task** and publish:
 
 - Title: `Write hello.txt with: hello from retinue`
 - Holder: `worker-1` (the agent that will claim it; do not leave this as

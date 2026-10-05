@@ -1,4 +1,5 @@
 import { demoMode, demoToday } from "./demo";
+import { t } from "./i18n";
 
 export class ApiError extends Error {
   status: number;
@@ -10,10 +11,10 @@ export class ApiError extends Error {
 
 export function readErrorMessage(error: unknown): string {
   if (error instanceof ApiError && error.status === 401) {
-    return "会话已过期，请重新登录后重试。";
+    return t("会话已过期，请重新登录后重试。");
   }
   if (error instanceof Error && error.message) return error.message;
-  return "无法连接服务器，请稍后重试。";
+  return t("无法连接服务器，请稍后重试。");
 }
 
 
@@ -29,7 +30,7 @@ async function loadDemoRouteIndex(): Promise<Record<string, string>> {
   if (demoRouteIndex) return demoRouteIndex;
   const response = await fetch("api/_index.json");
   if (!response.ok) {
-    throw new ApiError(response.status, "无法加载演示数据索引");
+    throw new ApiError(response.status, t("无法加载演示数据索引"));
   }
   demoRouteIndex = (await response.json()) as Record<string, string>;
   return demoRouteIndex;
@@ -47,13 +48,13 @@ function normalizeDemoPath(path: string): string {
 
 async function demoRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (options.method && options.method !== "GET") {
-    throw new ApiError(403, "公开演示为只读，无法修改数据。");
+    throw new ApiError(403, t("公开演示为只读，无法修改数据。"));
   }
   const index = await loadDemoRouteIndex();
   const key = normalizeDemoPath(path);
   const file = index[key];
   if (!file) {
-    throw new ApiError(404, `演示数据未收录: ${key}`);
+    throw new ApiError(404, t("演示数据未收录: {key}", { key }));
   }
   const response = await fetch(`api/${file}`);
   if (!response.ok) {
@@ -107,7 +108,7 @@ export const api = {
       items.push(...page.items);
       cursor = page.has_more ? page.next_cursor : null;
       if (page.has_more && !cursor) {
-        throw new ApiError(500, "分页响应缺少 next_cursor");
+        throw new ApiError(500, t("分页响应缺少 next_cursor"));
       }
     } while (cursor);
     return items;

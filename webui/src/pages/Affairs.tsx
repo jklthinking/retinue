@@ -1,3 +1,4 @@
+import { useI18n, t } from "../i18n";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AlarmClock,
@@ -61,6 +62,7 @@ function Lane({
   empty: string;
   children: React.ReactNode;
 }) {
+  useI18n();
   return (
     <section className={`rt-lane rt-lane--${tone}`} aria-label={title}>
       <header className="rt-lane__head">
@@ -74,7 +76,7 @@ function Lane({
 }
 
 function statusLabel(status: string): string {
-  return STATUS_LABEL[status as Status] ?? status;
+  return STATUS_LABEL[status as Status] ? t(STATUS_LABEL[status as Status]) : status;
 }
 
 export default function Affairs({
@@ -82,6 +84,7 @@ export default function Affairs({
 }: {
   onOpenTask: (taskId: string) => void;
 }) {
+  useI18n();
   const vocab = useVocab();
   const [data, setData] = useState<AffairsData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -152,8 +155,8 @@ export default function Affairs({
       <span className="rt-lane__item-title">{proposal.title}</span>
       <span className="rt-lane__item-meta">
         {proposal.proposed_by}
-        {proposal.source_channel ? ` · 来自 ${proposal.source_channel}` : ""}
-        {proposal.due_at ? ` · 截止 ${proposal.due_at}` : ""}
+        {proposal.source_channel ? t(" · 来自 {v0}", { v0: proposal.source_channel }) : ""}
+        {proposal.due_at ? t(" · 截止 {v0}", { v0: proposal.due_at }) : ""}
       </span>
       {rejectingId === proposal.id ? (
         <form
@@ -169,8 +172,8 @@ export default function Affairs({
             type="text"
             value={rejectNote}
             maxLength={240}
-            placeholder="驳回理由（可选）"
-            aria-label={`驳回理由:${proposal.title}`}
+            placeholder={t("驳回理由（可选）")}
+            aria-label={t("驳回理由:{v0}", { v0: proposal.title })}
             onChange={(event) => setRejectNote(event.target.value)}
           />
           <button
@@ -178,8 +181,7 @@ export default function Affairs({
             className="rt-button rt-button--soft"
             disabled={pendingKey !== null}
           >
-            <Check size={13} /> 确认驳回
-          </button>
+            <Check size={13} /> {t("确认驳回")} </button>
           <button
             type="button"
             className="rt-button rt-button--soft"
@@ -188,8 +190,7 @@ export default function Affairs({
               setRejectNote("");
             }}
           >
-            <X size={13} /> 取消
-          </button>
+            <X size={13} /> {t("取消")} </button>
         </form>
       ) : (
         <span className="rt-lane__actions">
@@ -203,8 +204,7 @@ export default function Affairs({
               )
             }
           >
-            <CircleCheckBig size={13} /> 确认
-          </button>
+            <CircleCheckBig size={13} /> {t("确认")} </button>
           <button
             type="button"
             className="rt-button rt-button--soft"
@@ -214,8 +214,7 @@ export default function Affairs({
               setRejectNote("");
             }}
           >
-            <X size={13} /> 驳回
-          </button>
+            <X size={13} /> {t("驳回")} </button>
         </span>
       )}
     </div>
@@ -225,8 +224,8 @@ export default function Affairs({
     <div key={item.id} className="rt-lane__item rt-lane__item--static">
       <span className="rt-lane__item-title">{item.title}</span>
       <span className="rt-lane__item-meta">
-        {overdue && item.due_at ? `截止 ${item.due_at}` : "今日到期"}
-        {item.status === "snoozed" ? " · 已延期过" : ""}
+        {overdue && item.due_at ? t("截止 {v0}", { v0: item.due_at }) : t("今日到期")}
+        {item.status === "snoozed" ? t(" · 已延期过") : ""}
       </span>
       {snoozingId === item.id ? (
         <form
@@ -243,7 +242,7 @@ export default function Affairs({
             type="date"
             required
             value={snoozeDate}
-            aria-label={`延期到:${item.title}`}
+            aria-label={t("延期到:{v0}", { v0: item.title })}
             onChange={(event) => setSnoozeDate(event.target.value)}
           />
           <button
@@ -251,15 +250,13 @@ export default function Affairs({
             className="rt-button rt-button--soft"
             disabled={pendingKey !== null || !snoozeDate}
           >
-            <Check size={13} /> 确定延期
-          </button>
+            <Check size={13} /> {t("确定延期")} </button>
           <button
             type="button"
             className="rt-button rt-button--soft"
             onClick={() => setSnoozingId(null)}
           >
-            <X size={13} /> 取消
-          </button>
+            <X size={13} /> {t("取消")} </button>
         </form>
       ) : (
         <span className="rt-lane__actions">
@@ -271,8 +268,7 @@ export default function Affairs({
               runAction(`complete:${item.id}`, () => completeTodoItem(item.id))
             }
           >
-            <CircleCheckBig size={13} /> 完成
-          </button>
+            <CircleCheckBig size={13} /> {t("完成")} </button>
           <button
             type="button"
             className="rt-button rt-button--soft"
@@ -282,8 +278,7 @@ export default function Affairs({
               setSnoozeDate(tomorrowISO());
             }}
           >
-            <CalendarClock size={13} /> 延期
-          </button>
+            <CalendarClock size={13} /> {t("延期")} </button>
         </span>
       )}
     </div>
@@ -299,7 +294,7 @@ export default function Affairs({
     >
       <span className="rt-lane__item-title">{item.title}</span>
       <span className="rt-lane__item-meta">
-        {item.task_holder ? `${item.task_holder} 持有` : "等待认领"} ·{" "}
+        {item.task_holder ? t("{v0} 持有", { v0: item.task_holder }) : t("等待认领")} ·{" "}
         {statusLabel(item.task_status)}
       </span>
     </button>
@@ -327,19 +322,18 @@ export default function Affairs({
         subtitle={vocab.affairsSubtitle}
       />
 
-      {loading && !data && <p className="rt-data-state">正在读取数据…</p>}
+      {loading && !data && <p className="rt-data-state">{t("正在读取数据…")}</p>}
       {error && (
         <div className="rt-data-state rt-data-state--error" role="alert">
-          <strong>{data ? "读取失败，数据可能已过期" : "读取失败"}</strong>
+          <strong>{data ? t("读取失败，数据可能已过期") : t("读取失败")}</strong>
           <span>{error}</span>
           <button className="rt-button rt-button--soft" onClick={load}>
-            重试
-          </button>
+            {t("重试")} </button>
         </div>
       )}
       {actionError && (
         <div className="rt-data-state rt-data-state--error" role="alert">
-          <strong>操作失败</strong>
+          <strong>{t("操作失败")}</strong>
           <span>{actionError}</span>
         </div>
       )}
@@ -351,7 +345,7 @@ export default function Affairs({
             title={vocab.affairsPendingProposals}
             count={home.pending_proposals.length}
             tone="amber"
-            empty="没有待确认的提案"
+            empty={t("没有待确认的提案")}
           >
             {home.pending_proposals.map(proposalRow)}
           </Lane>
@@ -361,7 +355,7 @@ export default function Affairs({
             title={vocab.affairsDueToday}
             count={home.due_today.length}
             tone="blue"
-            empty="今天没有到期事项"
+            empty={t("今天没有到期事项")}
           >
             {home.due_today.map((item) => itemRow(item, false))}
           </Lane>
@@ -371,7 +365,7 @@ export default function Affairs({
             title={vocab.affairsOverdue}
             count={home.overdue.length}
             tone="red"
-            empty="没有逾期事项"
+            empty={t("没有逾期事项")}
           >
             {home.overdue.map((item) => itemRow(item, true))}
           </Lane>
@@ -381,7 +375,7 @@ export default function Affairs({
             title={vocab.affairsWaiting}
             count={home.waiting_on_others.length}
             tone="ink"
-            empty="没有等待他人的事项"
+            empty={t("没有等待他人的事项")}
           >
             {home.waiting_on_others.map(waitingRow)}
           </Lane>
@@ -391,7 +385,7 @@ export default function Affairs({
             title={vocab.affairsPromoted}
             count={data?.promoted.length ?? 0}
             tone="ink"
-            empty="还没有升级到共享看板的事项"
+            empty={t("还没有升级到共享看板的事项")}
           >
             {(data?.promoted ?? []).map(promotedRow)}
           </Lane>

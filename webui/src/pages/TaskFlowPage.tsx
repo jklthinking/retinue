@@ -1,3 +1,4 @@
+import { useI18n, t } from "../i18n";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowUpRight, GitBranch, Search } from "lucide-react";
 import type { Me } from "../types";
@@ -10,6 +11,7 @@ import { Ambient, DataState, PageHeader } from "../components/ui";
 import "./task-workspace.css";
 
 export default function TaskFlowPage({ me, onOpenTask }: { me: Me; onOpenTask: (id: string) => void }) {
+  useI18n();
   const { summary, tasks, loaded, error, reload } = useSummary({ includeArchived: true });
   const [selected, setSelected] = useState<string | null>(() => readFlowTask());
   const [query, setQuery] = useState(() => new URLSearchParams(window.location.search).get("q") || "");
@@ -43,33 +45,33 @@ export default function TaskFlowPage({ me, onOpenTask }: { me: Me; onOpenTask: (
 
   return <div className="rt-page task-workspace">
     <Ambient />
-    <PageHeader kicker="TASK WORKSPACE · COLLABORATION" title="每个任务的协作流转"
-      subtitle="选择任务，查看谁委派谁、各设备与模型的执行时间，以及每个功能模块的工作和成果。"
-      tools={currentId && <button type="button" onClick={() => onOpenTask(currentId)}><ArrowUpRight size={15} /> 打开任务卡</button>} />
+    <PageHeader kicker="TASK WORKSPACE · COLLABORATION" title={t("每个任务的协作流转")}
+      subtitle={t("选择任务，查看谁委派谁、各设备与模型的执行时间，以及每个功能模块的工作和成果。")}
+      tools={currentId && <button type="button" onClick={() => onOpenTask(currentId)}><ArrowUpRight size={15} /> {t("打开任务卡")}</button>} />
     {error && <DataState error={error} stale={loaded} onRetry={reload} />}
     <div className="task-workspace__layout">
-      <aside className="task-workspace__selector" aria-label="选择协作任务">
-        <header><GitBranch size={17} /><strong>任务 {visible.length} / {tasks.length}</strong></header>
-        <label className="task-workspace__search"><Search size={15} /><input aria-label="搜索协作任务" placeholder="搜索任务 / 编号 / 条线" value={query} onChange={event => { setQuery(event.target.value); writeNavigation({ q: event.target.value || null }, true); }} /></label>
-        <select aria-label="按任务状态筛选" value={status} onChange={event => { setStatus(event.target.value); writeNavigation({ status: event.target.value || null }, true); }}>
-          <option value="">全部状态</option>
-          {Object.entries(STATUS_LABEL).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+      <aside className="task-workspace__selector" aria-label={t("选择协作任务")}>
+        <header><GitBranch size={17} /><strong>{t("任务")} {visible.length} / {tasks.length}</strong></header>
+        <label className="task-workspace__search"><Search size={15} /><input aria-label={t("搜索协作任务")} placeholder={t("搜索任务 / 编号 / 条线")} value={query} onChange={event => { setQuery(event.target.value); writeNavigation({ q: event.target.value || null }, true); }} /></label>
+        <select aria-label={t("按任务状态筛选")} value={status} onChange={event => { setStatus(event.target.value); writeNavigation({ status: event.target.value || null }, true); }}>
+          <option value="">{t("全部状态")}</option>
+          {Object.entries(STATUS_LABEL).map(([key, label]) => <option key={key} value={key}>{t(label)}</option>)}
         </select>
         <div className="task-workspace__tasks">
           {visible.map(task => <button type="button" key={task.id} aria-pressed={task.id === currentId} onClick={() => choose(task.id)}>
-            <span><em data-status={task.status}>{STATUS_LABEL[task.status]}</em><small>{task.id.replace("task-", "")}</small></span>
+            <span><em data-status={task.status}>{t(STATUS_LABEL[task.status])}</em><small>{task.id.replace("task-", "")}</small></span>
             <strong>{task.title}</strong>
-            <small>{task.dept || "条线未登记"}{task.archived ? " · 已归档" : ""}</small>
+            <small>{task.dept || t("条线未登记")}{task.archived ? t(" · 已归档") : ""}</small>
           </button>)}
-          {loaded && visible.length === 0 && <p>没有符合筛选的任务。清除搜索或选择其他状态。</p>}
-          {!loaded && !error && <p>正在加载任务…</p>}
+          {loaded && visible.length === 0 && <p>{t("没有符合筛选的任务。清除搜索或选择其他状态。")}</p>}
+          {!loaded && !error && <p>{t("正在加载任务…")}</p>}
         </div>
       </aside>
-      <section className="task-workspace__scene" aria-label="所选任务的可视化协作">
+      <section className="task-workspace__scene" aria-label={t("所选任务的可视化协作")}>
         {currentId ? <>
-          <div className="task-workspace__selected"><strong>{current?.title || currentId}</strong><span>{current ? STATUS_LABEL[current.status] : "正在取得任务"}</span></div>
+          <div className="task-workspace__selected"><strong>{current?.title || currentId}</strong><span>{current ? t(STATUS_LABEL[current.status]) : t("正在取得任务")}</span></div>
           <TaskCollaboration key={currentId} taskId={currentId} actors={summary?.actors || []} me={me} layout="wide" onChanged={reload} onOpenTask={choose} />
-        </> : loaded && <div className="task-workspace__empty"><GitBranch size={28} /><h2>选择一项任务查看协作</h2><p>每张任务卡都有自己的流转视图；没有执行回执时仍显示已有任务记录。</p></div>}
+        </> : loaded && <div className="task-workspace__empty"><GitBranch size={28} /><h2>{t("选择一项任务查看协作")}</h2><p>{t("每张任务卡都有自己的流转视图；没有执行回执时仍显示已有任务记录。")}</p></div>}
       </section>
     </div>
   </div>;

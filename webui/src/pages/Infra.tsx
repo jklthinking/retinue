@@ -1,3 +1,4 @@
+import { t, useI18n, getLanguage } from "../i18n";
 import { useEffect, useState } from "react";
 import { Server } from "lucide-react";
 import { api, readErrorMessage } from "../api";
@@ -34,18 +35,19 @@ function cliText(entry: NodeInfo["runtimes"][number]): string {
     entry.source === "path"
       ? "PATH"
       : entry.source === "well-known"
-        ? "常规安装目录"
+        ? t("常规安装目录")
         : entry.source;
   return `${entry.command || entry.runtime}（${where}）`;
 }
 
 function dataText(entry: NodeInfo["runtimes"][number]): string {
-  if (entry.data_state === "present") return entry.path_hint ?? "有";
-  if (entry.data_state === "none") return "无";
-  return "未知（旧版探针未上报）";
+  if (entry.data_state === "present") return entry.path_hint ?? t("有");
+  if (entry.data_state === "none") return t("无");
+  return t("未知（旧版探针未上报）");
 }
 
 export default function Infra() {
+  useI18n();
   const [nodes, setNodes] = useState<NodeInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -78,8 +80,8 @@ export default function Infra() {
       <Ambient />
       <PageHeader
         kicker="NODES, SERVICES & HEALTH"
-        title="基础设施"
-        subtitle={loaded ? `${nodes.length} 台节点在册 · 分层低频心跳（服务器小时级 / 终端 6 小时级）` : "正在读取节点与健康心跳"}
+        title={t("基础设施")}
+        subtitle={loaded ? t("{v0} 台节点在册 · 分层低频心跳（服务器小时级 / 终端 6 小时级）", { v0: nodes.length }) : t("正在读取节点与健康心跳")}
       />
 
       {loading && !loaded && <DataState loading />}
@@ -99,22 +101,18 @@ export default function Infra() {
               {node.platform}
             </p>
             <div className="infra-stats">
-              <span>
-                运行 <strong>{fmtUptime(node.uptime_seconds)}</strong>
+              <span> {t("运行")} <strong>{fmtUptime(node.uptime_seconds)}</strong>
               </span>
               {node.load.length > 0 && (
-                <span>
-                  负载 <strong>{node.load.map((v) => v.toFixed(2)).join(" / ")}</strong>
+                <span> {t("负载")} <strong>{node.load.map((v) => v.toFixed(2)).join(" / ")}</strong>
                 </span>
               )}
               {memTotal > 0 && (
-                <span>
-                  内存 <strong>{fmtBytes(memUsed)} / {fmtBytes(memTotal)}</strong>
+                <span> {t("内存")} <strong>{fmtBytes(memUsed)} / {fmtBytes(memTotal)}</strong>
                 </span>
               )}
               {node.disk.total !== undefined && (
-                <span>
-                  磁盘{" "}
+                <span> {t("磁盘")}{" "}
                   <strong>
                     {fmtBytes(node.disk.used ?? 0)} / {fmtBytes(node.disk.total)}(
                     {(node.disk.percent ?? 0).toFixed(1)}%)
@@ -122,27 +120,22 @@ export default function Infra() {
                 </span>
               )}
               {node.watermark && (
-                <span>
-                  水位{" "}
-                  <span className={`chip ${WATERMARK_CHIP[node.watermark.disk] || ""}`.trim()}>
-                    磁盘 {WATERMARK_LABEL[node.watermark.disk]}
+                <span> {t("水位")}{" "}
+                  <span className={`chip ${WATERMARK_CHIP[node.watermark.disk] || ""}`.trim()}> {t("磁盘")} {t(WATERMARK_LABEL[node.watermark.disk])}
                   </span>
                   {" "}
-                  <span className={`chip ${WATERMARK_CHIP[node.watermark.load] || ""}`.trim()}>
-                    负载 {WATERMARK_LABEL[node.watermark.load]}
+                  <span className={`chip ${WATERMARK_CHIP[node.watermark.load] || ""}`.trim()}> {t("负载")} {t(WATERMARK_LABEL[node.watermark.load])}
                   </span>
                 </span>
               )}
-              <span className="muted">
-                心跳{" "}
+              <span className="muted"> {t("心跳")}{" "}
                 {node.updated_at
-                  ? new Date(node.updated_at).toLocaleString("zh-CN", { hour12: false })
+                  ? new Date(node.updated_at).toLocaleString(getLanguage(), { hour12: false })
                   : "—"}
               </span>
-              <span className="muted">
-                运行时探针 {RUNTIME_STATE_LABEL[node.runtime_state]}
+              <span className="muted"> {t("运行时探针")} {t(RUNTIME_STATE_LABEL[node.runtime_state])}
                 {node.runtimes_probed_at
-                  ? ` · ${new Date(node.runtimes_probed_at).toLocaleString("zh-CN", { hour12: false })}`
+                  ? ` · ${new Date(node.runtimes_probed_at).toLocaleString(getLanguage(), { hour12: false })}`
                   : ""}
               </span>
             </div>
@@ -150,9 +143,9 @@ export default function Infra() {
               <table className="admin-table">
                 <thead>
                   <tr>
-                    <th>运行时</th>
+                    <th>{t("运行时")}</th>
                     <th>CLI</th>
-                    <th>本地历史</th>
+                    <th>{t("本地历史")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -165,7 +158,7 @@ export default function Infra() {
                         <td>
                           {dataText(rt)}
                           {rt.data_state === "present" && rt.data_changed_at
-                            ? ` · ${new Date(rt.data_changed_at).toLocaleString("zh-CN", { hour12: false })}`
+                            ? ` · ${new Date(rt.data_changed_at).toLocaleString(getLanguage(), { hour12: false })}`
                             : ""}
                         </td>
                       </tr>
@@ -177,10 +170,10 @@ export default function Infra() {
               <table className="admin-table">
                 <thead>
                   <tr>
-                    <th>服务</th>
-                    <th>状态</th>
-                    <th>重启次数</th>
-                    <th>健康</th>
+                    <th>{t("服务")}</th>
+                    <th>{t("状态")}</th>
+                    <th>{t("重启次数")}</th>
+                    <th>{t("健康")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -194,7 +187,7 @@ export default function Infra() {
                       <td>{svc.restarts ?? 0}</td>
                       <td>
                         <span className={`chip ${svc.healthy ? "chip-low" : "chip-urgent"}`}>
-                          {svc.healthy ? "正常" : "异常"}
+                          {svc.healthy ? t("正常") : t("异常")}
                         </span>
                       </td>
                     </tr>
@@ -205,7 +198,7 @@ export default function Infra() {
           </Panel>
         );
       })}
-      {loaded && nodes.length === 0 && <DataState empty="确实尚无节点接入。" />}
+      {loaded && nodes.length === 0 && <DataState empty={t("确实尚无节点接入。")} />}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { useI18n, t } from "../i18n";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BOARD_REFRESH_MS, DATA_REFRESH_EVENT } from "../lib/refresh";
 import { AlarmClock, ClipboardCheck, Crown, ShieldAlert } from "lucide-react";
@@ -80,23 +81,23 @@ function Lane({
   empty: string;
   children: React.ReactNode;
 }) {
+  useI18n();
   return (
     <section className={`rt-lane rt-lane--${tone}`} aria-label={title}>
       <header className="rt-lane__head">
         {icon}
         <strong>{title}</strong>
         <em>{count}</em>
-        {stale && error && <span className="rt-lane__stale">数据可能已过期</span>}
+        {stale && error && <span className="rt-lane__stale">{t("数据可能已过期")}</span>}
       </header>
       {error && !stale && (
         <div className="rt-lane__error" role="alert">
           <span>{error}</span>
           <button type="button" className="rt-button rt-button--soft" onClick={onRetry}>
-            重试
-          </button>
+            {t("重试")} </button>
         </div>
       )}
-      {!error && loading && !stale && <p className="rt-lane__empty">读取中…</p>}
+      {!error && loading && !stale && <p className="rt-lane__empty">{t("读取中…")}</p>}
       {(stale || (!error && !loading)) &&
         (count > 0 ? children : <p className="rt-lane__empty">{empty}</p>)}
     </section>
@@ -113,6 +114,7 @@ export default function InboxLanes({
 }: {
   onOpenTask: (taskId: string) => void;
 }) {
+  useI18n();
   const vocab = useVocab();
   const inbox = useSource(useCallback(() => fetchInbox(), []));
 
@@ -125,8 +127,7 @@ export default function InboxLanes({
         <div className="rt-lane__error" role="alert">
           <span>{inbox.error}</span>
           <button type="button" className="rt-button rt-button--soft" onClick={inbox.reload}>
-            重试
-          </button>
+            {t("重试")} </button>
         </div>
       </div>
     );
@@ -143,7 +144,7 @@ export default function InboxLanes({
         error={inbox.error}
         stale={stale}
         onRetry={inbox.reload}
-        empty="没有待拍板事项"
+        empty={t("没有待拍板事项")}
       >
         {(lanes?.decisions.items ?? []).slice(0, 5).map((approval) => (
           <button
@@ -157,7 +158,7 @@ export default function InboxLanes({
               {approval.task_title || approval.task_id}
             </span>
             <span className="rt-lane__item-meta">
-              {approval.stage_name ? `节点「${approval.stage_name}」` : "人工审批"} ·{" "}
+              {approval.stage_name ? t("节点「{v0}」", { v0: approval.stage_name }) : t("人工审批")} ·{" "}
               {approval.requested_by}
             </span>
           </button>
@@ -173,7 +174,7 @@ export default function InboxLanes({
         error={inbox.error}
         stale={stale}
         onRetry={inbox.reload}
-        empty="没有待回复的质检意见"
+        empty={t("没有待回复的质检意见")}
       >
         {(lanes?.reviews.items ?? []).slice(0, 5).map((review) => (
           <button
@@ -202,7 +203,7 @@ export default function InboxLanes({
         error={inbox.error}
         stale={stale}
         onRetry={inbox.reload}
-        empty="没有阻塞任务"
+        empty={t("没有阻塞任务")}
       >
         {(lanes?.blocked.items ?? []).slice(0, 5).map((task) => (
           <button
@@ -230,7 +231,7 @@ export default function InboxLanes({
         error={inbox.error}
         stale={stale}
         onRetry={inbox.reload}
-        empty="没有超期未动的在制卡"
+        empty={t("没有超期未动的在制卡")}
       >
         {(lanes?.stale.items ?? []).slice(0, 5).map(({ task, reasons }) => (
           <button
@@ -243,7 +244,7 @@ export default function InboxLanes({
             <span className="rt-lane__item-title">{task.title}</span>
             <span className="rt-lane__item-meta">
               {task.holder} ·{" "}
-              {reasons.map((reason) => STALE_REASON_LABEL[reason] ?? reason).join(" · ")}
+              {reasons.map((reason) => STALE_REASON_LABEL[reason] ? t(STALE_REASON_LABEL[reason]) : reason).join(" · ")}
             </span>
           </button>
         ))}

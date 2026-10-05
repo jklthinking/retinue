@@ -1,4 +1,4 @@
-**[免安装查看 seed-42 静态演示 →](docs/demo/index.html)** · [English](README.md)
+**[免安装查看 seed-42 静态演示 →](docs/demo/index.html)** · [English README](README.en.md) · [英文演示](https://jklthinking.github.io/retinue/demo-en/?lang=en) · [英文 PRD](docs/PRD.en.md) · [英文截图与版本介绍](docs/releases/2026-10-03-english-edition.md)
 
 # Retinue
 

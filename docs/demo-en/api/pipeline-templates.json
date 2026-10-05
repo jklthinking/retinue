@@ -1,0 +1,1 @@
+[{"id":1,"name":"Content publishing workflow","stages":[{"name":"Writing","holder":"copywriter","gate":"auto"},{"name":"Data checks","holder":"analyst","gate":"review"},{"name":"Management","holder":"gm","gate":"queen"}],"match_terms":[],"acceptance":[]}]

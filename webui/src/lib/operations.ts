@@ -1,9 +1,28 @@
+import { t, getLanguage } from "../i18n";
 import { useEffect, useRef, useState } from "react";
 import { readErrorMessage } from "../api";
 import { startVisiblePolling } from "./refresh";
 
 export type OperationsDays = 1 | 7 | 30;
-export const rangeLabel = (days: number) => days === 1 ? "今天" : `近 ${days} 日`;
+export const rangeLabel = (days: number) => days === 1 ? t("今天") : t("近 {v0} 日", { v0: days });
+
+/** Translate only server-generated catalog/discovery messages. These bounded
+ * patterns must never be applied to task text, user notes, or transcripts. */
+export function operationsSystemText(source: string): string {
+  const patterns: Array<[RegExp, string]> = [
+    [/^为 (\d+) 张任务卡补充可验证的 acceptance。$/, "为 {count} 张任务卡补充可验证的 acceptance。"],
+    [/^为 (\d+) 个执行型智能体补齐 runtime。$/, "为 {count} 个执行型智能体补齐 runtime。"],
+    [/^为 (\d+) 名人类角色登记接入点或所属节点。$/, "为 {count} 名人类角色登记接入点或所属节点。"],
+    [/^运行数据检查发现 (\d+) 项待核对记录；在质量检查中查看来源时间、失效租约与身份登记。历史记录继续保留。$/, "运行数据检查发现 {count} 项待核对记录；在质量检查中查看来源时间、失效租约与身份登记。历史记录继续保留。"],
+    [/^有 (\d+) 个运行时尚未关联智能体；确认后即可登记。$/, "有 {count} 个运行时尚未关联智能体；确认后即可登记。"],
+    [/^有 (\d+) 位智能体需要补齐设备、模型、节点能力或会话同步。$/, "有 {count} 位智能体需要补齐设备、模型、节点能力或会话同步。"],
+  ];
+  for (const [pattern, template] of patterns) {
+    const match = pattern.exec(source);
+    if (match) return t(template, { count: match[1] });
+  }
+  return t(source);
+}
 
 export function measuredNumber(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
@@ -11,21 +30,21 @@ export function measuredNumber(value: unknown): number | null {
 
 export function formatTokens(value: number | null | undefined): string {
   const count = measuredNumber(value);
-  if (count === null) return "未知";
+  if (count === null) return t("未知");
   if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1)}M`;
   if (count >= 1_000) return `${(count / 1_000).toFixed(1)}k`;
-  return count.toLocaleString("zh-CN");
+  return count.toLocaleString(getLanguage());
 }
 export function exactTokens(value: number | null | undefined): string {
   const count = measuredNumber(value);
-  return count === null ? "模型 token 数未记录" : String(count) + " 个模型 token（原始整数）";
+  return count === null ? t("模型 token 数未记录") : String(count) + t(" 个模型 token（原始整数）");
 }
 
 export function sourceTime(value?: string | number | null): string {
-  if (value === null || value === undefined || value === "") return "未记录";
+  if (value === null || value === undefined || value === "") return t("未记录");
   const timestamp = typeof value === "number" && value < 10_000_000_000 ? value * 1000 : value;
   const date = new Date(timestamp);
-  return Number.isFinite(date.getTime()) ? date.toLocaleString("zh-CN", { hour12: false }) : "未记录";
+  return Number.isFinite(date.getTime()) ? date.toLocaleString(getLanguage(), { hour12: false }) : t("未记录");
 }
 
 /** A page read is not a collector heartbeat. Keep the last successful payload

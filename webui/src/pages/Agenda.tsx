@@ -1,3 +1,4 @@
+import { useI18n, t, getLanguage } from "../i18n";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, CalendarDays, Inbox, Plus } from "lucide-react";
 import { readErrorMessage } from "../api";
@@ -30,11 +31,11 @@ function emptyChildDraft(): ChildDraft {
 
 function greeting(): string {
   const hour = new Date().getHours();
-  if (hour < 5) return "夜深了";
-  if (hour < 11) return "早上好";
-  if (hour < 13) return "中午好";
-  if (hour < 18) return "下午好";
-  return "晚上好";
+  if (hour < 5) return t("夜深了");
+  if (hour < 11) return t("早上好");
+  if (hour < 13) return t("中午好");
+  if (hour < 18) return t("下午好");
+  return t("晚上好");
 }
 
 function shiftLocalISO(days: number): string {
@@ -62,23 +63,23 @@ function emptyHome(): TodoHome {
 
 function formatDay(iso: string | null, today: string, tomorrow: string): string | null {
   if (!iso) return null;
-  if (iso === today) return "今天";
-  if (iso === tomorrow) return "明天";
+  if (iso === today) return t("今天");
+  if (iso === tomorrow) return t("明天");
   const parts = iso.split("-");
   if (parts.length !== 3) return iso;
-  return `${Number(parts[1])}月${Number(parts[2])}日`;
+  return t("{v0}月{v1}日", { v0: Number(parts[1]), v1: Number(parts[2]) });
 }
 
 function dateMeta(item: TodoItem, today: string, tomorrow: string): string {
   const bits: string[] = [];
   if (item.due_at) {
     const due = formatDay(item.due_at, today, tomorrow);
-    bits.push(item.due_at < today ? `逾期 ${due}` : `${due}截止`);
+    bits.push(item.due_at < today ? t("逾期 {v0}", { v0: due }) : t("{v0}截止", { v0: due }));
   }
   if (item.event_on) {
-    bits.push(`${formatDay(item.event_on, today, tomorrow)}有这场`);
+    bits.push(t("{v0}有这场", { v0: formatDay(item.event_on, today, tomorrow) }));
   }
-  if (item.status === "snoozed") bits.push("已延期过");
+  if (item.status === "snoozed") bits.push(t("已延期过"));
   return bits.join(" · ");
 }
 
@@ -116,6 +117,7 @@ function AgendaRow({
   onComplete: (id: string) => void;
   onProgress: (id: string, percent: number) => void;
 }) {
+  useI18n();
   const done = item.status === "done";
   const meta = dateMeta(item, today, tomorrow);
   const readyToClose = parentReadyToClose(item);
@@ -126,7 +128,7 @@ function AgendaRow({
           type="checkbox"
           checked={done}
           disabled={pending || done}
-          aria-label={`完成：${item.title}`}
+          aria-label={t("完成：{v0}", { v0: item.title })}
           onChange={(event) => {
             if (event.target.checked && !done) onComplete(item.id);
           }}
@@ -135,14 +137,14 @@ function AgendaRow({
       <div className="rt-agenda-row__body">
         <div className="rt-agenda-row__top">
           <strong>{item.title}</strong>
-          <div className="rt-agenda-presets" role="group" aria-label={`${item.title} 进度`}>
+          <div className="rt-agenda-presets" role="group" aria-label={t("{v0} 进度", { v0: item.title })}>
             {PROGRESS_PRESETS.map((value) => (
               <button
                 key={value}
                 type="button"
                 className={item.progress === value ? "is-active" : ""}
                 disabled={pending || done}
-                aria-label={`进度 ${value}%：${item.title}`}
+                aria-label={t("进度 {v0}%：{v1}", { v0: value, v1: item.title })}
                 onClick={() => onProgress(item.id, value)}
               >
                 {value}
@@ -152,7 +154,7 @@ function AgendaRow({
         </div>
         <p className="rt-agenda-row__meta">
           {parentTitle ? `${parentTitle} · ` : ""}
-          {meta || "随时"}
+          {meta || t("随时")}
           {` · ${item.progress}%`}
         </p>
         <div className="rt-progress rt-agenda-bar" aria-hidden="true">
@@ -160,16 +162,15 @@ function AgendaRow({
         </div>
         {readyToClose && (
           <div className="rt-agenda-close-hint" role="status">
-            <span>子项都做完了，这场是否也结束了？</span>
+            <span>{t("子项都做完了，这场是否也结束了？")}</span>
             <button
               type="button"
               className="rt-button rt-button--gold"
               disabled={pending}
-              aria-label={`结束这场：${item.title}`}
+              aria-label={t("结束这场：{v0}", { v0: item.title })}
               onClick={() => onComplete(item.id)}
             >
-              结束这场
-            </button>
+              {t("结束这场")} </button>
           </div>
         )}
       </div>
@@ -186,6 +187,7 @@ function CaptureDialog({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  useI18n();
   const [title, setTitle] = useState("");
   const [eventOn, setEventOn] = useState("");
   const [dueAt, setDueAt] = useState("");
@@ -211,7 +213,7 @@ function CaptureDialog({
     event.preventDefault();
     const cleaned = title.trim();
     if (!cleaned) {
-      setError("标题必填");
+      setError(t("标题必填"));
       return;
     }
     setBusy(true);
@@ -246,39 +248,35 @@ function CaptureDialog({
   return (
     <div className="drawer-mask" onClick={onClose}>
       <form className="dialog rt-agenda-dialog" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
-        <h2>记下一条</h2>
+        <h2>{t("记下一条")}</h2>
         <label>
-          标题
-          <input
+          {t("标题")} <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
             autoFocus
             maxLength={256}
-            aria-label="标题"
+            aria-label={t("标题")}
           />
         </label>
         <div className="dialog-row">
           <label>
-            哪天有这场
-            <input type="date" value={eventOn} onChange={(e) => setEventOn(e.target.value)} aria-label="哪天有这场" />
+            {t("哪天有这场")} <input type="date" value={eventOn} onChange={(e) => setEventOn(e.target.value)} aria-label={t("哪天有这场")} />
           </label>
           <label>
-            必须哪天结束
-            <input type="date" value={dueAt} onChange={(e) => setDueAt(e.target.value)} aria-label="必须哪天结束" />
+            {t("必须哪天结束")} <input type="date" value={dueAt} onChange={(e) => setDueAt(e.target.value)} aria-label={t("必须哪天结束")} />
           </label>
         </div>
         <label>
-          挂到已有的场
-          <select
+          {t("挂到已有的场")} <select
             value={parentId}
-            aria-label="挂到已有的场"
+            aria-label={t("挂到已有的场")}
             onChange={(e) => {
               setParentId(e.target.value);
               if (e.target.value) setChildDrafts([]);
             }}
           >
-            <option value="">无（新的一条）</option>
+            <option value="">{t("无（新的一条）")}</option>
             {roots.map((root) => (
               <option key={root.id} value={root.id}>
                 {root.title}
@@ -288,32 +286,30 @@ function CaptureDialog({
         </label>
         {!attaching && (
           <div className="rt-agenda-children">
-            <span>子项（可选）</span>
+            <span>{t("子项（可选）")}</span>
             {childDrafts.map((row, index) => (
               <div key={index} className="rt-agenda-child-row">
                 <input
                   value={row.title}
                   maxLength={256}
-                  aria-label={`子项 ${index + 1}`}
-                  placeholder="为这场要做完的活"
+                  aria-label={t("子项 {v0}", { v0: index + 1 })}
+                  placeholder={t("为这场要做完的活")}
                   onChange={(e) => patchChild(index, { title: e.target.value })}
                 />
                 <div className="dialog-row">
                   <label>
-                    必须哪天结束
-                    <input
+                    {t("必须哪天结束")} <input
                       type="date"
                       value={row.due_at}
-                      aria-label={`子项 ${index + 1} 必须哪天结束`}
+                      aria-label={t("子项 {v0} 必须哪天结束", { v0: index + 1 })}
                       onChange={(e) => patchChild(index, { due_at: e.target.value })}
                     />
                   </label>
                   <label>
-                    哪天有这场
-                    <input
+                    {t("哪天有这场")} <input
                       type="date"
                       value={row.event_on}
-                      aria-label={`子项 ${index + 1} 哪天有这场`}
+                      aria-label={t("子项 {v0} 哪天有这场", { v0: index + 1 })}
                       onChange={(e) => patchChild(index, { event_on: e.target.value })}
                     />
                   </label>
@@ -326,18 +322,16 @@ function CaptureDialog({
                 className="rt-button rt-button--soft"
                 onClick={() => setChildDrafts((rows) => [...rows, emptyChildDraft()])}
               >
-                添加子项
-              </button>
+                {t("添加子项")} </button>
             )}
           </div>
         )}
         {error && <p className="error">{error}</p>}
         <div className="dialog-actions">
           <button type="button" className="rt-button rt-button--soft" onClick={onClose} disabled={busy}>
-            取消
-          </button>
+            {t("取消")} </button>
           <button type="submit" className="rt-button rt-button--gold" disabled={busy || !title.trim()}>
-            {busy ? "记下…" : "记下"}
+            {busy ? t("记下…") : t("记下")}
           </button>
         </div>
       </form>
@@ -354,6 +348,7 @@ export default function Agenda({
   onOpenTask: (taskId: string) => void;
   onOpenSession: (sessionId: number) => void;
 }) {
+  useI18n();
   const vocab = useVocab();
   const viewer = me.role === "viewer";
   const [home, setHome] = useState<TodoHome>(emptyHome);
@@ -449,7 +444,7 @@ export default function Agenda({
     [load]
   );
 
-  const dateLabel = new Date().toLocaleDateString("zh-CN", {
+  const dateLabel = new Date().toLocaleDateString(getLanguage(), {
     month: "long",
     day: "numeric",
     weekday: "long",
@@ -481,16 +476,15 @@ export default function Agenda({
       <Ambient />
       <header className="rt-agenda-hero">
         <h1>
-          {greeting()}，{who}
+          {t("{greeting}，{who}", { greeting: greeting(), who })}
         </h1>
         <p>
           {dateLabel}
           {!viewer && (
             <>
               {" · "}
-              今天 {mustFinish} 件必须结束
-              {overdueCount > 0 ? ` · 逾期 ${overdueCount}` : ""}
-              {` · 明天 ${tomorrowCount} 场`}
+              {t("今天")} {mustFinish} {t("件必须结束")} {overdueCount > 0 ? t(" · 逾期 {v0}", { v0: overdueCount }) : ""}
+              {t(" · 明天 {v0} 场", { v0: tomorrowCount })}
             </>
           )}
         </p>
@@ -498,7 +492,7 @@ export default function Agenda({
       </header>
 
       {viewer && (
-        <p className="rt-agenda-private">观察席看不到私人日程。舰队数字在系统总览。</p>
+        <p className="rt-agenda-private">{t("观察席看不到私人日程。舰队数字在系统总览。")}</p>
       )}
 
       {loading && !loaded && <DataState loading />}
@@ -508,12 +502,12 @@ export default function Agenda({
         <div className="rt-agenda-body">
           <div className="rt-agenda-main">
             <div className="rt-agenda-toolbar">
-              <div className="rt-segmented" role="tablist" aria-label="日程分区">
+              <div className="rt-segmented" role="tablist" aria-label={t("日程分区")}>
                 {(
                   [
-                    ["today", "今天"],
-                    ["tomorrow", "明天"],
-                    ["anytime", "随时"],
+                    ["today", t("今天")],
+                    ["tomorrow", t("明天")],
+                    ["anytime", t("随时")],
                   ] as const
                 ).map(([key, label]) => (
                   <button
@@ -533,17 +527,16 @@ export default function Agenda({
                 className="rt-button rt-button--gold rt-agenda-cta"
                 onClick={() => setCapture(true)}
               >
-                <Plus size={14} /> 记下一条
-              </button>
+                <Plus size={14} /> {t("记下一条")} </button>
             </div>
 
             <div role="tabpanel" className="rt-agenda-panel">
               {tab === "today" && (
                 <>
                   {overdueCount > 0 && (
-                    <section className="rt-agenda-card rt-agenda-card--overdue" aria-label="逾期">
+                    <section className="rt-agenda-card rt-agenda-card--overdue" aria-label={t("逾期")}>
                       <header>
-                        <h2>逾期，先结掉</h2>
+                        <h2>{t("逾期，先结掉")}</h2>
                         <em>{overdueCount}</em>
                       </header>
                       {home.overdue.map((item) =>
@@ -551,13 +544,13 @@ export default function Agenda({
                       )}
                     </section>
                   )}
-                  <section className="rt-agenda-card" aria-label="必须今天结束">
+                  <section className="rt-agenda-card" aria-label={t("必须今天结束")}>
                     <header>
-                      <h2>必须今天结束</h2>
+                      <h2>{t("必须今天结束")}</h2>
                       <em>{mustFinish}</em>
                     </header>
                     {mustFinish === 0 ? (
-                      <p className="rt-agenda-empty">今天没有必须结束的事项。</p>
+                      <p className="rt-agenda-empty">{t("今天没有必须结束的事项。")}</p>
                     ) : (
                       home.due_today.map((item) =>
                         row(item, { parentTitle: item.parent_id ? byId.get(item.parent_id)?.title : undefined })
@@ -565,9 +558,9 @@ export default function Agenda({
                     )}
                   </section>
                   {todayEvents.length > 0 && (
-                    <section className="rt-agenda-card rt-agenda-card--event" aria-label="今天有这场">
+                    <section className="rt-agenda-card rt-agenda-card--event" aria-label={t("今天有这场")}>
                       <header>
-                        <h2>今天有这场</h2>
+                        <h2>{t("今天有这场")}</h2>
                         <em>{todayEvents.length}</em>
                       </header>
                       {todayEvents.map((item) => row(item))}
@@ -577,13 +570,13 @@ export default function Agenda({
               )}
               {tab === "tomorrow" && (
                 <>
-                  <section className="rt-agenda-card rt-agenda-card--event" aria-label="明天有这场">
+                  <section className="rt-agenda-card rt-agenda-card--event" aria-label={t("明天有这场")}>
                     <header>
-                      <h2>明天有这场</h2>
+                      <h2>{t("明天有这场")}</h2>
                       <em>{tomorrowCount}</em>
                     </header>
                     {tomorrowCount === 0 ? (
-                      <p className="rt-agenda-empty">明天还没有记下的场。</p>
+                      <p className="rt-agenda-empty">{t("明天还没有记下的场。")}</p>
                     ) : (
                       home.events_tomorrow.map((item) => (
                         <div key={item.id} className="rt-agenda-stack">
@@ -596,9 +589,9 @@ export default function Agenda({
                     )}
                   </section>
                   {dueTomorrow.length > 0 && (
-                    <section className="rt-agenda-card" aria-label="明天截止">
+                    <section className="rt-agenda-card" aria-label={t("明天截止")}>
                       <header>
-                        <h2>明天截止</h2>
+                        <h2>{t("明天截止")}</h2>
                         <em>{dueTomorrow.length}</em>
                       </header>
                       {dueTomorrow.map((item) =>
@@ -609,13 +602,13 @@ export default function Agenda({
                 </>
               )}
               {tab === "anytime" && (
-                <section className="rt-agenda-card" aria-label="随时">
+                <section className="rt-agenda-card" aria-label={t("随时")}>
                   <header>
-                    <h2>随时 / 不赶</h2>
+                    <h2>{t("随时 / 不赶")}</h2>
                     <em>{home.anytime.length}</em>
                   </header>
                   {home.anytime.length === 0 ? (
-                    <p className="rt-agenda-empty">没有不赶的事项。记下一条，不必填日期。</p>
+                    <p className="rt-agenda-empty">{t("没有不赶的事项。记下一条，不必填日期。")}</p>
                   ) : (
                     home.anytime.map((item) =>
                       row(item, { parentTitle: item.parent_id ? byId.get(item.parent_id)?.title : undefined })
@@ -626,17 +619,17 @@ export default function Agenda({
             </div>
           </div>
 
-          <aside className="rt-agenda-rail" aria-label="日程摘要">
+          <aside className="rt-agenda-rail" aria-label={t("日程摘要")}>
             <div className="rt-agenda-stat rt-agenda-stat--gold">
-              <span>今日必须结束</span>
+              <span>{t("今日必须结束")}</span>
               <strong>{mustFinish}</strong>
             </div>
             <div className="rt-agenda-stat rt-agenda-stat--red">
-              <span>逾期</span>
+              <span>{t("逾期")}</span>
               <strong>{overdueCount}</strong>
             </div>
             <div className="rt-agenda-stat rt-agenda-stat--ink">
-              <span>待确认提案</span>
+              <span>{t("待确认提案")}</span>
               <strong>{proposalCount}</strong>
             </div>
             <button type="button" className="rt-agenda-affairs" onClick={() => onNavigate("affairs")}>
@@ -645,8 +638,7 @@ export default function Agenda({
               <ArrowRight size={14} />
             </button>
             <p className="rt-agenda-rail-note">
-              <CalendarDays size={13} /> 提案、逾期处理仍在{vocab.affairsLabel}。舰队数字在系统总览。
-            </p>
+              <CalendarDays size={13} /> {t("提案、逾期处理仍在")}{vocab.affairsLabel}{t("。舰队数字在系统总览。")} </p>
           </aside>
         </div>
       )}

@@ -18,13 +18,15 @@ from core.panel_demo import build_panel_demo  # noqa: E402
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, default=REPOSITORY / "docs" / "demo")
+    parser.add_argument("--language", choices=("zh-CN", "en"), default="zh-CN")
+    parser.add_argument("--skip-install", action="store_true", help="Reuse dependencies already installed with npm ci; still build the UI.")
     parser.add_argument(
         "--skip-npm",
         action="store_true",
         help="Only refresh API JSON (for fast tests); skip the Vite production build.",
     )
     args = parser.parse_args()
-    for path in build_panel_demo(args.output, skip_npm=args.skip_npm):
+    for path in build_panel_demo(args.output, skip_npm=args.skip_npm, language=args.language, install_dependencies=not args.skip_install):
         print(path.relative_to(args.output))
     return 0
 

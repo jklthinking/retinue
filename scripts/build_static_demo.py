@@ -17,10 +17,12 @@ from core.static_demo import build_static_demo  # noqa: E402
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--output", type=Path, default=REPOSITORY / "docs" / "demo")
+parser.add_argument("--language", choices=("zh-CN", "en"), default="zh-CN")
+parser.add_argument("--skip-install", action="store_true", help="Reuse dependencies already installed with npm ci; still build the UI.")
 args = parser.parse_args()
-if (args.output / ".retinue-panel-demo").is_file():
+if args.language == "en" or (args.output / ".retinue-panel-demo").is_file():
     from core.panel_demo import build_panel_demo
-    pages = build_panel_demo(args.output)
+    pages = build_panel_demo(args.output, language=args.language, install_dependencies=not args.skip_install)
 else:
     pages = build_static_demo(args.output)
 for page in pages:

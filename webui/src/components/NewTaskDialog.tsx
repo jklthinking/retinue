@@ -1,3 +1,4 @@
+import { useI18n, t } from "../i18n";
 import { FormEvent, useEffect, useState } from "react";
 import { api, ApiError } from "../api";
 import type { ActorInfo, PipelineStage, PipelineTemplateInfo, Priority } from "../types";
@@ -13,6 +14,7 @@ const PRIORITIES: Priority[] = ["urgent", "high", "medium", "low", "none"];
 type Mode = "assign" | "open" | "pipeline";
 
 export default function NewTaskDialog({ actors, onClose, onCreated }: Props) {
+  useI18n();
   const enabled = actors.filter((a) => !a.disabled);
   const [title, setTitle] = useState("");
   const [holder, setHolder] = useState(enabled[0]?.id ?? "");
@@ -65,7 +67,7 @@ export default function NewTaskDialog({ actors, onClose, onCreated }: Props) {
       });
       onCreated();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "创建失败");
+      setError(err instanceof ApiError ? err.message : t("创建失败"));
     } finally {
       setBusy(false);
     }
@@ -74,10 +76,9 @@ export default function NewTaskDialog({ actors, onClose, onCreated }: Props) {
   return (
     <div className="drawer-mask" onClick={onClose}>
       <form className="dialog" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
-        <h2>新建任务卡</h2>
+        <h2>{t("新建任务卡")}</h2>
         <label>
-          标题
-          <input value={title} onChange={(e) => setTitle(e.target.value)} required autoFocus />
+          {t("标题")} <input value={title} onChange={(e) => setTitle(e.target.value)} required autoFocus />
         </label>
         <div className="dispatch-mode dispatch-mode--three">
           <button
@@ -85,33 +86,29 @@ export default function NewTaskDialog({ actors, onClose, onCreated }: Props) {
             className={mode === "assign" ? "is-active" : ""}
             onClick={() => setMode("assign")}
           >
-            指派执行者
-          </button>
+            {t("指派执行者")} </button>
           <button
             type="button"
             className={mode === "open" ? "is-active" : ""}
             onClick={() => setMode("open")}
           >
-            挂单大厅
-          </button>
+            {t("挂单大厅")} </button>
           <button
             type="button"
             className={mode === "pipeline" ? "is-active" : ""}
             onClick={() => setMode("pipeline")}
             disabled={templates.length === 0}
-            title={templates.length === 0 ? "尚无流程模板(管理员可经 API 登记)" : ""}
+            title={templates.length === 0 ? t("尚无流程模板(管理员可经 API 登记)") : ""}
           >
-            流程模板
-          </button>
+            {t("流程模板")} </button>
         </div>
         {mode === "assign" && (
           <label>
-            持棒人(执行者)
-            <select value={holder} onChange={(e) => setHolder(e.target.value)} required>
+            {t("持棒人(执行者)")} <select value={holder} onChange={(e) => setHolder(e.target.value)} required>
               {enabled.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.display_name || a.id}
-                  {a.kind === "agent" ? "(智能体)" : ""}
+                  {a.kind === "agent" ? t("(智能体)") : ""}
                 </option>
               ))}
             </select>
@@ -120,17 +117,15 @@ export default function NewTaskDialog({ actors, onClose, onCreated }: Props) {
         {mode === "pipeline" && (
           <>
             <label>
-              流程模板
-              <select
+              {t("流程模板")} <select
                 onChange={(e) => {
                   const found = templates.find((t) => String(t.id) === e.target.value);
                   if (found) setStages(found.stages.map((s) => ({ ...s })));
                 }}
               >
-                {templates.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}({t.stages.length} 节点)
-                  </option>
+                {templates.map((template) => (
+                  <option key={template.id} value={template.id}>
+                    {template.name}({template.stages.length} {t("节点)")} </option>
                 ))}
               </select>
             </label>
@@ -139,7 +134,7 @@ export default function NewTaskDialog({ actors, onClose, onCreated }: Props) {
                 <div key={index} className="stage-editor__row">
                   <span className="stage-editor__name">
                     {index + 1}. {stage.name}
-                    <em>{GATE_LABEL[stage.gate]}</em>
+                    <em>{t(GATE_LABEL[stage.gate])}</em>
                   </span>
                   <select
                     value={stage.holder}
@@ -162,22 +157,19 @@ export default function NewTaskDialog({ actors, onClose, onCreated }: Props) {
         )}
         <div className="dialog-row">
           <label>
-            部门/条线
-            <input value={dept} onChange={(e) => setDept(e.target.value)} placeholder="可选" />
+            {t("部门/条线")} <input value={dept} onChange={(e) => setDept(e.target.value)} placeholder={t("可选")} />
           </label>
           <label>
-            优先级
-            <select value={priority} onChange={(e) => setPriority(e.target.value as Priority)}>
+            {t("优先级")} <select value={priority} onChange={(e) => setPriority(e.target.value as Priority)}>
               {PRIORITIES.map((p) => (
                 <option key={p} value={p}>
-                  {PRIORITY_LABEL[p]}
+                  {t(PRIORITY_LABEL[p])}
                 </option>
               ))}
             </select>
           </label>
           <label>
-            截止日
-            <input
+            {t("截止日")} <input
               type="date"
               value={dueAt}
               onChange={(e) => setDueAt(e.target.value)}
@@ -185,20 +177,18 @@ export default function NewTaskDialog({ actors, onClose, onCreated }: Props) {
           </label>
         </div>
         <label>
-          验收标准(每行一条)
-          <textarea value={acceptance} onChange={(e) => setAcceptance(e.target.value)} rows={3} />
+          {t("验收标准(每行一条)")} <textarea value={acceptance} onChange={(e) => setAcceptance(e.target.value)} rows={3} />
         </label>
         {error && <p className="error">{error}</p>}
         <div className="dialog-actions">
           <button type="button" onClick={onClose}>
-            取消
-          </button>
+            {t("取消")} </button>
           <button
             type="submit"
             className="primary"
             disabled={busy || (mode === "assign" && !holder) || (mode === "pipeline" && stages.length < 2)}
           >
-            {busy ? "创建中…" : mode === "open" ? "发布到大厅" : mode === "pipeline" ? "启动流程" : "创建"}
+            {busy ? t("创建中…") : mode === "open" ? t("发布到大厅") : mode === "pipeline" ? t("启动流程") : t("创建")}
           </button>
         </div>
       </form>

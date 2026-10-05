@@ -3,6 +3,7 @@ import { KingdomPage } from "./KingdomPage";
 import KingdomKnowledgePage from "./KingdomKnowledgePage";
 import type { KingdomView } from "../lib/kingdom";
 import { useVocab, type ThemeVocab } from "../theme";
+import { useI18n } from "../i18n";
 
 type HubTab = KingdomView | "ops";
 
@@ -18,6 +19,7 @@ const TABS: { key: HubTab; label: (vocab: ThemeVocab) => string }[] = [
 
 export default function KingdomHub({ onOpenOperations }: { onOpenOperations: () => void }) {
   const vocab = useVocab();
+  const { t } = useI18n();
   const [tab, setTab] = useState<KingdomView>("overview");
 
   return (
@@ -27,11 +29,11 @@ export default function KingdomHub({ onOpenOperations }: { onOpenOperations: () 
           <button
             key={item.key}
             className={tab === item.key ? "is-active" : ""}
-            aria-label={item.key === "ops" ? "运营效率快捷入口" : undefined}
-            title={item.key === "ops" ? "前往系统总览 → 运营效率" : undefined}
+            aria-label={item.key === "ops" ? t("运营效率快捷入口") : undefined}
+            title={item.key === "ops" ? t("前往系统总览 → 运营效率") : undefined}
             onClick={() => item.key === "ops" ? onOpenOperations() : setTab(item.key)}
           >
-            {item.label(vocab)}
+            {t(item.label(vocab))}
           </button>
         ))}
       </div>

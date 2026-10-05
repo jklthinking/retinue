@@ -61,8 +61,8 @@
 .collab-timeline__lane > header small { display: block; font-size: 9px; color: var(--muted); margin-top: 3px; }
 .collab-timeline__track { position: relative; min-width: 0; overflow: hidden; background-image: linear-gradient(to right, var(--line) 1px, transparent 1px); background-size: 25% 100%; }
 .collab-timeline__bar { position: absolute; min-width: 0; max-width: 100%; height: 34px; overflow: hidden; display: flex; flex-direction: column; gap: 2px; justify-content: center; padding: 4px 3px; border-radius: 5px; border: 1px solid var(--teal); background: color-mix(in srgb, var(--teal) 10%, var(--card)); text-align: left; }
-.collab-timeline__bar > span { display: block; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.collab-timeline__bar > small { font-size: 9px; color: var(--muted); white-space: nowrap; }
+.collab-timeline__bar > span { display: block; flex-shrink: 0; font-size: 10px; line-height: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.collab-timeline__bar > small { flex-shrink: 0; font-size: 9px; line-height: 10px; color: var(--muted); white-space: nowrap; }
 .collab-timeline__bar[data-status="waiting"], .collab-timeline__bar[data-status="failed"] { border-color: var(--gold); background: var(--status-handoff-bg); }
 .collab-timeline__bar[data-prepared="true"] { border-style: dashed; background: var(--card); }
 .collab-timeline__bar[aria-pressed="true"], .collab-timeline__event[aria-pressed="true"] { box-shadow: inset 0 0 0 1px var(--teal); }

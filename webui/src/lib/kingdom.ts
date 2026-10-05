@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { fetchJSON } from "@/lib/api";
 
 export type KingdomNodeId = "node-a" | "node-b";
@@ -342,7 +343,7 @@ export const kingdomApi = {
     });
     if (!response.ok) {
       const failed = response.results.filter((item) => !item.ok);
-      throw new Error(failed.map((item) => `${item.node}: ${item.error || "刷新失败"}`).join("；"));
+      throw new Error(failed.map((item) => `${item.node}: ${item.error || t("刷新失败")}`).join("；"));
     }
     return response;
   },

@@ -16,6 +16,7 @@ from fastapi.testclient import TestClient
 
 from core.protocol.task import ProtocolError
 from core.panel_collaboration_demo import seed_collaboration_demo
+from core.panel_demo_locale import localize_demo_fixture
 from core.panel_demo_clock import demo_clock
 from core.static_demo import MARKER as STATIC_DEMO_MARKER
 from server.app import create_app
@@ -124,7 +125,7 @@ def collect_api_paths(client: TestClient, today: str) -> list[str]:
     return paths
 
 
-def dump_api_snapshots(client: TestClient, api_dir: Path, today: str) -> dict[str, str]:
+def dump_api_snapshots(client: TestClient, api_dir: Path, today: str, *, language: str = "zh-CN") -> dict[str, str]:
     api_dir.mkdir(parents=True, exist_ok=True)
     index: dict[str, str] = {}
     for path in collect_api_paths(client, today):
@@ -142,6 +143,10 @@ def dump_api_snapshots(client: TestClient, api_dir: Path, today: str) -> dict[st
             payload["delegation_reason"] = "公开演示为只读；此处展示合成的协作记录。"
             for recovery in payload.get("recovery", []):
                 recovery.update(available=False, endpoint=None, reason="公开演示为只读。")
+        if language == "en":
+            # Only fixed synthetic seed data reaches this builder. This is not
+            # a live translation layer and never rewrites canonical records.
+            payload = localize_demo_fixture(payload)
         target.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")), encoding="utf-8", newline="\n")
         index[path] = name
     (api_dir / "_index.json").write_text(
@@ -182,7 +187,7 @@ def _seed_client(data_dir: Path, advance_clock) -> TestClient:
     return client
 
 
-def _run_webui_build(destination: Path, today: str, observed_at: str) -> None:
+def _run_webui_build(destination: Path, today: str, observed_at: str, language: str, install_dependencies: bool) -> None:
     repo = Path(__file__).resolve().parents[1]
     webui = repo / "webui"
     env = {
@@ -190,14 +195,18 @@ def _run_webui_build(destination: Path, today: str, observed_at: str) -> None:
         "VITE_DEMO_MODE": "1",
         "VITE_DEMO_TODAY": today,
         "VITE_DEMO_NOW": observed_at,
+        "VITE_DEFAULT_LANGUAGE": language,
         "PANEL_DEMO_OUTDIR": str(destination.resolve()),
     }
     npm = "npm.cmd" if shutil.which("npm.cmd") else "npm"
-    subprocess.run([npm, "ci", "--no-audit", "--no-fund"], cwd=webui, check=True, env=env)
+    if install_dependencies:
+        subprocess.run([npm, "ci", "--no-audit", "--no-fund"], cwd=webui, check=True, env=env)
     subprocess.run([npm, "run", "build"], cwd=webui, check=True, env=env)
 
 
-def build_panel_demo(destination: Path | str, *, skip_npm: bool = False) -> list[Path]:
+def build_panel_demo(destination: Path | str, *, skip_npm: bool = False, language: str = "zh-CN", install_dependencies: bool = True) -> list[Path]:
+    if language not in {"zh-CN", "en"}:
+        raise ProtocolError("demo language must be zh-CN or en")
     dest = Path(destination)
     marker = dest / MARKER
     legacy = dest / STATIC_DEMO_MARKER
@@ -217,7 +226,7 @@ def build_panel_demo(destination: Path | str, *, skip_npm: bool = False) -> list
         client = _seed_client(seed_dir, advance_clock)
         try:
             with client:
-                route_count = len(dump_api_snapshots(client, api_snap, DEMO_TODAY))
+                route_count = len(dump_api_snapshots(client, api_snap, DEMO_TODAY, language=language))
                 observed_at = utcnow().isoformat()
         finally:
             client.app.state.session_factory.kw["bind"].dispose()
@@ -229,7 +238,7 @@ def build_panel_demo(destination: Path | str, *, skip_npm: bool = False) -> list
             "<!doctype html><title>panel demo (skip npm)</title>", encoding="utf-8", newline="\n"
         )
     else:
-        _run_webui_build(site_root, DEMO_TODAY, observed_at)
+        _run_webui_build(site_root, DEMO_TODAY, observed_at, language, install_dependencies)
 
     for item in site_root.iterdir():
         target = staging / item.name
@@ -253,6 +262,7 @@ def build_panel_demo(destination: Path | str, *, skip_npm: bool = False) -> list
         "observed_at": observed_at,
         "network_required": False,
         "api_routes": route_count,
+        "language": language,
     }
     (staging / "build.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8", newline="\n")
     (staging / ".nojekyll").write_text("", encoding="utf-8", newline="\n")

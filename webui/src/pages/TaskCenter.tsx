@@ -1,3 +1,4 @@
+import { useI18n, t } from "../i18n";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Me, Status, TaskSummary } from "../types";
 import { localTodayISO, PRIORITY_LABEL, STATUS_LABEL } from "../types";
@@ -16,6 +17,7 @@ export default function TaskCenter({
   me: Me;
   onOpenTask: (taskId: string) => void;
 }) {
+  useI18n();
   // Incremental summary polling: the first load is a full snapshot, later
   // polls (and task-changed nudges) fetch only rows changed since the last
   // watermark and merge them into the cached list.
@@ -58,28 +60,28 @@ export default function TaskCenter({
       <Ambient />
       <PageHeader
         kicker="TASK CENTER · ALL RECORDS"
-        title="任务中心"
-        subtitle="全量任务记录:检索、筛选、追溯每一张卡的完整事件链。"
+        title={t("任务中心")}
+        subtitle={t("全量任务记录:检索、筛选、追溯每一张卡的完整事件链。")}
       />
 
-      <Panel icon={<ListChecks size={15} />} kicker="RECORDS" title={`任务记录 ${filtered.length} / ${tasks.length}`}>
+      <Panel icon={<ListChecks size={15} />} kicker="RECORDS" title={t("任务记录 {v0} / {v1}", { v0: filtered.length, v1: tasks.length })}>
       {error && <DataState error={error} stale={loaded} onRetry={reload} />}
       <div className="tc-filters">
         <input
-          placeholder="搜索标题 / 编号 / 条线…"
+          placeholder={t("搜索标题 / 编号 / 条线…")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
         <select value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="">全部状态</option>
+          <option value="">{t("全部状态")}</option>
           {ALL_STATUS.map((s) => (
             <option key={s} value={s}>
-              {STATUS_LABEL[s]}
+              {t(STATUS_LABEL[s])}
             </option>
           ))}
         </select>
         <select value={holder} onChange={(e) => setHolder(e.target.value)}>
-          <option value="">全部持棒人</option>
+          <option value="">{t("全部持棒人")}</option>
           {actors.map((a) => (
             <option key={a.id} value={a.id}>
               {a.display_name || a.id}
@@ -91,14 +93,14 @@ export default function TaskCenter({
       <table className="admin-table tc-table">
         <thead>
           <tr>
-            <th>编号</th>
-            <th>标题</th>
-            <th>状态</th>
-            <th>持棒</th>
-            <th>优先级</th>
-            <th>条线</th>
-            <th>截止</th>
-            <th>最近更新</th>
+            <th>{t("编号")}</th>
+            <th>{t("标题")}</th>
+            <th>{t("状态")}</th>
+            <th>{t("持棒")}</th>
+            <th>{t("优先级")}</th>
+            <th>{t("条线")}</th>
+            <th>{t("截止")}</th>
+            <th>{t("最近更新")}</th>
           </tr>
         </thead>
         <tbody>
@@ -108,7 +110,7 @@ export default function TaskCenter({
               className="tc-row"
               onClick={() => onOpenTask(task.id)}
               tabIndex={0}
-              aria-label={`任务 ${task.id} ${task.title}`}
+              aria-label={t("任务 {v0} {v1}", { v0: task.id, v1: task.title })}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
                   event.preventDefault();
@@ -120,7 +122,7 @@ export default function TaskCenter({
               <td className="tc-title">{task.title}</td>
               <td>
                 <span className={`chip chip-status-${task.status}`}>
-                  {STATUS_LABEL[task.status]}
+                  {t(STATUS_LABEL[task.status])}
                 </span>
               </td>
               <td>
@@ -129,7 +131,7 @@ export default function TaskCenter({
                   {nameOf(task.holder)}
                 </span>
               </td>
-              <td>{PRIORITY_LABEL[task.priority]}</td>
+              <td>{t(PRIORITY_LABEL[task.priority])}</td>
               <td>{task.dept ?? "—"}</td>
               <td
                 className={`muted ${
@@ -147,7 +149,7 @@ export default function TaskCenter({
           ))}
         </tbody>
       </table>
-      {filtered.length === 0 && <p className="muted">没有匹配的任务</p>}
+      {filtered.length === 0 && <p className="muted">{t("没有匹配的任务")}</p>}
       </Panel>
     </div>
   );

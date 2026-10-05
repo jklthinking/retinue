@@ -1,3 +1,4 @@
+import { t, useI18n, getLanguage } from "../i18n";
 import { useEffect, useState } from "react";
 import { BookOpen } from "lucide-react";
 import { api, readErrorMessage } from "../api";
@@ -16,6 +17,7 @@ const KIND_LABEL: Record<string, string> = {
 };
 
 export default function Knowledge() {
+  useI18n();
   const [sources, setSources] = useState<KnowledgeInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,43 +42,43 @@ export default function Knowledge() {
       <Ambient />
       <PageHeader
         kicker="KNOWLEDGE SOURCES"
-        title="知识库"
-        subtitle={loading ? "正在读取知识源目录" : error ? "知识源目录读取失败" : `${sources.length} 个来源 · 共 ${totalDocs.toLocaleString("zh-CN")} 篇文档`}
+        title={t("知识库")}
+        subtitle={loading ? t("正在读取知识源目录") : error ? t("知识源目录读取失败") : t("{v0} 个来源 · 共 {v1} 篇文档", { v0: sources.length, v1: totalDocs.toLocaleString(getLanguage()) })}
       />
 
       {loading && <DataState loading />}
       {error && <DataState error={error} />}
 
-      {!loading && !error && <Panel icon={<BookOpen size={15} />} kicker="SOURCES" title="知识源">
+      {!loading && !error && <Panel icon={<BookOpen size={15} />} kicker="SOURCES" title={t("知识源")}>
       <div className="rt-know-grid">
         {sources.map((source) => (
           <article key={source.id} className="rt-know-card">
             <header>
               <strong>{source.name}</strong>
-              <span className="chip chip-dept">{KIND_LABEL[source.kind] ?? source.kind}</span>
+              <span className="chip chip-dept">{t(KIND_LABEL[source.kind] ?? source.kind)}</span>
             </header>
             <dl>
               <div>
-                <dt>文档数</dt>
-                <dd>{source.docs.toLocaleString("zh-CN")}</dd>
+                <dt>{t("文档数")}</dt>
+                <dd>{source.docs.toLocaleString(getLanguage())}</dd>
               </div>
               {source.size_bytes > 0 && (
                 <div>
-                  <dt>体量</dt>
+                  <dt>{t("体量")}</dt>
                   <dd>{fmtBytes(source.size_bytes)}</dd>
                 </div>
               )}
               {source.location && (
                 <div>
-                  <dt>位置</dt>
+                  <dt>{t("位置")}</dt>
                   <dd>{source.location}</dd>
                 </div>
               )}
               <div>
-                <dt>更新</dt>
+                <dt>{t("更新")}</dt>
                 <dd>
                   {source.updated_at
-                    ? new Date(source.updated_at).toLocaleDateString("zh-CN")
+                    ? new Date(source.updated_at).toLocaleDateString(getLanguage())
                     : "—"}
                 </dd>
               </div>
@@ -84,7 +86,7 @@ export default function Knowledge() {
             {source.notes && <p className="muted" style={{ marginBottom: 0 }}>{source.notes}</p>}
           </article>
         ))}
-        {sources.length === 0 && <DataState empty="确实尚无知识源。" />}
+        {sources.length === 0 && <DataState empty={t("确实尚无知识源。")} />}
       </div>
       </Panel>
       }

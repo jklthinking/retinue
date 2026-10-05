@@ -1,3 +1,4 @@
+import { useI18n, t, getLanguage } from "../i18n";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowRight, Crown, Handshake, Megaphone, Rows3 } from "lucide-react";
 import { api, ApiError } from "../api";
@@ -20,6 +21,7 @@ import { startVisiblePolling } from "../lib/refresh";
 import { isSessionSync, rosterIdentity } from "../lib/rosterIdentity";
 
 export default function Collab({ me }: { me: Me }) {
+  useI18n();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [actors, setActors] = useState<ActorInfo[]>([]);
   const [approvals, setApprovals] = useState<ApprovalInfo[]>([]);
@@ -43,10 +45,10 @@ export default function Collab({ me }: { me: Me }) {
       setTasks(taskList);
       setActors(actorList);
       setApprovals(approvalList);
-      setSyncedAt(new Date().toLocaleTimeString("zh-CN"));
+      setSyncedAt(new Date().toLocaleTimeString(getLanguage()));
       setError("");
     } catch {
-      if (seq === loadSeq.current) setError("协作进度同步失败，当前显示上次成功读取的记录，请刷新重试。");
+      if (seq === loadSeq.current) setError(t("协作进度同步失败，当前显示上次成功读取的记录，请刷新重试。"));
     } finally {
       if (seq === loadSeq.current) setLoading(false);
     }
@@ -98,7 +100,7 @@ export default function Collab({ me }: { me: Me }) {
       await api.post(`/api/tasks/${task.id}/claim`, {});
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "接单失败");
+      setError(err instanceof ApiError ? err.message : t("接单失败"));
     }
   }
 
@@ -110,7 +112,7 @@ export default function Collab({ me }: { me: Me }) {
       await api.post(`/api/approvals/${approvalId}/decide`, { decision, note });
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "裁决失败");
+      setError(err instanceof ApiError ? err.message : t("裁决失败"));
     } finally {
       setDeciding(null);
     }
@@ -124,43 +126,43 @@ export default function Collab({ me }: { me: Me }) {
       <Ambient />
       <PageHeader
         kicker="MULTI-BOT COLLABORATION"
-        title="协作进度"
-        subtitle="发单 → 接单 → 执行 → 交付的完整流水线,每一棒都有回执。"
+        title={t("协作进度")}
+        subtitle={t("发单 → 接单 → 执行 → 交付的完整流水线,每一棒都有回执。")}
       />
       {error && <p className="error">{error}</p>}
-      {syncedAt && <p className="muted" role="status">最近同步 {syncedAt} · 页面可见时每 15 秒更新</p>}
-      {loading ? <DataState loading /> : !syncedAt ? <DataState empty="尚未读取到任务记录，请刷新重试。" /> : <>
+      {syncedAt && <p className="muted" role="status">{t("最近同步")} {syncedAt} {t("· 页面可见时每 15 秒更新")}</p>}
+      {loading ? <DataState loading /> : !syncedAt ? <DataState empty={t("尚未读取到任务记录，请刷新重试。")} /> : <>
       <div className="rt-metrics">
-        <Metric icon={<Megaphone />} label="大厅待接" value={openTasks.length} sub="挂单等待认领" tone="amber" />
-        <Metric icon={<Handshake />} label="已接未开工" value={claimedIdle.length} sub="接单待启动" tone="ink" />
+        <Metric icon={<Megaphone />} label={t("大厅待接")} value={openTasks.length} sub={t("挂单等待认领")} tone="amber" />
+        <Metric icon={<Handshake />} label={t("已接未开工")} value={claimedIdle.length} sub={t("接单待启动")} tone="ink" />
         <Metric
           icon={<Rows3 />}
-          label="执行中"
+          label={t("执行中")}
           value={
             <>
               {working.length}
-              <em className="rt-metric__frac">均 {avgProgress}%</em>
+              <em className="rt-metric__frac">{t("均")} {avgProgress}%</em>
             </>
           }
-          sub={blocked.length > 0 ? `另有 ${blocked.length} 张受阻` : "全部顺畅"}
+          sub={blocked.length > 0 ? t("另有 {v0} 张受阻", { v0: blocked.length }) : t("全部顺畅")}
           tone={blocked.length > 0 ? "red" : "blue"}
         />
-        <Metric icon={<ArrowRight />} label="交付审校" value={review.length} sub="等待验收" tone="teal" />
-        <Metric icon={<Handshake />} label="今日完成" value={doneToday.length} sub="任务已标记完成 · 验收另计" tone="green" />
+        <Metric icon={<ArrowRight />} label={t("交付审校")} value={review.length} sub={t("等待验收")} tone="teal" />
+        <Metric icon={<Handshake />} label={t("今日完成")} value={doneToday.length} sub={t("任务已标记完成 · 验收另计")} tone="green" />
       </div>
 
       <div className="rt-layout rt-layout--hero">
-        <Panel icon={<Rows3 size={15} />} kicker="PIPELINE" title="任务进度表">
+        <Panel icon={<Rows3 size={15} />} kicker="PIPELINE" title={t("任务进度表")}>
           <div className="collab-table-wrap">
             <table className="admin-table collab-table">
               <thead>
                 <tr>
-                  <th>任务</th>
-                  <th>发单 → 接单</th>
-                  <th>阶段</th>
-                  <th>进度</th>
-                  <th>最新回执</th>
-                  <th>用时</th>
+                  <th>{t("任务")}</th>
+                  <th>{t("发单 → 接单")}</th>
+                  <th>{t("阶段")}</th>
+                  <th>{t("进度")}</th>
+                  <th>{t("最新回执")}</th>
+                  <th>{t("用时")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -174,7 +176,7 @@ export default function Collab({ me }: { me: Me }) {
                           <strong>{task.title}</strong>
                           <small>
                             {task.id.replace("task-", "")}
-                            {task.priority !== "none" && ` · ${PRIORITY_LABEL[task.priority]}`}
+                            {task.priority !== "none" && ` · ${t(PRIORITY_LABEL[task.priority])}`}
                             {task.dept ? ` · ${task.dept}` : ""}
                           </small>
                         </div>
@@ -184,7 +186,7 @@ export default function Collab({ me }: { me: Me }) {
                           <Avatar name={nameOf(task.created_by)} size={20} square />
                           <ArrowRight size={11} className="collab-arrow" />
                           {task.open_dispatch && task.status === "queued" ? (
-                            <span className="rt-badge rt-badge--warn">待接</span>
+                            <span className="rt-badge rt-badge--warn">{t("待接")}</span>
                           ) : (
                             <Avatar name={nameOf(task.holder)} size={20} square />
                           )}
@@ -228,7 +230,7 @@ export default function Collab({ me }: { me: Me }) {
                 })}
               </tbody>
             </table>
-            {tableRows.length === 0 && <p className="muted">暂无任务</p>}
+            {tableRows.length === 0 && <p className="muted">{t("暂无任务")}</p>}
           </div>
         </Panel>
 
@@ -237,7 +239,7 @@ export default function Collab({ me }: { me: Me }) {
           <Panel
             icon={<Crown size={15} />}
             kicker="HUMAN APPROVAL"
-            title={`人工审批 · ${approvals.length} 项待处理`}
+            title={t("人工审批 · {v0} 项待处理", { v0: approvals.length })}
             className="queen-panel"
           >
             <div className="queen-list">
@@ -249,9 +251,8 @@ export default function Collab({ me }: { me: Me }) {
                 >
                   <strong>{approval.task_title ?? approval.task_id}</strong>
                   <span>
-                    节点「{approval.stage_name ?? approval.stage_index + 1}」· 由{" "}
-                    {nameOf(approval.requested_by)} 提交
-                  </span>
+                    {t("节点「")}{approval.stage_name ?? approval.stage_index + 1}{t("」· 由")}{" "}
+                    {nameOf(approval.requested_by)} {t("提交")} </span>
                   {me.role === "admin" && (
                     <div className="queen-actions">
                       <button
@@ -262,19 +263,17 @@ export default function Collab({ me }: { me: Me }) {
                           void decide(approval.id, "approve", "");
                         }}
                       >
-                        批准
-                      </button>
+                        {t("批准")} </button>
                       <button
                         disabled={deciding !== null}
                         onClick={(e) => {
                           e.stopPropagation();
-                          const reason = window.prompt("驳回原因:");
+                          const reason = window.prompt(t("驳回原因:"));
                           if (!reason) return;
                           void decide(approval.id, "reject", reason);
                         }}
                       >
-                        驳回
-                      </button>
+                        {t("驳回")} </button>
                     </div>
                   )}
                 </article>
@@ -285,25 +284,24 @@ export default function Collab({ me }: { me: Me }) {
         <Panel
           icon={<Megaphone size={15} />}
           kicker="DISPATCH HALL"
-          title={`发单大厅 · ${openTasks.length} 单待接`}
+          title={t("发单大厅 · {v0} 单待接", { v0: openTasks.length })}
         >
           <div className="hall-list">
             {openTasks.map((task) => (
               <article key={task.id} className="hall-card" onClick={() => setSelected(task.id)}>
                 <header>
                   <strong>{task.title}</strong>
-                  <span className="hall-wait">已等 {elapsedText(postedAt(task))}</span>
+                  <span className="hall-wait">{t("已等")} {elapsedText(postedAt(task))}</span>
                 </header>
                 <div className="hall-meta">
                   <span className="holder-line">
                     <Avatar name={nameOf(task.created_by)} size={17} square />
-                    {nameOf(task.created_by)} 发单
-                  </span>
+                    {nameOf(task.created_by)} {t("发单")} </span>
                   {task.priority !== "none" && (
-                    <span className={`chip chip-${task.priority}`}>{PRIORITY_LABEL[task.priority]}</span>
+                    <span className={`chip chip-${task.priority}`}>{t(PRIORITY_LABEL[task.priority])}</span>
                   )}
                   {task.acceptance.length > 0 && (
-                    <span className="chip chip-dept">验收 {task.acceptance.length} 条</span>
+                    <span className="chip chip-dept">{t("验收")} {task.acceptance.length} {t("条")}</span>
                   )}
                 </div>
                 {me.actor_id && me.actor_id !== task.holder && (
@@ -314,25 +312,24 @@ export default function Collab({ me }: { me: Me }) {
                       void claim(task);
                     }}
                   >
-                    <Handshake size={13} /> 接单
-                  </button>
+                    <Handshake size={13} /> {t("接单")} </button>
                 )}
               </article>
             ))}
-            {openTasks.length === 0 && <p className="muted">大厅空闲,没有待接的单。</p>}
+            {openTasks.length === 0 && <p className="muted">{t("大厅空闲,没有待接的单。")}</p>}
           </div>
         </Panel>
         </div>
       </div>
 
-      <Panel icon={<Rows3 size={15} />} kicker="WORKER LOAD" title="模型在手工作 · 按当前负责成员分组">
+      <Panel icon={<Rows3 size={15} />} kicker="WORKER LOAD" title={t("模型在手工作 · 按当前负责成员分组")}>
         <div className="lane-table">
           <div className="lane-head">
-            <span>接单方</span>
-            <span>已接待开工</span>
-            <span>执行中</span>
-            <span>交付审校</span>
-            <span>近期完成</span>
+            <span>{t("接单方")}</span>
+            <span>{t("已接待开工")}</span>
+            <span>{t("执行中")}</span>
+            <span>{t("交付审校")}</span>
+            <span>{t("近期完成")}</span>
           </div>
           {agents.map((agent) => {
             const lane = laneOf(agent.id);
@@ -356,8 +353,7 @@ export default function Collab({ me }: { me: Me }) {
                     {agent.display_name || agent.id}
                     <small>{rosterIdentity(agent)}</small>
                     <small className={agent.online ? "is-online" : ""}>
-                      {agent.online ? "近期认证上报" : "近期未上报"} · {lane.filter((t) => t.status !== "done").length} 单在手
-                    </small>
+                      {agent.online ? t("近期认证上报") : t("近期未上报")} · {lane.filter((t) => t.status !== "done").length} {t("单在手")} </small>
                   </span>
                 </span>
                 <span>{cell((t) => t.status === "queued" && !t.open_dispatch)}</span>

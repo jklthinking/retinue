@@ -1,3 +1,5 @@
+import { getLanguage } from "./i18n";
+
 export type Status = "queued" | "doing" | "handoff" | "blocked" | "done" | "cancelled";
 export type Priority = "urgent" | "high" | "medium" | "low" | "none";
 
@@ -449,10 +451,11 @@ export function fmtBytes(value: number): string {
 }
 
 export function fmtUptime(seconds: number): string {
+  const english = getLanguage() === "en";
   const days = Math.floor(seconds / 86400);
-  if (days > 0) return `${days} 天`;
+  if (days > 0) return `${days} ${english ? "d" : "天"}`;
   const hours = Math.floor(seconds / 3600);
-  return hours > 0 ? `${hours} 小时` : `${Math.floor(seconds / 60)} 分钟`;
+  return hours > 0 ? `${hours} ${english ? "h" : "小时"}` : `${Math.floor(seconds / 60)} ${english ? "min" : "分钟"}`;
 }
 
 /** Local calendar day in YYYY-MM-DD form, matching the server-side due_at. */
