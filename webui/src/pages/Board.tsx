@@ -1,3 +1,4 @@
+import { useI18n, t } from "../i18n";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, ApiError } from "../api";
 import type { ActorInfo, Me, Status, TaskSummary } from "../types";
@@ -18,6 +19,7 @@ export default function Board({
   me: Me;
   onOpenTask: (taskId: string) => void;
 }) {
+  useI18n();
   const [tasks, setTasks] = useState<TaskSummary[]>([]);
   const [actors, setActors] = useState<ActorInfo[]>([]);
   const [readyIds, setReadyIds] = useState<Set<string>>(new Set());
@@ -43,7 +45,7 @@ export default function Board({
       setError("");
     } catch (err) {
       if (seq !== loadSeq.current) return;
-      setError(err instanceof ApiError ? err.message : "加载失败");
+      setError(err instanceof ApiError ? err.message : t("加载失败"));
     }
   }, []);
 
@@ -84,7 +86,7 @@ export default function Board({
     if (!TRANSITIONS[task.status].includes(to)) return;
     let blocked_reason: string | undefined;
     if (to === "blocked") {
-      const reason = window.prompt("受阻原因(必填):");
+      const reason = window.prompt(t("受阻原因(必填):"));
       if (!reason || !reason.trim()) return;
       blocked_reason = reason.trim();
     }
@@ -96,7 +98,7 @@ export default function Board({
       });
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "操作失败");
+      setError(err instanceof ApiError ? err.message : t("操作失败"));
     }
   }
 
@@ -105,24 +107,23 @@ export default function Board({
       <Ambient />
       <PageHeader
         kicker="TASK BOARD · KANBAN"
-        title="任务看板"
+        title={t("任务看板")}
         subtitle={me.readonly
-          ? `${tasks.length} 张真实任务卡 · ${readyIds.size} 张现在可做 · 观察席只读`
-          : `${tasks.length} 张任务卡 · ${readyIds.size} 张现在可做 · 拖拽卡片即可流转状态`}
+          ? t("{v0} 张真实任务卡 · {v1} 张现在可做 · 观察席只读", { v0: tasks.length, v1: readyIds.size })
+          : t("{v0} 张任务卡 · {v1} 张现在可做 · 拖拽卡片即可流转状态", { v0: tasks.length, v1: readyIds.size })}
         tools={
           <>
             <button
               className={readyOnly ? "rt-button rt-button--primary" : "rt-button"}
               onClick={() => setReadyOnly((value) => !value)}
             >
-              <ListChecks size={14} /> {readyOnly ? "显示全部" : `现在可做 (${readyIds.size})`}
+              <ListChecks size={14} /> {readyOnly ? t("显示全部") : t("现在可做 ({v0})", { v0: readyIds.size })}
             </button>
             {me.readonly ? (
-              <span className="chip chip-medium">只读实盘</span>
+              <span className="chip chip-medium">{t("只读实盘")}</span>
             ) : (
               <button className="rt-button rt-button--primary" onClick={() => setCreating(true)}>
-                <Plus size={14} /> 新建任务
-              </button>
+                <Plus size={14} /> {t("新建任务")} </button>
             )}
           </>
         }
@@ -148,7 +149,7 @@ export default function Board({
             >
               <header>
                 <span className={`dot dot-${status}`} />
-                {STATUS_LABEL[status]}
+                {t(STATUS_LABEL[status])}
                 <em>{byStatus[status].length}</em>
               </header>
               <div className="cards">
@@ -162,7 +163,7 @@ export default function Board({
                     onClick={() => onOpenTask(task.id)}
                     tabIndex={0}
                     role="button"
-                    aria-label={`任务卡 ${task.id} ${task.title}`}
+                    aria-label={t("任务卡 {v0} {v1}", { v0: task.id, v1: task.title })}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" || event.key === " ") {
                         event.preventDefault();
@@ -179,17 +180,17 @@ export default function Board({
                     <div className="card-meta">
                       <span className="card-id">{task.id.replace("task-", "")}</span>
                       {task.open_dispatch && task.status === "queued" && (
-                        <span className="chip chip-high hall-pulse">待接单</span>
+                        <span className="chip chip-high hall-pulse">{t("待接单")}</span>
                       )}
                       {task.pipeline && (
                         <span className="chip chip-medium">
-                          流程 {Math.min(task.pipeline_stage + 1, task.pipeline.length)}/
+                          {t("流程")} {Math.min(task.pipeline_stage + 1, task.pipeline.length)}/
                           {task.pipeline.length}
                         </span>
                       )}
                       {task.priority !== "none" && (
                         <span className={`chip chip-${task.priority}`}>
-                          {PRIORITY_LABEL[task.priority]}
+                          {t(PRIORITY_LABEL[task.priority])}
                         </span>
                       )}
                       {task.dept && <span className="chip chip-dept">{task.dept}</span>}
@@ -202,13 +203,13 @@ export default function Board({
                                 ? "chip-high"
                                 : "chip-medium"
                           }`}
-                          title={`截止 ${task.due_at}`}
+                          title={t("截止 {v0}", { v0: task.due_at })}
                         >
                           {task.due_at < today
-                            ? `逾期 ${task.due_at.slice(5)}`
+                            ? t("逾期 {v0}", { v0: task.due_at.slice(5) })
                             : task.due_at === today
-                              ? "今日到期"
-                              : `截止 ${task.due_at.slice(5)}`}
+                              ? t("今日到期")
+                              : t("截止 {v0}", { v0: task.due_at.slice(5) })}
                         </span>
                       )}
                     </div>
@@ -216,12 +217,12 @@ export default function Board({
                       <div className="card-relations">
                         {task.blocked_by.length > 0 && (
                           <span title={task.blocked_by.map((item) => `${item.id} · ${item.title}`).join("\n")}>
-                            前置: {task.blocked_by.map((item) => item.id).join(", ")}
+                            {t("前置:")} {task.blocked_by.map((item) => item.id).join(", ")}
                           </span>
                         )}
                         {task.blocks.length > 0 && (
                           <span title={task.blocks.map((item) => `${item.id} · ${item.title}`).join("\n")}>
-                            后续: {task.blocks.map((item) => item.id).join(", ")}
+                            {t("后续:")} {task.blocks.map((item) => item.id).join(", ")}
                           </span>
                         )}
                       </div>
@@ -239,7 +240,7 @@ export default function Board({
                     </div>
                   </article>
                 ))}
-                {byStatus[status].length === 0 && <div className="empty">暂无</div>}
+                {byStatus[status].length === 0 && <div className="empty">{t("暂无")}</div>}
               </div>
             </section>
           );

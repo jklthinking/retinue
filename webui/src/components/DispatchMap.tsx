@@ -1,3 +1,4 @@
+import { useI18n, t } from "../i18n";
 import { useMemo } from "react";
 import type { ActorInfo, Status, TaskSummary } from "../types";
 import { STATUS_LABEL } from "../types";
@@ -26,13 +27,14 @@ function clip(name: string, max: number): string {
 }
 
 export default function DispatchMap({ tasks, actors, onOpenTask }: Props) {
+  const { language } = useI18n();
   const vocab = useVocab();
   const model = useMemo(() => {
     const active = tasks.filter((t) => !t.archived && ACTIVE.includes(t.status));
     const nameOf = (id: string) => actors.find((a) => a.id === id)?.display_name || id;
     const identityOf = (id: string) => {
       const actor = actors.find((a) => a.id === id);
-      return actor ? (isSessionSync(actor) ? "会话同步" : rosterIdentity(actor)) : "身份待登记";
+      return actor ? (isSessionSync(actor) ? t("会话同步") : rosterIdentity(actor)) : t("身份待登记");
     };
 
     const dispatcherIds = [...new Set(active.map((t) => t.created_by))];
@@ -60,7 +62,7 @@ export default function DispatchMap({ tasks, actors, onOpenTask }: Props) {
       online: new Set(actors.filter((a) => a.online).map((a) => a.id)),
       height: TOP + Math.max(dispatcherIds.length, agentIds.length, 1) * ROW - 6,
     };
-  }, [tasks, actors]);
+  }, [tasks, actors, language]);
 
   return (
     <div className="dispatch-wrap">
@@ -68,16 +70,15 @@ export default function DispatchMap({ tasks, actors, onOpenTask }: Props) {
         className="dispatch-svg"
         viewBox={`0 0 ${WIDTH} ${model.height}`}
         role="img"
-        aria-label="派单协调图"
+        aria-label={t("派单协调图")}
       >
         <text x={LEFT_CX} y={18} textAnchor="middle" className="dm-col-label">
-          派单方 DISPATCH
-        </text>
+          {t("派单方 DISPATCH")} </text>
         <text x={RIGHT_CX} y={18} textAnchor="middle" className="dm-col-label">
           {vocab.membersAgents}
         </text>
         {model.active.length === 0 && model.agentIds.length === 0 && (
-          <text x={WIDTH / 2} y={TOP + 4} textAnchor="middle" className="dm-empty">暂无进行中的派单</text>
+          <text x={WIDTH / 2} y={TOP + 4} textAnchor="middle" className="dm-empty">{t("暂无进行中的派单")}</text>
         )}
 
         {model.active.map((task) => {
@@ -94,7 +95,7 @@ export default function DispatchMap({ tasks, actors, onOpenTask }: Props) {
               key={task.id}
               role={onOpenTask ? "button" : undefined}
               tabIndex={onOpenTask ? 0 : undefined}
-              aria-label={onOpenTask ? `查看派单：${task.title}` : undefined}
+              aria-label={onOpenTask ? t("查看派单：{v0}", { v0: task.title }) : undefined}
               onClick={() => onOpenTask?.(task.id)}
               onKeyDown={(event) => {
                 if (onOpenTask && (event.key === "Enter" || event.key === " ")) {
@@ -110,7 +111,7 @@ export default function DispatchMap({ tasks, actors, onOpenTask }: Props) {
               opacity={task.status === "queued" ? 0.5 : 0.85}
             >
               <title>
-                {task.id} {task.title} · {STATUS_LABEL[task.status]} · {model.nameOf(task.created_by)} → {model.nameOf(task.holder)}
+                {task.id} {task.title} · {t(STATUS_LABEL[task.status])} · {model.nameOf(task.created_by)} → {model.nameOf(task.holder)}
               </title>
             </path>
           );
@@ -188,7 +189,7 @@ export default function DispatchMap({ tasks, actors, onOpenTask }: Props) {
         {ACTIVE.map((s) => (
           <span key={s}>
             <i style={{ background: STATUS_COLOR[s] }} />
-            {STATUS_LABEL[s]}
+            {t(STATUS_LABEL[s])}
           </span>
         ))}
       </div>

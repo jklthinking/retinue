@@ -1,3 +1,4 @@
+import { useI18n, t } from "../i18n";
 import { useId } from "react";
 import type { Status } from "../types";
 import { STATUS_LABEL } from "../types";
@@ -28,11 +29,12 @@ const EDGES: { from: Status; to: Status; path: string; label?: string; labelX?: 
 ];
 
 export default function TaskFlowDiagram({ counts, recentEvents, onSelectStatus, selectedStatus }: Props) {
+  useI18n();
   const markerPrefix = useId().replace(/:/g, "");
 
   return (
     <div className="tf-wrap">
-      <svg className="tf-svg" viewBox="0 0 760 286" role="img" aria-label="任务状态流转图">
+      <svg className="tf-svg" viewBox="0 0 760 286" role="img" aria-label={t("任务状态流转图")}>
         <defs>
           {NODES.map(({ status }) => (
             <marker
@@ -64,9 +66,9 @@ export default function TaskFlowDiagram({ counts, recentEvents, onSelectStatus, 
                 markerEnd={"url(#" + markerPrefix + "-" + to + ")"}
                 fill="none"
               >
-                <title>{STATUS_LABEL[from]} → {STATUS_LABEL[to]}</title>
+                <title>{t(STATUS_LABEL[from])} → {t(STATUS_LABEL[to])}</title>
               </path>
-              {label && <text x={labelX} y={labelY} textAnchor="middle" className="tf-edge__label">{label}</text>}
+              {label && <text x={labelX} y={labelY} textAnchor="middle" className="tf-edge__label">{t(label)}</text>}
             </g>
           );
         })}
@@ -78,7 +80,7 @@ export default function TaskFlowDiagram({ counts, recentEvents, onSelectStatus, 
             data-status={status}
             role={onSelectStatus ? "button" : undefined}
             tabIndex={onSelectStatus ? 0 : undefined}
-            aria-label={onSelectStatus ? `查看${STATUS_LABEL[status]}任务：${counts[status] ?? 0}` : undefined}
+            aria-label={onSelectStatus ? t("查看{v0}任务：{v1}", { v0: t(STATUS_LABEL[status]), v1: counts[status] ?? 0 }) : undefined}
             aria-pressed={onSelectStatus ? selectedStatus === status : undefined}
             onClick={() => onSelectStatus?.(status)}
             onKeyDown={(event) => {
@@ -90,14 +92,14 @@ export default function TaskFlowDiagram({ counts, recentEvents, onSelectStatus, 
           >
             <rect x={x - 60} y={y - 29} width="120" height="58" rx="12" stroke={STATUS_COLOR[status]} />
             <rect x={x - 60} y={y - 14} width="4" height="28" rx="2" fill={STATUS_COLOR[status]} />
-            <text x={x} y={y - 5} textAnchor="middle" className="tf-node__label">{STATUS_LABEL[status]}</text>
+            <text x={x} y={y - 5} textAnchor="middle" className="tf-node__label">{t(STATUS_LABEL[status])}</text>
             <text x={x} y={y + 17} textAnchor="middle" className="tf-node__count">{counts[status] ?? 0}</text>
           </g>
         ))}
       </svg>
       <div className="tf-legend">
-        <span><i className="tf-legend__line" />常规路径</span>
-        <span><i className="tf-legend__line tf-legend__line--active" />近期流转</span>
+        <span><i className="tf-legend__line" />{t("常规路径")}</span>
+        <span><i className="tf-legend__line tf-legend__line--active" />{t("近期流转")}</span>
       </div>
     </div>
   );

@@ -113,3 +113,43 @@ def test_panel_demo_refuses_unmanaged_output(tmp_path):
 
     with pytest.raises(ProtocolError, match="non-generated"):
         build_panel_demo(unmanaged)
+
+
+def test_english_demo_preserves_evidence_and_translates_only_seed_copy(tmp_path):
+    from core.panel_demo_locale import localize_demo_fixture
+
+    dest = tmp_path / "demo-en"
+    build_panel_demo(dest, skip_npm=True, language="en")
+    manifest = json.loads((dest / "build.json").read_text(encoding="utf-8"))
+    assert manifest["language"] == "en"
+    assert manifest["observed_at"] == "2026-08-31T09:43:05+00:00"
+    index = json.loads((dest / "api/_index.json").read_text(encoding="utf-8"))
+    # Every visible fixture string in the English public edition is translated.
+    # New seed copy must get a reviewed English counterpart before publication.
+    import re
+    for name in set(index.values()):
+        assert not re.search(r"[\u3400-\u9fff]", (dest / "api" / name).read_text(encoding="utf-8"))
+    scenarios = [json.loads((dest / "api" / name).read_text(encoding="utf-8"))
+                 for path, name in index.items() if path.endswith("/collaboration")]
+    scenario = next(item for item in scenarios if len(item["delegations"]) == 2)
+    root = next(task for task in scenario["tasks"] if task["id"] == scenario["root_task_id"])
+    assert root["title"] == "Collaboration demo: product launch plan"
+    assert scenario["root_task_id"] == "task-20260831-009"
+    assert {edge["delegated_by"] for edge in scenario["delegations"]} == {"analyst"}
+    assert any(run["status"] == "succeeded" and run["attempt_id"] for run in scenario["runs"])
+    assert any(run.get("waiting", {}).get("owner") == "pm"
+               for run in scenario["runs"] if run.get("waiting"))
+    assert not scenario["can_delegate"]
+    original = {"id": "demo-worker", "note": "用户自己的任务正文"}
+    assert localize_demo_fixture(original) == original
+    assert localize_demo_fixture(original) is not original
+
+
+def test_invalid_demo_language_does_not_touch_output(tmp_path):
+    from core.protocol.task import ProtocolError
+
+    dest = tmp_path / "foreign"
+    dest.mkdir()
+    with pytest.raises(ProtocolError, match="language"):
+        build_panel_demo(dest, skip_npm=True, language="invalid")
+    assert not list(dest.iterdir())

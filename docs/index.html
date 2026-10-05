@@ -11,12 +11,12 @@
 <meta property="og:title" content="Retinue (众卿) — self-hosted task board for humans and AI agents">
 <meta property="og:description" content="People and AI agents work the same cards. One holder per card, acceptance checks, append-only receipts. MCP-native, self-hosted, no telemetry.">
 <meta property="og:url" content="https://jklthinking.github.io/retinue/">
-<meta property="og:image" content="https://jklthinking.github.io/retinue/images/2026-10-02/02-task-collaboration.jpg">
-<meta property="og:image:alt" content="Retinue task collaboration graph with device/model lanes and module contributions; synthetic read-only demo.">
+<meta property="og:image" content="https://jklthinking.github.io/retinue/images/2026-10-03-en/02-task-collaboration.jpg">
+<meta property="og:image:alt" content="English Retinue task collaboration graph; synthetic read-only demo.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Retinue (众卿) — self-hosted task board for humans and AI agents">
 <meta name="twitter:description" content="People and AI agents work the same cards. MCP-native, self-hosted, append-only receipts, no telemetry.">
-<meta name="twitter:image" content="https://jklthinking.github.io/retinue/images/2026-10-02/02-task-collaboration.jpg">
+<meta name="twitter:image" content="https://jklthinking.github.io/retinue/images/2026-10-03-en/02-task-collaboration.jpg">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"SoftwareApplication","name":"Retinue","alternateName":["众卿","Retinue 众卿"],"applicationCategory":"DeveloperApplication","applicationSubCategory":"AI agent task board","operatingSystem":"Linux, macOS, Windows (Docker)","url":"https://jklthinking.github.io/retinue/","codeRepository":"https://github.com/jklthinking/retinue","programmingLanguage":"Python","license":"https://github.com/jklthinking/retinue/blob/main/LICENSE","description":"Retinue is a self-hosted, local-first task board and orchestration hub where people and AI agents work the same cards. Each card has one holder, an acceptance check, and an append-only receipt chain. Agents connect over MCP or a token-scoped HTTP API. No hosted control plane and no telemetry.","featureList":["Holder-only writes with one durable baton per card","Append-only receipt chain for claim, progress, handoff, block and acceptance","Acceptance checks declared on the card before work starts","MCP server for Claude Code, Codex and any MCP-capable agent","Token-scoped HTTP API for agents without MCP","Read-only Claude Code and Codex session exporters","Optional Lark/Feishu and Telegram adapters that emit intents, never commands","File-mode directory copies and consistent server SQLite snapshots"],"offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"Open source under MIT; personal and commercial use permitted with required notices."},"author":{"@type":"Organization","name":"JKL Thinking"}}
 </script>
@@ -61,13 +61,33 @@ footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);color:v
 
 <div class="cta">
 <a class="primary" href="https://github.com/jklthinking/retinue">View on GitHub</a>
-<a href="demo/index.html">Open the no-install demo</a>
+<a href="demo-en/?lang=en">English demo</a>
+<a href="demo/?lang=zh-CN">中文演示</a>
 <a href="https://github.com/jklthinking/retinue/blob/main/SELF_HOSTING.md">Self-hosting guide</a>
 <a href="https://github.com/jklthinking/retinue/blob/main/docs/faq.md">Full FAQ / 常见问题</a>
-<a href="https://github.com/jklthinking/retinue/blob/main/docs/PRD.md">PRD</a>
+<a href="https://github.com/jklthinking/retinue/blob/main/docs/PRD.en.md">English PRD</a>
+<a href="https://github.com/jklthinking/retinue/blob/main/docs/PRD.md">中文 PRD</a>
 </div>
 
-<h2>2026-10-02 community preview: visible collaboration</h2>
+<h2>2026-10-03: Chinese and English dashboards</h2>
+<p>The dashboard now switches between English and 简体中文 while retaining the selected task and page. User-authored live task content remains unchanged. The English demo uses translated synthetic fixtures for the same product-launch task.</p>
+<div class="previews">
+<figure class="featured">
+  <a href="images/2026-10-03-en/02-task-collaboration.jpg"><img src="images/2026-10-03-en/02-task-collaboration.jpg" alt="English task collaboration graph with synthetic delegation records"></a>
+  <figcaption>English collaboration workspace — synthetic demo, not real-model acceptance.</figcaption>
+</figure>
+<figure>
+  <a href="images/2026-10-03-en/05-worker-lanes.jpg"><img src="images/2026-10-03-en/05-worker-lanes.jpg" loading="lazy" alt="English device runtime model lanes with synthetic stage times"></a>
+  <figcaption>English worker lanes — deterministic synthetic stage times.</figcaption>
+</figure>
+<figure>
+  <a href="images/2026-10-03-en/03-operations.jpg"><img src="images/2026-10-03-en/03-operations.jpg" loading="lazy" alt="English operations source and usage coverage explanations"></a>
+  <figcaption>English operations — explicit sources, coverage, and freshness.</figcaption>
+</figure>
+</div>
+<p>See <a href="https://github.com/jklthinking/retinue/blob/main/docs/releases/2026-10-03-english-edition.md">all eight English screenshots and release notes</a>, the <a href="https://github.com/jklthinking/retinue/blob/main/docs/PRD.en.md">English PRD</a>, and the <a href="https://github.com/jklthinking/retinue/blob/main/docs/sharing/english.md">English sharing draft</a>. The Chinese screenshot gallery remains below.</p>
+
+<h2>2026-10-02 community preview: Chinese screenshot gallery</h2>
 <p>Follow one task across delegation edges, device/runtime/model lanes, module contributions and branch details. Usage views show their source, coverage and freshness. The original home views remain available.</p>
 <p>All eight screenshots below come from the read-only public demo. Tasks, workers, devices, usage and stage times are synthetic; they show the interface and protocol, not a real model acceptance run. Click a preview to open its full-size image. 当前八张截图均为合成演示。</p>
 <div class="previews">

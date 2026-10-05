@@ -1,3 +1,4 @@
+import { t, useI18n, getLanguage } from "../i18n";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Activity,
@@ -39,11 +40,11 @@ import "./home-visual.css";
 
 function greeting(): string {
   const hour = new Date().getHours();
-  if (hour < 5) return "夜深了";
-  if (hour < 11) return "早上好";
-  if (hour < 13) return "中午好";
-  if (hour < 18) return "下午好";
-  return "晚上好";
+  if (hour < 5) return t("夜深了");
+  if (hour < 11) return t("早上好");
+  if (hour < 13) return t("中午好");
+  if (hour < 18) return t("下午好");
+  return t("晚上好");
 }
 
 function runtimeLabel(runtime: string): string {
@@ -69,6 +70,7 @@ export default function Home({
   onOpenTask: (taskId: string) => void;
   onOpenSession: (sessionId: number) => void;
 }) {
+  useI18n();
   const vocab = useVocab();
   // First screen is summary-driven: one aggregate fetch up front, then
   // incremental polls (updated_since watermark) merged into the cached task
@@ -152,8 +154,8 @@ export default function Home({
       <Ambient />
       <PageHeader
         kicker="RETINUE · COMMAND HOME"
-        title={`${greeting()},${me.display_name || me.name}`}
-        subtitle={new Date().toLocaleDateString("zh-CN", {
+        title={t("{greeting}，{name}", { greeting: greeting(), name: me.display_name || me.name })}
+        subtitle={new Date().toLocaleDateString(getLanguage(), {
           year: "numeric",
           month: "long",
           day: "numeric",
@@ -179,15 +181,15 @@ export default function Home({
       <div className="rt-metrics">
         <Metric
           icon={<Clock3 />}
-          label="待办 / 移交"
+          label={t("待办 / 移交")}
           value={queued}
-          sub="等待认领与交接"
+          sub={t("等待认领与交接")}
           tone="ink"
           onClick={() => onNavigate("board")}
         />
         <Metric
           icon={<Activity />}
-          label="进行中"
+          label={t("进行中")}
           value={doing}
           sub={vocab.membersExecuting}
           tone="blue"
@@ -195,46 +197,46 @@ export default function Home({
         />
         <Metric
           icon={<ShieldAlert />}
-          label="受阻"
+          label={t("受阻")}
           value={blocked}
-          sub={blocked > 0 ? "需要介入处理" : "一切顺畅"}
+          sub={blocked > 0 ? t("需要介入处理") : t("一切顺畅")}
           tone={blocked > 0 ? "red" : "teal"}
           onClick={() => onNavigate("board")}
         />
         <Metric
           icon={<Bot />}
-          label="近期上报的模型 Worker"
+          label={t("近期上报的模型 Worker")}
           value={
             <>
               {agents.filter((actor) => actor.online).length}
               <em className="rt-metric__frac">/ {agents.length}</em>
             </>
           }
-          sub="15 分钟认证 API 活动，不代表正在执行"
+          sub={t("15 分钟认证 API 活动，不代表正在执行")}
           tone="green"
           onClick={() => onNavigate("agents")}
         />
         <Metric
           icon={<Sparkles />}
-          label="技能"
+          label={t("技能")}
           value={status?.skills ?? 0}
-          sub="能力登记总数"
+          sub={t("能力登记总数")}
           tone="amber"
           onClick={() => onNavigate("skills")}
         />
         <Metric
           icon={<Server />}
-          label="节点"
+          label={t("节点")}
           value={status?.nodes ?? 0}
-          sub="接入健康心跳"
+          sub={t("接入健康心跳")}
           tone="teal"
           onClick={() => onNavigate("infra")}
         />
         <Metric
           icon={<BookOpen />}
-          label="知识源"
+          label={t("知识源")}
           value={status?.knowledge_sources ?? 0}
-          sub="Vault / Wiki / 语料"
+          sub={t("Vault / Wiki / 语料")}
           tone="amber"
           onClick={() => onNavigate("knowledge")}
         />
@@ -243,25 +245,24 @@ export default function Home({
       <Panel
         icon={<Route size={15} />}
         kicker="TASK FLOW"
-        title="任务流转"
+        title={t("任务流转")}
         tools={
           <button className="rt-button rt-button--soft" onClick={() => onNavigate("board")}>
-            <SquareKanban size={14} /> 打开看板
-          </button>
+            <SquareKanban size={14} /> {t("打开看板")} </button>
         }
       >
         <TaskFlowDiagram counts={counts} recentEvents={recent} onSelectStatus={setSelectedStatus} selectedStatus={selectedStatus} />
-        <p className="rt-home-note">节点显示当前任务数量，亮线表示最近记录的状态变化。完成状态不等于成果已验收。</p>
+        <p className="rt-home-note">{t("节点显示当前任务数量，亮线表示最近记录的状态变化。完成状态不等于成果已验收。")}</p>
         {selectedStatus && (
-          <section className="rt-home-task-list" aria-label={`${STATUS_LABEL[selectedStatus]}任务`}>
-            <header><strong>{STATUS_LABEL[selectedStatus]} · {selectedTasks.length} 个任务</strong><button type="button" className="rt-button rt-button--soft" onClick={() => setSelectedStatus(null)}>收起</button></header>
+          <section className="rt-home-task-list" aria-label={t("{v0}任务", { v0: t(STATUS_LABEL[selectedStatus]) })}>
+            <header><strong>{t(STATUS_LABEL[selectedStatus])} · {selectedTasks.length} {t("个任务")}</strong><button type="button" className="rt-button rt-button--soft" onClick={() => setSelectedStatus(null)}>{t("收起")}</button></header>
             <div>
               {selectedTasks.map((task) => (
                 <button key={task.id} type="button" className="rt-home-task" onClick={() => onOpenTask(task.id)}>
                   <span><strong>{task.title}</strong><small>{nameOf(task.holder)}{task.blocked_reason ? ` · ${task.blocked_reason}` : ""}</small></span><ArrowRight size={14} />
                 </button>
               ))}
-              {selectedTasks.length === 0 && <p className="rt-home-note">这个状态暂时没有任务。</p>}
+              {selectedTasks.length === 0 && <p className="rt-home-note">{t("这个状态暂时没有任务。")}</p>}
             </div>
           </section>
         )}
@@ -271,41 +272,39 @@ export default function Home({
         <Panel
           icon={<Network size={15} />}
           kicker="DISPATCH FLOW"
-          title="派单协调"
+          title={t("派单协调")}
           tools={
             <button className="rt-button rt-button--soft" onClick={() => onNavigate("board")}>
-              <SquareKanban size={14} /> 打开看板
-            </button>
+              <SquareKanban size={14} /> {t("打开看板")} </button>
           }
         >
           <DispatchMap tasks={tasks} actors={actors} onOpenTask={onOpenTask} />
-          <p className="rt-home-note">连线显示任务创建者 → 当前持有人；点击连线查看该任务的实际协作记录。</p>
+          <p className="rt-home-note">{t("连线显示任务创建者 → 当前持有人；点击连线查看该任务的实际协作记录。")}</p>
         </Panel>
 
         <Panel
           icon={<MessageSquareText size={15} />}
           kicker="CONVERSATION TO DELIVERY"
-          title="会话流转台"
+          title={t("会话流转台")}
           className="rt-receipts-panel"
           tools={
-            <button className="rt-button rt-button--soft" onClick={() => onNavigate("sessions")}>
-              会话中心 <ArrowRight size={14} />
+            <button className="rt-button rt-button--soft" onClick={() => onNavigate("sessions")}> {t("会话中心")} <ArrowRight size={14} />
             </button>
           }
         >
           <div className="rt-command-workbench">
-            <div className="rt-command-flow" aria-label="会话到交付状态">
-              <span><MessageSquareText size={13} /><b>{summarySessions}</b><em>可提取摘要</em></span>
-              <span><ScrollText size={13} /><b>{linkedSessions}</b><em>已转任务</em></span>
-              <span><Activity size={13} /><b>{doing}</b><em>正在执行</em></span>
-              <span><CircleCheckBig size={13} /><b>{delivered}</b><em>最近完成记录</em></span>
+            <div className="rt-command-flow" aria-label={t("会话到交付状态")}>
+              <span><MessageSquareText size={13} /><b>{summarySessions}</b><em>{t("可提取摘要")}</em></span>
+              <span><ScrollText size={13} /><b>{linkedSessions}</b><em>{t("已转任务")}</em></span>
+              <span><Activity size={13} /><b>{doing}</b><em>{t("正在执行")}</em></span>
+              <span><CircleCheckBig size={13} /><b>{delivered}</b><em>{t("最近完成记录")}</em></span>
             </div>
-            <p className="rt-home-note">会话计数来自最近 {sessions.length} 条记录；任务进展以状态事件为准。</p>
+            <p className="rt-home-note">{t("会话计数来自最近 {count} 条记录；任务进展以状态事件为准。", { count: sessions.length })}</p>
 
-            <section className="rt-command-sessions" aria-label="最近可提取会话">
+            <section className="rt-command-sessions" aria-label={t("最近可提取会话")}>
               <header>
-                <span>最近可提取会话</span>
-                <small>摘要 → 发单 → 回执</small>
+                <span>{t("最近可提取会话")}</span>
+                <small>{t("摘要 → 发单 → 回执")}</small>
               </header>
               <div>
                 {sessionPreview.map((session) => (
@@ -317,35 +316,35 @@ export default function Home({
                   >
                     <Avatar name={session.actor_name} size={28} square />
                     <span>
-                      <strong>{session.title || "未命名会话"}</strong>
+                      <strong>{session.title || t("未命名会话")}</strong>
                       <em>{session.actor_name} · {runtimeLabel(session.runtime)}</em>
-                      <small>{session.privacy === "metadata" ? `${session.message_count} 条原生消息，仅同步元数据` : session.summary || `${session.message_count} 条原生消息，正文未同步`}</small>
+                      <small>{session.privacy === "metadata" ? t("{v0} 条原生消息，仅同步元数据", { v0: session.message_count }) : session.summary || t("{v0} 条原生消息，正文未同步", { v0: session.message_count })}</small>
                     </span>
                     <ArrowRight size={14} />
                   </button>
                 ))}
                 {sessionPreview.length === 0 && (
-                  <p className="rt-command-empty">会话同步完成后，这里会出现可提取的摘要。</p>
+                  <p className="rt-command-empty">{t("会话同步完成后，这里会出现可提取的摘要。")}</p>
                 )}
               </div>
             </section>
 
-            <section className="rt-command-receipts" aria-label="最近回执">
+            <section className="rt-command-receipts" aria-label={t("最近回执")}>
               <header>
-                <span>最近回执</span>
-                <small>{recent.length} 条任务事件</small>
+                <span>{t("最近回执")}</span>
+                <small>{recent.length} {t("条任务事件")}</small>
               </header>
               <div className="rt-receipt-list" role="list">
                 {recent.slice(0, 3).map((event, index) => (
                   <div key={`${event.task_id}-${index}`} role="listitem">
-                  <button type="button" className="rt-receipt-row rt-home-receipt-open" onClick={() => onOpenTask(event.task_id)} aria-label={`查看任务：${event.task_title}`}>
+                  <button type="button" className="rt-receipt-row rt-home-receipt-open" onClick={() => onOpenTask(event.task_id)} aria-label={t("查看任务：{v0}", { v0: event.task_title })}>
                     <Avatar name={nameOf(event.who)} size={28} square />
                     <div className="rt-receipt-row__content">
                       <div className="rt-receipt-row__meta">
                         <strong>{nameOf(event.who)}</strong>
                         <div className="rt-receipt-row__trail">
                           {event.to_status && event.from_status !== event.to_status && (
-                            <span className="rt-receipt-status">{STATUS_LABEL[event.to_status]}</span>
+                            <span className="rt-receipt-status">{t(STATUS_LABEL[event.to_status])}</span>
                           )}
                           <time dateTime={event.at}>{event.at.slice(5, 16).replace("T", " ")}</time>
                         </div>
@@ -356,12 +355,11 @@ export default function Home({
                   </button>
                   </div>
                 ))}
-                {recent.length === 0 && <p className="rt-receipt-empty">还没有任何回执</p>}
+                {recent.length === 0 && <p className="rt-receipt-empty">{t("还没有任何回执")}</p>}
               </div>
             </section>
 
-            <button className="rt-command-cta" type="button" onClick={() => onNavigate("sessions")}>
-              查看完整会话工作流 <ArrowRight size={14} />
+            <button className="rt-command-cta" type="button" onClick={() => onNavigate("sessions")}> {t("查看完整会话工作流")} <ArrowRight size={14} />
             </button>
           </div>
         </Panel>

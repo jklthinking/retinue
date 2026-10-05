@@ -3,6 +3,7 @@ export {
   ThemeSwitcher,
   useTheme,
   useVocab,
+  useCanonicalVocab,
 } from "./ThemeContext";
 export {
   DEFAULT_THEME,

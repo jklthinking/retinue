@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import type { Task } from "../types";
 import { panelNow } from "../demo";
 
@@ -55,8 +56,8 @@ export function elapsedText(fromIso: string | null, toIso?: string | null): stri
   const from = new Date(fromIso).getTime();
   const to = toIso ? new Date(toIso).getTime() : panelNow().getTime();
   const minutes = Math.max(0, Math.round((to - from) / 60_000));
-  if (minutes < 60) return `${minutes} 分钟`;
+  if (minutes < 60) return t("{v0} 分钟", { v0: minutes });
   const hours = minutes / 60;
-  if (hours < 48) return `${hours.toFixed(1)} 小时`;
-  return `${(hours / 24).toFixed(1)} 天`;
+  if (hours < 48) return t("{v0} 小时", { v0: hours.toFixed(1) });
+  return t("{v0} 天", { v0: (hours / 24).toFixed(1) });
 }

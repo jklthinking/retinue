@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useI18n } from "../i18n";
 
 export function PageHeader({
   kicker,
@@ -105,15 +106,16 @@ export function DataState({
   stale?: boolean;
   onRetry?: () => void;
 }) {
-  if (loading) return <p className="rt-data-state">正在读取数据…</p>;
+  const { t } = useI18n();
+  if (loading) return <p className="rt-data-state">{t("正在读取数据…")}</p>;
   if (error) {
     return (
       <div className="rt-data-state rt-data-state--error" role="alert">
-        <strong>{stale ? "读取失败，数据可能已过期" : "读取失败"}</strong>
+        <strong>{t(stale ? "读取失败，数据可能已过期" : "读取失败")}</strong>
         <span>{error}</span>
-        {onRetry && <button className="rt-button rt-button--soft" onClick={onRetry}>重试</button>}
+        {onRetry && <button className="rt-button rt-button--soft" onClick={onRetry}>{t("重试")}</button>}
       </div>
     );
   }
-  return <p className="rt-data-state">{empty ?? "暂无数据"}</p>;
+  return <p className="rt-data-state">{empty ?? t("暂无数据")}</p>;
 }

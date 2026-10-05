@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { Eye, EyeOff, LogIn } from "lucide-react";
 import { api, ApiError } from "../api";
 import { useVocab } from "../theme";
+import { LanguageSwitcher, useI18n } from "../i18n";
 
 interface SiteEntry {
   label: string;
@@ -21,6 +22,7 @@ interface LoginConfig {
 
 export default function Login({ onLogin }: { onLogin: () => void }) {
   const vocab = useVocab();
+  const { t } = useI18n();
   const [config, setConfig] = useState<LoginConfig | null>(null);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -44,7 +46,7 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
       await api.post("/api/auth/login", { username, password });
       onLogin();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "登录失败,请重试");
+      setError(err instanceof ApiError ? err.message : t("登录失败,请重试"));
     } finally {
       setBusy(false);
     }
@@ -57,7 +59,7 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
       await api.post(`/api/auth/demo-login?seat=${seat}`);
       onLogin();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "进入失败");
+      setError(err instanceof ApiError ? err.message : t("进入失败"));
     } finally {
       setBusy(false);
     }
@@ -65,7 +67,7 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
 
   const demoMode = Boolean(config?.demo) && !showManual;
   const teacherMode = config?.mode === "teacher";
-  const entryLabel = config?.entry_label || (teacherMode ? "一键进入试点" : "一键进入演示");
+  const entryLabel = config?.entry_label || t(teacherMode ? "一键进入试点" : "一键进入演示");
 
   return (
     <div className="login-page">
@@ -74,9 +76,10 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
           <img className="brand-mark" src="./retinue-mark-v2.png" alt="Retinue" />
           <div>
             <strong>Retinue {vocab.appTitle}</strong>
-            <small>{teacherMode ? "老师的 AI 备课协作台" : "多智能体协作管理平台"}</small>
+            <small>{t(teacherMode ? "老师的 AI 备课协作台" : "多智能体协作管理平台")}</small>
           </div>
         </div>
+        <LanguageSwitcher />
 
         {config && config.sites.length > 0 && (
           <div className="site-switch">
@@ -99,7 +102,7 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
           <div className="demo-entry">
             <button className="primary demo-button" disabled={busy} onClick={() => void demoLogin("work")}>
               <LogIn size={16} />
-              {busy ? "进入中…" : entryLabel}
+              {busy ? t("进入中…") : entryLabel}
             </button>
             {config?.observer_label ? (
               <button type="button" className="link-button" disabled={busy} onClick={() => void demoLogin("observe")}>
@@ -108,13 +111,13 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
             ) : null}
             {error && <p className="error">{error}</p>}
             <button type="button" className="link-button" onClick={() => setShowManual(true)}>
-              使用账号密码登录
+              {t("使用账号密码登录")}
             </button>
           </div>
         ) : (
           <form className="login-form" onSubmit={submit}>
             <label>
-              用户名
+              {t("用户名")}
               <input
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -123,7 +126,7 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
               />
             </label>
             <label>
-              密码
+              {t("密码")}
               <span className="pw-field">
                 <input
                   type={showPassword ? "text" : "password"}
@@ -135,7 +138,7 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
                 <button
                   type="button"
                   className="pw-toggle"
-                  aria-label={showPassword ? "隐藏密码" : "显示密码"}
+                  aria-label={t(showPassword ? "隐藏密码" : "显示密码")}
                   onClick={() => setShowPassword((v) => !v)}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -144,11 +147,11 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
             </label>
             {error && <p className="error">{error}</p>}
             <button type="submit" className="primary" disabled={busy}>
-              {busy ? "登录中…" : "登录"}
+              {t(busy ? "登录中…" : "登录")}
             </button>
             {Boolean(config?.demo) && (
               <button type="button" className="link-button" onClick={() => setShowManual(false)}>
-                返回{entryLabel}
+                {t("返回{label}", { label: entryLabel })}
               </button>
             )}
           </form>
@@ -156,7 +159,7 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
 
         <p className="login-footnote">
           {config?.footnote ||
-            (teacherMode
+            t(teacherMode
               ? "试点数据独立保存；AI 生成仅使用当前任务内容。"
               : "数据保存在您自己的服务器上,无遥测、无外呼。")}
         </p>

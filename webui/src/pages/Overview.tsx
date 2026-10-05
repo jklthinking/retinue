@@ -1,3 +1,4 @@
+import { t, useI18n } from "../i18n";
 import { useCallback, useMemo } from "react";
 import {
   Activity,
@@ -20,6 +21,7 @@ import { observationState } from "../lib/observation";
 import "./operations.css";
 
 function Bar({ percent }: { percent: number }) {
+  useI18n();
   const cls = percent > 88 ? "is-red" : percent > 70 ? "is-amber" : "is-green";
   return (
     <div className="rt-progress">
@@ -31,6 +33,7 @@ function Bar({ percent }: { percent: number }) {
 const STATUS_ORDER: Status[] = ["queued", "doing", "handoff", "blocked", "done"];
 
 export default function Overview() {
+  useI18n();
   const vocab = useVocab();
   const reader = useCallback(async () => {
         const [status, nodes, skills, actors] = await Promise.all([
@@ -50,7 +53,7 @@ export default function Overview() {
   const skillCats = useMemo(() => {
     const map = new Map<string, number>();
     for (const skill of skills) {
-      const key = skill.category || "未分类";
+      const key = skill.category || "";
       map.set(key, (map.get(key) ?? 0) + 1);
     }
     return [...map.entries()].sort((a, b) => b[1] - a[1]);
@@ -65,50 +68,50 @@ export default function Overview() {
       <Ambient />
       <PageHeader
         kicker="SYSTEM OVERVIEW"
-        title="系统总览"
-        subtitle="一个界面掌握节点、智能体、任务与知识流的全局状态。"
+        title={t("系统总览")}
+        subtitle={t("一个界面掌握节点、智能体、任务与知识流的全局状态。")}
       />
 
       {loading && !data && <DataState loading />}
       {error && <DataState error={error} stale={!!data} />}
-      {data && <p className="ops-source-note">页面读取 {sourceTime(fetchedAt)} · 节点新鲜度按最后入库遥测时间及 30 分钟阈值判断，不代表 worker 在线或离线。</p>}
+      {data && <p className="ops-source-note">{t("页面读取")} {sourceTime(fetchedAt)} {t("· 节点新鲜度按最后入库遥测时间及 30 分钟阈值判断，不代表 worker 在线或离线。")}</p>}
 
       {data && <>
 
       <div className="rt-metrics">
         <Metric
           icon={<Bot />}
-          label="启用的模型 Worker"
+          label={t("启用的模型 Worker")}
           value={
             <>
               {agents.filter((actor) => actor.online).length}
               <em className="rt-metric__frac">/ {agents.length}</em>
             </>
           }
-          sub="近期认证上报 / 启用总数 · 不含同步代理"
+          sub={t("近期认证上报 / 启用总数 · 不含同步代理")}
           tone="green"
         />
         {/* Fleet counts that used to live on Home: queued/doing/blocked stay here with agents/skills/nodes/knowledge. */}
         <Metric
           icon={<ListChecks />}
-          label="任务"
+          label={t("任务")}
           value={totalTasks}
-          sub={`待办/移交 ${(counts["queued"] ?? 0) + (counts["handoff"] ?? 0)} · 进行中 ${counts["doing"] ?? 0} · 受阻 ${counts["blocked"] ?? 0}`}
+          sub={t("待办/移交 {v0} · 进行中 {v1} · 受阻 {v2}", { v0: (counts["queued"] ?? 0) + (counts["handoff"] ?? 0), v1: counts["doing"] ?? 0, v2: counts["blocked"] ?? 0 })}
           tone="blue"
         />
         <Metric
           icon={<Sparkles />}
-          label="技能"
+          label={t("技能")}
           value={status?.skills ?? 0}
-          sub={`${skillCats.length} 个分类`}
+          sub={t("{v0} 个分类", { v0: skillCats.length })}
           tone="amber"
         />
-        <Metric icon={<Server />} label="节点" value={status?.nodes ?? 0} sub="健康心跳接入" tone="teal" />
+        <Metric icon={<Server />} label={t("节点")} value={status?.nodes ?? 0} sub={t("健康心跳接入")} tone="teal" />
         <Metric
           icon={<BookOpen />}
-          label="知识源"
+          label={t("知识源")}
           value={status?.knowledge_sources ?? 0}
-          sub="Vault / Wiki / 语料"
+          sub={t("Vault / Wiki / 语料")}
           tone="amber"
         />
       </div>
@@ -116,7 +119,7 @@ export default function Overview() {
       <div className="rt-strip">
         {STATUS_ORDER.map((s) => (
           <span key={s} className={`chip chip-status-${s}`}>
-            {STATUS_LABEL[s]} {counts[s] ?? 0}
+            {t(STATUS_LABEL[s])} {counts[s] ?? 0}
           </span>
         ))}
         <span className="rt-strip__right">
@@ -128,7 +131,7 @@ export default function Overview() {
         </span>
       </div>
 
-      <Panel icon={<Server size={15} />} kicker="NODES & DEVICES" title="节点与设备">
+      <Panel icon={<Server size={15} />} kicker="NODES & DEVICES" title={t("节点与设备")}>
         <div className="rt-node-grid">
           {nodes.map((node) => {
             const memTotal = node.memory.total ?? 0;
@@ -142,24 +145,24 @@ export default function Overview() {
                   <div>
                     <strong>{node.label || node.id}</strong>
                     <p>
-                      {node.hostname} · 运行 {fmtUptime(node.uptime_seconds)}
-                      {node.load.length > 0 && ` · 负载 ${node.load[0].toFixed(2)}`}
+                      {node.hostname} {t("· 运行")} {fmtUptime(node.uptime_seconds)}
+                      {node.load.length > 0 && t(" · 负载 {v0}", { v0: node.load[0].toFixed(2) })}
                     </p>
                   </div>
                   <span className={`rt-badge ${observation === "fresh" ? "rt-badge--good" : "rt-badge--warn"}`}>
-                    {({ fresh: "近期遥测", stale: "遥测已旧", unknown: "遥测时间未知", clock_skew: "时钟待核对" })[observation]}
+                    {({ fresh: t("近期遥测"), stale: t("遥测已旧"), unknown: t("遥测时间未知"), clock_skew: t("时钟待核对") })[observation]}
                   </span>
                 </header>
-                <p className="ops-source-note">来源入库遥测 {sourceTime(node.updated_at)} · 时效阈值 30 分钟</p>
+                <p className="ops-source-note">{t("来源入库遥测")} {sourceTime(node.updated_at)} {t("· 时效阈值 30 分钟")}</p>
                 <div className="rt-resource">
                   <span>
-                    <MemoryStick size={12} /> 内存 {memUsedPct.toFixed(0)}%
+                    <MemoryStick size={12} /> {t("内存")} {memUsedPct.toFixed(0)}%
                   </span>
                   <Bar percent={memUsedPct} />
                 </div>
                 <div className="rt-resource">
                   <span>
-                    <HardDrive size={12} /> 磁盘 {(node.disk.percent ?? 0).toFixed(0)}%
+                    <HardDrive size={12} /> {t("磁盘")} {(node.disk.percent ?? 0).toFixed(0)}%
                   </span>
                   <Bar percent={node.disk.percent ?? 0} />
                 </div>

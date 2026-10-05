@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import type { ActorInfo, TaskSummary } from "../types";
 import type { CollaborationEvent, CollaborationRun, CollaborationSnapshot, CollaborationRelationship, CollaborationModule } from "./collaboration";
 
@@ -33,12 +34,12 @@ export const GRAPH_NODE_HEIGHT = 112;
 export function visualEdges(snapshot: VisualSnapshot, nameOf: (id: string) => string): VisualEdge[] {
   const edges: VisualEdge[] = snapshot.delegations.map((item) => ({
     id: item.id, kind: "delegation", from: item.parent_task_id, to: item.child_task_id,
-    label: "委派", note: `${nameOf(item.delegated_by)} → ${nameOf(item.delegated_to)}`, at: item.created_at,
+    label: t("委派"), note: `${nameOf(item.delegated_by)} → ${nameOf(item.delegated_to)}`, at: item.created_at,
   }));
   for (const item of snapshot.relationships ?? []) {
     if (!(item.kind in EDGE_LABEL)) continue;
     edges.push({ id: item.id, kind: item.kind, from: item.from_task_id, to: item.to_task_id,
-      label: EDGE_LABEL[item.kind],
+      label: t(EDGE_LABEL[item.kind]),
       note: [item.from_actor || item.to_actor ? `${nameOf(item.from_actor || "")} → ${nameOf(item.to_actor || "")}` : "", item.note].filter(Boolean).join(" · "),
       at: item.at,
     });
@@ -47,7 +48,7 @@ export function visualEdges(snapshot: VisualSnapshot, nameOf: (id: string) => st
   const available = new Set([...snapshot.tasks, ...(snapshot.related_tasks ?? [])].map((task) => task.id));
   for (const task of snapshot.tasks) for (const dependency of task.depends_on ?? []) {
     if (available.has(dependency) && !edges.some((edge) => edge.kind === "dependency" && edge.from === dependency && edge.to === task.id)) {
-      edges.push({ id: `dependency:${dependency}:${task.id}`, kind: "dependency", from: dependency, to: task.id, label: "依赖", note: "任务卡显式依赖" });
+      edges.push({ id: `dependency:${dependency}:${task.id}`, kind: "dependency", from: dependency, to: task.id, label: t("依赖"), note: t("任务卡显式依赖") });
     }
   }
   return edges;
@@ -92,7 +93,7 @@ export function visibleModules(snapshot: VisualSnapshot): CollaborationModule[] 
   const group = (name: string | null | undefined): CollaborationModule => {
     const key = name?.trim() || "";
     if (!groups.has(key)) groups.set(key, {
-      id: `fallback-module:${key}`, name: key || "未标注模块", source: key ? "explicit" : "unassigned",
+      id: `fallback-module:${key}`, name: key || t("未标注模块"), source: key ? "explicit" : "unassigned",
       task_ids: [], run_ids: [], completed: [],
     });
     return groups.get(key)!;
@@ -121,7 +122,7 @@ export function visibleModules(snapshot: VisualSnapshot): CollaborationModule[] 
 }
 
 export function historicalWorkerLabel(actorId: string, actors: ActorInfo[]): string {
-  return (actors.find((actor) => actor.id === actorId)?.display_name || actorId || "责任人未知") + " · 历史设备/模型未记录";
+  return (actors.find((actor) => actor.id === actorId)?.display_name || actorId || t("责任人未知")) + t(" · 历史设备/模型未记录");
 }
 
 export function millis(value: string | null | undefined): number | null {

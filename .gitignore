@@ -9,3 +9,4 @@ dist/
 webui/node_modules/
 server/static/
 retinue-data/
+webui/*.tsbuildinfo

@@ -1,3 +1,4 @@
+import { useI18n, t } from "../i18n";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BOARD_REFRESH_MS, DATA_REFRESH_EVENT } from "../lib/refresh";
 import {
@@ -87,23 +88,23 @@ function Lane({
   empty: string;
   children: React.ReactNode;
 }) {
+  useI18n();
   return (
     <section className={`rt-lane rt-lane--${tone}`} aria-label={title}>
       <header className="rt-lane__head">
         {icon}
         <strong>{title}</strong>
         <em>{count}</em>
-        {stale && error && <span className="rt-lane__stale">数据可能已过期</span>}
+        {stale && error && <span className="rt-lane__stale">{t("数据可能已过期")}</span>}
       </header>
       {error && !stale && (
         <div className="rt-lane__error" role="alert">
           <span>{error}</span>
           <button type="button" className="rt-button rt-button--soft" onClick={onRetry}>
-            重试
-          </button>
+            {t("重试")} </button>
         </div>
       )}
-      {!error && loading && !stale && <p className="rt-lane__empty">读取中…</p>}
+      {!error && loading && !stale && <p className="rt-lane__empty">{t("读取中…")}</p>}
       {(stale || (!error && !loading)) &&
         (count > 0 ? children : <p className="rt-lane__empty">{empty}</p>)}
     </section>
@@ -119,6 +120,7 @@ function TaskRow({
   extra?: string;
   onOpenTask: (taskId: string) => void;
 }) {
+  useI18n();
   return (
     <button
       type="button"
@@ -140,6 +142,7 @@ export default function ActionQueue({
 }: {
   onOpenTask: (taskId: string) => void;
 }) {
+  useI18n();
   // Lane items and counts come pre-computed from the summary endpoint; the
   // task list itself stays on the server (include_tasks=false).
   const summary = useSource(
@@ -157,29 +160,28 @@ export default function ActionQueue({
   // per-lane stale markers instead.
   if (summary.error && !stale) {
     return (
-      <div className="rt-queue" aria-label="行动队列">
+      <div className="rt-queue" aria-label={t("行动队列")}>
         <div className="rt-lane__error" role="alert">
           <span>{summary.error}</span>
           <button type="button" className="rt-button rt-button--soft" onClick={summary.reload}>
-            重试
-          </button>
+            {t("重试")} </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="rt-queue" aria-label="行动队列">
+    <div className="rt-queue" aria-label={t("行动队列")}>
       <Lane
         icon={<Crown size={14} />}
-        title="等我决策"
+        title={t("等我决策")}
         count={lanes?.decisions.count ?? 0}
         tone="amber"
         loading={summary.loading}
         error={summary.error}
         stale={stale}
         onRetry={summary.reload}
-        empty="没有待决策事项"
+        empty={t("没有待决策事项")}
       >
         {(lanes?.decisions.items ?? []).slice(0, 5).map((approval) => (
           <button
@@ -193,7 +195,7 @@ export default function ActionQueue({
               {approval.task_title || approval.task_id}
             </span>
             <span className="rt-lane__item-meta">
-              {approval.stage_name ? `节点「${approval.stage_name}」` : "人工审批"} ·{" "}
+              {approval.stage_name ? t("节点「{v0}」", { v0: approval.stage_name }) : t("人工审批")} ·{" "}
               {approval.requested_by}
             </span>
           </button>
@@ -202,36 +204,36 @@ export default function ActionQueue({
 
       <Lane
         icon={<CalendarClock size={14} />}
-        title="今日到期"
+        title={t("今日到期")}
         count={lanes?.due_today.count ?? 0}
         tone="blue"
         loading={summary.loading}
         error={summary.error}
         stale={stale}
         onRetry={summary.reload}
-        empty="今天没有到期任务"
+        empty={t("今天没有到期任务")}
       >
         {(lanes?.due_today.items ?? []).slice(0, 5).map((task) => (
-          <TaskRow key={task.id} task={task} extra="今日到期" onOpenTask={onOpenTask} />
+          <TaskRow key={task.id} task={task} extra={t("今日到期")} onOpenTask={onOpenTask} />
         ))}
       </Lane>
 
       <Lane
         icon={<AlarmClock size={14} />}
-        title="已逾期"
+        title={t("已逾期")}
         count={lanes?.overdue.count ?? 0}
         tone="red"
         loading={summary.loading}
         error={summary.error}
         stale={stale}
         onRetry={summary.reload}
-        empty="没有逾期任务"
+        empty={t("没有逾期任务")}
       >
         {(lanes?.overdue.items ?? []).slice(0, 5).map((task) => (
           <TaskRow
             key={task.id}
             task={task}
-            extra={`截止 ${task.due_at}`}
+            extra={t("截止 {v0}", { v0: task.due_at })}
             onOpenTask={onOpenTask}
           />
         ))}
@@ -239,14 +241,14 @@ export default function ActionQueue({
 
       <Lane
         icon={<ShieldAlert size={14} />}
-        title="阻塞"
+        title={t("阻塞")}
         count={lanes?.blocked.count ?? 0}
         tone="red"
         loading={summary.loading}
         error={summary.error}
         stale={stale}
         onRetry={summary.reload}
-        empty="没有阻塞任务"
+        empty={t("没有阻塞任务")}
       >
         {(lanes?.blocked.items ?? []).slice(0, 5).map((task) => (
           <TaskRow
@@ -260,14 +262,14 @@ export default function ActionQueue({
 
       <Lane
         icon={<WifiOff size={14} />}
-        title="失联执行者"
+        title={t("失联执行者")}
         count={lanes?.lost_executors.count ?? 0}
         tone="ink"
         loading={summary.loading}
         error={summary.error}
         stale={stale}
         onRetry={summary.reload}
-        empty="在制卡的执行者都在线"
+        empty={t("在制卡的执行者都在线")}
       >
         {(lanes?.lost_executors.items ?? []).slice(0, 5).map(({ task, actor }) => (
           <button
@@ -284,8 +286,8 @@ export default function ActionQueue({
             <span className="rt-lane__item-meta">
               {task.title}
               {actor.last_seen_at
-                ? ` · 最后在线 ${actor.last_seen_at.slice(5, 16).replace("T", " ")}`
-                : " · 从未在线"}
+                ? t(" · 最后在线 {v0}", { v0: actor.last_seen_at.slice(5, 16).replace("T", " ") })
+                : t(" · 从未在线")}
             </span>
           </button>
         ))}

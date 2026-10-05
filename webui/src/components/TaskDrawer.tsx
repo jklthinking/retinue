@@ -1,3 +1,4 @@
+import { useI18n, t } from "../i18n";
 import { useCallback, useEffect, useState } from "react";
 import { Crown, ExternalLink, Eye, Link2, Zap } from "lucide-react";
 import { api, ApiError } from "../api";
@@ -20,6 +21,7 @@ interface Props {
 }
 
 export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onOpenTask, onOpenFlow }: Props) {
+  useI18n();
   const [task, setTask] = useState<Task | null>(null);
   const [note, setNote] = useState("");
   const [holder, setHolder] = useState("");
@@ -61,7 +63,7 @@ export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onO
           if (seq === loadSeq.current) setSessions([]);
         });
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "加载失败");
+      setError(err instanceof ApiError ? err.message : t("加载失败"));
     }
   }, [taskId, loadSeq]);
 
@@ -85,7 +87,7 @@ export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onO
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      window.prompt("复制此任务卡链接：", link);
+      window.prompt(t("复制此任务卡链接："), link);
     }
   }
 
@@ -102,7 +104,7 @@ export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onO
       await load();
       onChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "操作失败");
+      setError(err instanceof ApiError ? err.message : t("操作失败"));
     } finally {
       setBusy(false);
     }
@@ -112,7 +114,7 @@ export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onO
     return (
       <div className="drawer-mask" onClick={onClose}>
         <aside className="drawer" onClick={(e) => e.stopPropagation()}>
-          {error ? <p className="error">{error}</p> : <p>加载中…</p>}
+          {error ? <p className="error">{error}</p> : <p>{t("加载中…")}</p>}
         </aside>
       </div>
     );
@@ -138,7 +140,7 @@ export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onO
       note: requiredNote ?? `${STATUS_LABEL[task!.status]} → ${STATUS_LABEL[to]}`,
     };
     if (to === "blocked") {
-      const reason = window.prompt("受阻原因(必填):");
+      const reason = window.prompt(t("受阻原因(必填):"));
       if (!reason || !reason.trim()) return;
       body.blocked_reason = reason.trim();
     }
@@ -150,27 +152,27 @@ export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onO
       <aside className="drawer" onClick={(e) => e.stopPropagation()}>
         <header className="drawer-head">
           <div>
-            <span className={`chip chip-status-${task.status}`}>{STATUS_LABEL[task.status]}</span>
+            <span className={`chip chip-status-${task.status}`}>{t(STATUS_LABEL[task.status])}</span>
             <h2>{task.title}</h2>
             <p className="drawer-sub">
-              {task.id} · 发单 {task.created_by}
-              {task.dept ? ` · ${task.dept}` : ""} · 优先级 {PRIORITY_LABEL[task.priority]}
-              {task.status === "doing" && ` · 进度 ${task.progress}%`}
-              {task.due_at && ` · 截止 ${task.due_at}`}
-              {task.open_dispatch && " · 挂单待接"}
-              {task.squad_id && ` · 编队 ${task.squad_id}`}
+              {task.id} {t("· 发单")} {task.created_by}
+              {task.dept ? ` · ${task.dept}` : ""} {t("· 优先级")} {t(PRIORITY_LABEL[task.priority])}
+              {task.status === "doing" && t(" · 进度 {v0}%", { v0: task.progress })}
+              {task.due_at && t(" · 截止 {v0}", { v0: task.due_at })}
+              {task.open_dispatch && t(" · 挂单待接")}
+              {task.squad_id && t(" · 编队 {v0}", { v0: task.squad_id })}
             </p>
           </div>
           <button
             className="drawer-link"
             onClick={() => void copyLink()}
-            title="复制本卡链接"
-            aria-label="复制本卡链接"
+            title={t("复制本卡链接")}
+            aria-label={t("复制本卡链接")}
           >
             <Link2 size={15} />
-            {copied && <span className="drawer-link__hint">已复制</span>}
+            {copied && <span className="drawer-link__hint">{t("已复制")}</span>}
           </button>
-          <button className="close" onClick={onClose} aria-label="关闭任务详情">
+          <button className="close" onClick={onClose} aria-label={t("关闭任务详情")}>
             ×
           </button>
         </header>
@@ -178,15 +180,15 @@ export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onO
         <button type="button" className="drawer-link" onClick={() => {
           if (onOpenFlow) onOpenFlow(task.id);
           else { onClose(); writeNavigation({ page: "taskflow", task: task.id }); }
-        }}>打开完整协作图与时间泳道 <ExternalLink size={14} /></button>
-        {task.blocked_reason && <p className="blocked-banner">受阻:{task.blocked_reason}</p>}
+        }}>{t("打开完整协作图与时间泳道")} <ExternalLink size={14} /></button>
+        {task.blocked_reason && <p className="blocked-banner">{t("受阻:")}{task.blocked_reason}</p>}
 
         <TaskCollaboration taskId={taskId} me={me} actors={actors} onChanged={() => { void load(); onChanged(); }} onOpenTask={onOpenTask} />
 
         {task.proposal && (
           <section className="drawer-section proposal-section">
-            <h3>名册变更提案</h3>
-            <p className="muted">批准后才会创建以下实体；本卡不包含观察目录的位置。</p>
+            <h3>{t("名册变更提案")}</h3>
+            <p className="muted">{t("批准后才会创建以下实体；本卡不包含观察目录的位置。")}</p>
             <ul>
               {task.proposal.items.map((item) => (
                 <li key={item.key}>
@@ -202,14 +204,13 @@ export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onO
             </ul>
             {task.status === "queued" && me.role === "admin" && me.actor_id === task.holder && (
               <div className="approve-bar">
-                <span><Crown size={13} /> 由 {task.holder} 授权，服务端自动执行</span>
+                <span><Crown size={13} /> {t("由")} {task.holder} {t("授权，服务端自动执行")}</span>
                 <button
                   className="rt-button rt-button--primary"
                   disabled={busy}
                   onClick={() => void apply2(`/api/tasks/${taskId}/apply-proposal`, {})}
                 >
-                  批准并应用
-                </button>
+                  {t("批准并应用")} </button>
               </div>
             )}
           </section>
@@ -217,10 +218,10 @@ export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onO
 
         {(task.blocked_by.length > 0 || task.blocks.length > 0) && (
           <section className="drawer-section dependency-section">
-            <h3>任务依赖</h3>
+            <h3>{t("任务依赖")}</h3>
             {task.blocked_by.length > 0 && (
               <div>
-                <strong>开始前必须完成（上游）</strong>
+                <strong>{t("开始前必须完成（上游）")}</strong>
                 <ul>
                   {task.blocked_by.map((item) => (
                     <li key={item.id}>
@@ -230,11 +231,11 @@ export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onO
                           className="dependency-link"
                           onClick={() => onOpenTask(item.id)}
                         >
-                          {item.id} · {item.title} · {STATUS_LABEL[item.status]}
+                          {item.id} · {item.title} · {t(STATUS_LABEL[item.status])}
                         </button>
                       ) : (
                         <>
-                          {item.id} · {item.title} · {STATUS_LABEL[item.status]}
+                          {item.id} · {item.title} · {t(STATUS_LABEL[item.status])}
                         </>
                       )}
                     </li>
@@ -244,7 +245,7 @@ export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onO
             )}
             {task.blocks.length > 0 && (
               <div>
-                <strong>本卡完成后解除（下游）</strong>
+                <strong>{t("本卡完成后解除（下游）")}</strong>
                 <ul>
                   {task.blocks.map((item) => (
                     <li key={item.id}>
@@ -254,11 +255,11 @@ export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onO
                           className="dependency-link"
                           onClick={() => onOpenTask(item.id)}
                         >
-                          {item.id} · {item.title} · {STATUS_LABEL[item.status]}
+                          {item.id} · {item.title} · {t(STATUS_LABEL[item.status])}
                         </button>
                       ) : (
                         <>
-                          {item.id} · {item.title} · {STATUS_LABEL[item.status]}
+                          {item.id} · {item.title} · {t(STATUS_LABEL[item.status])}
                         </>
                       )}
                     </li>
@@ -271,7 +272,7 @@ export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onO
 
         {task.pipeline && (
           <section className="drawer-section">
-            <h3>流程节点</h3>
+            <h3>{t("流程节点")}</h3>
             <ol className="flow-stages">
               {task.pipeline.map((stage, index) => {
                 const state =
@@ -296,7 +297,7 @@ export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onO
                     <strong>{stage.name}</strong>
                     <em>
                       {actors.find((a) => a.id === stage.holder)?.display_name || stage.holder}
-                      · {GATE_LABEL[stage.gate]}
+                      · {t(GATE_LABEL[stage.gate])}
                     </em>
                   </li>
                 );
@@ -308,7 +309,7 @@ export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onO
                 return (
                   <div className="approve-bar">
                     <span>
-                      <Crown size={13} /> 人工审批待处理:「{pending.stage_name}」
+                      <Crown size={13} /> {t("人工审批待处理:「{stage}」", { stage: pending.stage_name || "" })}
                     </span>
                     <button
                       className="rt-button rt-button--primary"
@@ -320,12 +321,11 @@ export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onO
                         })
                       }
                     >
-                      批准
-                    </button>
+                      {t("批准")} </button>
                     <button
                       disabled={busy}
                       onClick={() => {
-                        const reason = note.trim() || window.prompt("驳回原因:") || "";
+                        const reason = note.trim() || window.prompt(t("驳回原因:")) || "";
                         if (!reason) return;
                         void apply2(`/api/approvals/${pending.id}/decide`, {
                           decision: "reject",
@@ -333,8 +333,7 @@ export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onO
                         });
                       }}
                     >
-                      驳回
-                    </button>
+                      {t("驳回")} </button>
                   </div>
                 );
               }
@@ -348,25 +347,23 @@ export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onO
                     className="rt-button rt-button--primary"
                     disabled={busy}
                     onClick={() => {
-                      const receipt = note.trim() || window.prompt("交棒回执(必填):") || "";
+                      const receipt = note.trim() || window.prompt(t("交棒回执(必填):")) || "";
                       if (!receipt) return;
                       void apply2(`/api/tasks/${taskId}/stage-done`, { note: receipt });
                     }}
                   >
-                    完成本节点,交棒 →
-                  </button>
+                    {t("完成本节点,交棒 →")} </button>
                   {task.pipeline[task.pipeline_stage].gate === "review" &&
                     task.pipeline_stage > 0 && (
                       <button
                         disabled={busy}
                         onClick={() => {
-                          const reason = note.trim() || window.prompt("打回原因(必填):") || "";
+                          const reason = note.trim() || window.prompt(t("打回原因(必填):")) || "";
                           if (!reason) return;
                           void apply2(`/api/tasks/${taskId}/stage-reject`, { note: reason });
                         }}
                       >
-                        ← 打回上一节点
-                      </button>
+                        {t("← 打回上一节点")} </button>
                     )}
                 </div>
               )}
@@ -375,7 +372,7 @@ export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onO
 
         {task.acceptance.length > 0 && (
           <section className="drawer-section">
-            <h3>验收标准</h3>
+            <h3>{t("验收标准")}</h3>
             <ul>
               {task.acceptance.map((item, index) => (
                 <li key={index}>{item}</li>
@@ -386,7 +383,7 @@ export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onO
 
         {task.refs.length > 0 && (
           <section className="drawer-section">
-            <h3>交付物</h3>
+            <h3>{t("交付物")}</h3>
             <ul>
               {task.refs.map((ref, index) => {
                 const link = ref.startsWith("/") || ref.startsWith("http://") || ref.startsWith("https://");
@@ -394,7 +391,7 @@ export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onO
                   <li key={ref}>
                     {link ? (
                       <a href={ref} target="_blank" rel="noreferrer">
-                        <ExternalLink size={13} /> 查看交付物 {index + 1}
+                        <ExternalLink size={13} /> {t("查看交付物")} {index + 1}
                       </a>
                     ) : (
                       ref
@@ -406,9 +403,9 @@ export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onO
           </section>
         )}
         {!me.readonly && <section className="drawer-section">
-          <h3>操作</h3>
+          <h3>{t("操作")}</h3>
           <textarea
-            placeholder="备注(流转必填,留空则使用默认备注)"
+            placeholder={t("备注(流转必填,留空则使用默认备注)")}
             value={note}
             onChange={(e) => setNote(e.target.value)}
             rows={2}
@@ -431,24 +428,23 @@ export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onO
                       onChanged();
                     })
                     .catch((err) =>
-                      setError(err instanceof ApiError ? err.message : "接单失败")
+                      setError(err instanceof ApiError ? err.message : t("接单失败"))
                     )
                     .finally(() => setBusy(false));
                 }}
               >
-                接单
-              </button>
+                {t("接单")} </button>
             )}
             {transitions.map((to) => (
               <button key={to} disabled={busy} onClick={() => transition(to)}>
-                → {STATUS_LABEL[to]}
+                → {t(STATUS_LABEL[to])}
               </button>
             ))}
             {transitions.length === 0 && (
               <span className="muted">
                 {task.status === "done" || task.status === "cancelled"
-                  ? "终态,无可用流转"
-                  : "请使用上方流程操作"}
+                  ? t("终态,无可用流转")
+                  : t("请使用上方流程操作")}
               </span>
             )}
           </div>
@@ -472,13 +468,12 @@ export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onO
                   })
                 }
               >
-                上报进度
-              </button>
+                {t("上报进度")} </button>
             </div>
           )}
           {!me.readonly && (
             <div className="due-editor">
-              <label htmlFor={`due-${task.id}`}>截止日</label>
+              <label htmlFor={`due-${task.id}`}>{t("截止日")}</label>
               <input
                 id={`due-${task.id}`}
                 type="date"
@@ -496,8 +491,7 @@ export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onO
                   })
                 }
               >
-                保存截止日
-              </button>
+                {t("保存截止日")} </button>
             </div>
           )}
           {!me.readonly && me.role !== "agent" && !task.pipeline && (
@@ -518,17 +512,16 @@ export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onO
                   void apply({ holder, note: requiredNote ?? `改派持棒人 → ${holder}` })
                 }
               >
-                改派
-              </button>
+                {t("改派")} </button>
             </div>
           )}
           {error && <p className="error">{error}</p>}
         </section>}
 
         <section className="drawer-section attempts-section">
-          <h3>执行时间线({task.attempts.length + sessions.length})</h3>
+          <h3>{t("执行时间线(")}{task.attempts.length + sessions.length})</h3>
           {task.attempts.length === 0 && sessions.length === 0 ? (
-            <p className="muted">尚无执行尝试或关联会话</p>
+            <p className="muted">{t("尚无执行尝试或关联会话")}</p>
           ) : (
             <ol className="attempt-list">
               {([
@@ -539,13 +532,13 @@ export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onO
                       <div className="attempt-head">
                         <strong>
                           {attempt.outcome === "failed"
-                            ? "失败"
+                            ? t("失败")
                             : attempt.outcome === "succeeded"
-                              ? "成功"
-                              : "已取消"}
+                              ? t("成功")
+                              : t("已取消")}
                         </strong>
                         <span>
-                          尝试 #{attempt.seq} · {attempt.reporter.kind} {attempt.reporter.id}
+                          {t("尝试 #")}{attempt.seq} · {attempt.reporter.kind} {attempt.reporter.id}
                           {attempt.reporter.duty ? ` · ${attempt.reporter.duty}` : ""}
                         </span>
                       </div>
@@ -555,7 +548,7 @@ export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onO
                         <span>→</span>
                         <time>{attempt.ended_at}</time>
                         {attempt.exit_status !== null && (
-                          <span>退出状态 {attempt.exit_status}</span>
+                          <span>{t("退出状态")} {attempt.exit_status}</span>
                         )}
                       </div>
                     </li>
@@ -566,7 +559,7 @@ export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onO
                   node: (
                     <li key={`session-${session.id}`} className="attempt attempt--session">
                       <div className="attempt-head">
-                        <strong>会话</strong>
+                        <strong>{t("会话")}</strong>
                         <span>
                           {session.actor_name} · {session.runtime}
                         </span>
@@ -576,7 +569,7 @@ export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onO
                         {session.started_at && <time>{session.started_at}</time>}
                         {session.started_at && <span>→</span>}
                         <time>{session.updated_at ?? session.synced_at ?? ""}</time>
-                        <span>{session.message_count} 条消息</span>
+                        <span>{session.message_count} {t("条消息")}</span>
                       </div>
                     </li>
                   ),
@@ -589,7 +582,7 @@ export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onO
         </section>
 
         <section className="drawer-section">
-          <h3>事件链({task.chain.length})</h3>
+          <h3>{t("事件链(")}{task.chain.length})</h3>
           <ol className="chain">
             {[...task.chain].reverse().map((event, index) => (
               <li key={index}>
@@ -601,18 +594,18 @@ export default function TaskDrawer({ taskId, me, actors, onClose, onChanged, onO
                   {event.did}
                   {event.payload.acted_on_behalf_of && (
                     <span className="chain-move">
-                      执行 {event.payload.acted_on_behalf_of.performing_agent} · 代表 {event.payload.acted_on_behalf_of.authorising_identity}
+                      {t("执行")} {event.payload.acted_on_behalf_of.performing_agent} {t("· 代表")} {event.payload.acted_on_behalf_of.authorising_identity}
                     </span>
                   )}
                   {event.from_status !== event.to_status && event.to_status && (
                     <span className="chain-move">
-                      {event.from_status ? STATUS_LABEL[event.from_status] : "∅"} →{" "}
-                      {STATUS_LABEL[event.to_status]}
+                      {event.from_status ? t(STATUS_LABEL[event.from_status]) : "∅"} →{" "}
+                      {t(STATUS_LABEL[event.to_status])}
                     </span>
                   )}
                   {event.from_holder !== event.to_holder && event.to_holder && (
                     <span className="chain-move">
-                      持棒 {event.from_holder ?? "∅"} → {event.to_holder}
+                      {t("持棒")} {event.from_holder ?? "∅"} → {event.to_holder}
                     </span>
                   )}
                 </div>

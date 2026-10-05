@@ -1,3 +1,4 @@
+import { useI18n, t } from "../i18n";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
@@ -40,6 +41,7 @@ function shortTime(value: string): string {
 }
 
 export default function Workroom({ me }: { me: Me }) {
+  useI18n();
   const vocab = useVocab();
   const [intent, setIntent] = useState("");
   const [matches, setMatches] = useState<AgentMatchInfo[]>([]);
@@ -73,7 +75,7 @@ export default function Workroom({ me }: { me: Me }) {
       if (seq === detailSeq.current) setSelectedTask(task);
     } catch (err) {
       if (seq === detailSeq.current) {
-        setError(err instanceof ApiError ? err.message : "任务详情加载失败");
+        setError(err instanceof ApiError ? err.message : t("任务详情加载失败"));
       }
     }
   }, []);
@@ -100,7 +102,7 @@ export default function Workroom({ me }: { me: Me }) {
       void loadTaskDetail(selectedTaskIdRef.current);
     } catch (err) {
       if (seq !== loadSeq.current) return;
-      setError(err instanceof ApiError ? err.message : "协作空间加载失败");
+      setError(err instanceof ApiError ? err.message : t("协作空间加载失败"));
     }
   }, [loadTaskDetail]);
 
@@ -119,7 +121,7 @@ export default function Workroom({ me }: { me: Me }) {
           );
         })
         .catch((err) =>
-          setError(err instanceof ApiError ? err.message : "Agent 匹配失败")
+          setError(err instanceof ApiError ? err.message : t("Agent 匹配失败"))
         );
     }, 180);
     return () => clearTimeout(timer);
@@ -169,7 +171,7 @@ export default function Workroom({ me }: { me: Me }) {
       setSelectedTaskId(created.id);
       setMessage("");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "发单失败");
+      setError(err instanceof ApiError ? err.message : t("发单失败"));
     } finally {
       setBusy(false);
     }
@@ -187,7 +189,7 @@ export default function Workroom({ me }: { me: Me }) {
       setMessage("");
       await loadCore();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "补充要求发送失败");
+      setError(err instanceof ApiError ? err.message : t("补充要求发送失败"));
     } finally {
       setBusy(false);
     }
@@ -207,12 +209,11 @@ export default function Workroom({ me }: { me: Me }) {
       <Ambient />
       <PageHeader
         kicker="AGENT WORKROOM · SEARCH, DISPATCH, FLOW"
-        title="协作空间"
-        subtitle="搜索合适的 Agent，在网页里发单、沟通并追踪每一次接棒。"
+        title={t("协作空间")}
+        subtitle={t("搜索合适的 Agent，在网页里发单、沟通并追踪每一次接棒。")}
         tools={
           <button className="rt-button rt-button--primary" onClick={startDraft}>
-            <Plus size={14} /> 新发一单
-          </button>
+            <Plus size={14} /> {t("新发一单")} </button>
         }
       />
 
@@ -226,28 +227,27 @@ export default function Workroom({ me }: { me: Me }) {
             id="workroom-intent"
             value={intent}
             onChange={(event) => setIntent(event.target.value)}
-            placeholder="例如：为基础较弱的七年级学生准备一节 45 分钟英语课，包含教案、课件和分层练习。"
+            placeholder={t("例如：为基础较弱的七年级学生准备一节 45 分钟英语课，包含教案、课件和分层练习。")}
             rows={3}
             maxLength={500}
           />
-          <div className="workroom-examples" aria-label="任务示例">
+          <div className="workroom-examples" aria-label={t("任务示例")}>
             {EXAMPLES.map((example) => (
-              <button key={example} type="button" onClick={() => setIntent(example)}>
-                {example}
+              <button key={example} type="button" onClick={() => setIntent(t(example))}>
+                {t(example)}
               </button>
             ))}
           </div>
         </div>
         <div className="workroom-compose__settings">
-          <div className="workroom-mode" aria-label="派单方式">
+          <div className="workroom-mode" aria-label={t("派单方式")}>
             <button
               type="button"
               className={mode === "direct" ? "is-active" : ""}
               aria-pressed={mode === "direct"}
               onClick={() => setMode("direct")}
             >
-              单 Agent
-            </button>
+              {t("单 Agent")} </button>
             <button
               type="button"
               className={mode === "pipeline" ? "is-active" : ""}
@@ -255,27 +255,24 @@ export default function Workroom({ me }: { me: Me }) {
               disabled={templates.length === 0}
               onClick={() => setMode("pipeline")}
             >
-              多 Agent 流程
-            </button>
+              {t("多 Agent 流程")} </button>
           </div>
           <div className="workroom-settings-row">
             <label>
-              优先级
-              <select
+              {t("优先级")} <select
                 value={priority}
                 onChange={(event) => setPriority(event.target.value as Priority)}
               >
                 {PRIORITIES.map((item) => (
                   <option key={item} value={item}>
-                    {PRIORITY_LABEL[item]}
+                    {t(PRIORITY_LABEL[item])}
                   </option>
                 ))}
               </select>
             </label>
             {mode === "pipeline" && (
               <label>
-                流程
-                <select
+                {t("流程")} <select
                   value={selectedTemplate}
                   onChange={(event) => setSelectedTemplate(event.target.value)}
                 >
@@ -289,12 +286,12 @@ export default function Workroom({ me }: { me: Me }) {
             )}
           </div>
           <label className="workroom-acceptance">
-            验收要求 <span>每行一条，可选</span>
+            {t("验收要求")} <span>{t("每行一条，可选")}</span>
             <textarea
               value={acceptance}
               onChange={(event) => setAcceptance(event.target.value)}
               rows={2}
-              placeholder="可以直接拿来上课&#10;练习附答案"
+                placeholder={t("可以直接拿来上课\n练习附答案")}
             />
           </label>
           <button
@@ -307,7 +304,7 @@ export default function Workroom({ me }: { me: Me }) {
             }
           >
             <Send size={14} />
-            {busy ? "正在发单…" : mode === "pipeline" ? "启动协作流程" : "派给推荐 Agent"}
+            {busy ? t("正在发单…") : mode === "pipeline" ? t("启动协作流程") : t("派给推荐 Agent")}
           </button>
         </div>
       </form>
@@ -318,11 +315,11 @@ export default function Workroom({ me }: { me: Me }) {
         <Panel
           icon={<Search size={15} />}
           kicker="AGENT MATCH"
-          title="推荐 Agent"
+          title={t("推荐 Agent")}
           className="workroom-agents"
-          tools={<span className="workroom-count">{matches.length} 位</span>}
+          tools={<span className="workroom-count">{matches.length} {t("位")}</span>}
         >
-          <p className="workroom-panel-note">按职责目标、已分配技能、运行时实测、在线状态、负载与交付记录排序；推荐不会自动派单</p>
+          <p className="workroom-panel-note">{t("按职责目标、已分配技能、运行时实测、在线状态、负载与交付记录排序；推荐不会自动派单")}</p>
           <div className="workroom-agent-list">
             {matches.map((agent, index) => (
               <button
@@ -338,12 +335,11 @@ export default function Workroom({ me }: { me: Me }) {
                 <span className="workroom-agent__body">
                   <span className="workroom-agent__head">
                     <strong>{agent.display_name || agent.id}</strong>
-                    <span className="workroom-score" title="根据技能、状态和任务匹配计算的推荐分，不代表成功概率">推荐分 {agent.score}/100</span>
+                    <span className="workroom-score" title={t("根据技能、状态和任务匹配计算的推荐分，不代表成功概率")}>{t("推荐分")} {agent.score}/100</span>
                   </span>
                   <span className="workroom-agent__status">
                     <i className={agent.online ? "is-online" : ""} />
-                    {agent.online ? "在线" : "离线"} · {agent.runtime || "未绑定运行时"}{agent.node ? " · " + agent.node : ""} · {agent.active_tasks} 单在手
-                  </span>
+                    {agent.online ? t("在线") : t("离线")} · {agent.runtime || t("未绑定运行时")}{agent.node ? " · " + agent.node : ""} · {agent.active_tasks} {t("单在手")} </span>
                   <span className="workroom-agent__skills">
                     {agent.role && <em>{agent.role}</em>}
                     {agent.matched_skills.slice(0, 3).map((skill) => (
@@ -351,25 +347,25 @@ export default function Workroom({ me }: { me: Me }) {
                     ))}
                   </span>
                   <span className="workroom-agent__reason">
-                    {agent.reasons[0] || "等待能力登记"}
+                    {agent.reasons[0] || t("等待能力登记")}
                   </span>
                 </span>
-                {index === 0 && intent.trim() && <span className="workroom-best">首选</span>}
+                {index === 0 && intent.trim() && <span className="workroom-best">{t("首选")}</span>}
               </button>
             ))}
-            {matches.length === 0 && <p className="muted">没有可用的 Agent</p>}
+            {matches.length === 0 && <p className="muted">{t("没有可用的 Agent")}</p>}
           </div>
         </Panel>
 
         <Panel
           icon={<MessageSquareText size={15} />}
           kicker="TASK THREAD"
-          title={selectedTask ? "任务沟通" : "等待发单"}
+          title={selectedTask ? t("任务沟通") : t("等待发单")}
           className="workroom-thread"
           tools={
             selectedTask ? (
               <span className={`chip chip-status-${selectedTask.status}`}>
-                {STATUS_LABEL[selectedTask.status]}
+                {t(STATUS_LABEL[selectedTask.status])}
               </span>
             ) : undefined
           }
@@ -380,12 +376,11 @@ export default function Workroom({ me }: { me: Me }) {
                 <div>
                   <strong>{selectedTask.title}</strong>
                   <span>
-                    {selectedTask.id} · 当前持棒 {nameOf(selectedTask.holder)}
+                    {selectedTask.id} {t("· 当前持棒")} {nameOf(selectedTask.holder)}
                   </span>
                 </div>
                 <button type="button" onClick={() => setDrawerOpen(true)}>
-                  查看详情
-                </button>
+                  {t("查看详情")} </button>
               </header>
               <div className="workroom-timeline" aria-live="polite">
                 {selectedTask.chain.map((event, index) => {
@@ -407,11 +402,11 @@ export default function Workroom({ me }: { me: Me }) {
                         <p>{event.did}</p>
                         {moved && event.to_status && (
                           <span className="workroom-event__move">
-                            {event.from_status ? STATUS_LABEL[event.from_status] : "创建"}
+                            {event.from_status ? t(STATUS_LABEL[event.from_status]) : t("创建")}
                             <ArrowRight size={11} />
-                            {STATUS_LABEL[event.to_status]}
+                            {t(STATUS_LABEL[event.to_status])}
                             {event.from_holder !== event.to_holder && event.to_holder
-                              ? ` · 交给 ${nameOf(event.to_holder)}`
+                              ? t(" · 交给 {v0}", { v0: nameOf(event.to_holder) })
                               : ""}
                           </span>
                         )}
@@ -426,8 +421,8 @@ export default function Workroom({ me }: { me: Me }) {
                   onChange={(event) => setMessage(event.target.value)}
                   placeholder={
                     TERMINAL.has(selectedTask.status)
-                      ? "任务已经结束，事件链保持只读"
-                      : `补充要求给当前持棒人：${nameOf(selectedTask.holder)}`
+                      ? t("任务已经结束，事件链保持只读")
+                      : t("补充要求给当前持棒人：{v0}", { v0: nameOf(selectedTask.holder) })
                   }
                   rows={2}
                   maxLength={1200}
@@ -435,11 +430,11 @@ export default function Workroom({ me }: { me: Me }) {
                 />
                 <button
                   disabled={busy || !message.trim() || TERMINAL.has(selectedTask.status)}
-                  aria-label="发送补充要求"
+                  aria-label={t("发送补充要求")}
                 >
                   <Send size={15} />
                 </button>
-                <small>内容将写入不可覆盖的任务事件链</small>
+                <small>{t("内容将写入不可覆盖的任务事件链")}</small>
               </form>
             </>
           ) : (
@@ -447,14 +442,14 @@ export default function Workroom({ me }: { me: Me }) {
               <span>
                 <MessageSquareText size={22} />
               </span>
-              <strong>写下任务，选择派单方式</strong>
-              <p>发单后，这里会出现 Agent 的接单、执行、交棒、受阻与交付回执。</p>
+              <strong>{t("写下任务，选择派单方式")}</strong>
+              <p>{t("发单后，这里会出现 Agent 的接单、执行、交棒、受阻与交付回执。")}</p>
             </div>
           )}
         </Panel>
 
         <div className="workroom-side">
-          <Panel icon={<Route size={15} />} kicker="FLOW" title="流转路线">
+          <Panel icon={<Route size={15} />} kicker="FLOW" title={t("流转路线")}>
             {selectedTask ? (
               <div className="workroom-flow">
                 <StageStepper task={selectedTask} />
@@ -484,7 +479,7 @@ export default function Workroom({ me }: { me: Me }) {
                     <Avatar name={nameOf(selectedTask.holder)} size={34} square />
                     <div>
                       <strong>{nameOf(selectedTask.holder)}</strong>
-                      <span>当前持棒 · 上报进度 {selectedTask.progress}%</span>
+                      <span>{t("当前持棒 · 上报进度")} {selectedTask.progress}%</span>
                     </div>
                   </div>
                 )}
@@ -510,11 +505,11 @@ export default function Workroom({ me }: { me: Me }) {
                 </div>
               </div>
             ) : (
-              <p className="muted">等待选择执行者</p>
+              <p className="muted">{t("等待选择执行者")}</p>
             )}
           </Panel>
 
-          <Panel icon={<Clock3 size={15} />} kicker="RECENT TASKS" title="最近任务">
+          <Panel icon={<Clock3 size={15} />} kicker="RECENT TASKS" title={t("最近任务")}>
             <div className="workroom-recent">
               {recentTasks.map((task) => (
                 <button
@@ -528,11 +523,11 @@ export default function Workroom({ me }: { me: Me }) {
                     <small>{nameOf(task.holder)} · {task.id.replace("task-", "")}</small>
                   </span>
                   <em className={`chip chip-status-${task.status}`}>
-                    {STATUS_LABEL[task.status]}
+                    {t(STATUS_LABEL[task.status])}
                   </em>
                 </button>
               ))}
-              {recentTasks.length === 0 && <p className="muted">尚无任务</p>}
+              {recentTasks.length === 0 && <p className="muted">{t("尚无任务")}</p>}
             </div>
           </Panel>
         </div>

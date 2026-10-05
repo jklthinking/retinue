@@ -238,7 +238,8 @@ textarea {
   margin-top: 0.5rem;
 }
 
-.theme-switcher {
+.theme-switcher,
+.language-switcher {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -248,13 +249,26 @@ textarea {
   color: var(--muted);
 }
 
-.theme-switcher select {
+.theme-switcher select,
+.language-switcher select {
   border: 1px solid var(--line);
   border-radius: 0.5rem;
   background: #fff;
   color: inherit;
   font-size: 0.7rem;
   padding: 0.2rem 0.35rem;
+}
+
+.login-card > .language-switcher {
+  margin: 0.25rem 0 1rem;
+  padding-right: 0;
+}
+
+@media (min-width: 701px) and (max-width: 1100px) {
+  .side-theme .theme-switcher,
+  .side-theme .language-switcher { padding: 0.3rem 0; }
+  .side-theme label > span { display: none; }
+  .side-theme select { width: 100%; min-width: 0; padding: 0.25rem 0; font-size: 0.6rem; }
 }
 
 .main {
@@ -4097,4 +4111,21 @@ button.rt-metric:hover {
   .rt-agenda-rail-note {
     grid-column: 1 / -1;
   }
+}
+
+/* Keep preferences alongside the mobile navigation without covering content. */
+@media (max-width: 700px) {
+  .sidebar { display: flex; flex-direction: row; gap: 0.2rem; }
+  .side-nav { flex: 1; min-width: 0; }
+  .side-theme {
+    display: flex;
+    flex: 0 0 6.6rem;
+    flex-direction: column;
+    justify-content: center;
+    margin: 0;
+    border-left: 1px solid var(--line);
+  }
+  .side-theme label { padding: 0.12rem 0.25rem; }
+  .side-theme label > span { display: none; }
+  .side-theme select { width: 100%; min-width: 0; font-size: 0.64rem; }
 }

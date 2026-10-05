@@ -1,3 +1,4 @@
+import { t, useI18n, getLanguage } from "../i18n";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
@@ -28,7 +29,7 @@ import type {
   Task,
 } from "../types";
 import { PRIORITY_LABEL, STATUS_LABEL } from "../types";
-import { useVocab } from "../theme";
+import { useVocab, useCanonicalVocab } from "../theme";
 import "./sessions.css";
 import { BOARD_REFRESH_MS, DATA_REFRESH_EVENT } from "../lib/refresh";
 
@@ -53,15 +54,15 @@ function runtimeLabel(value: string): string {
 }
 
 function timeLabel(value: string | null): string {
-  if (!value) return "时间未知";
+  if (!value) return t("时间未知");
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "时间未知";
+  if (Number.isNaN(date.getTime())) return t("时间未知");
   const diff = Math.max(0, Date.now() - date.getTime());
   const minute = 60_000;
-  if (diff < minute) return "刚刚";
-  if (diff < 60 * minute) return `${Math.floor(diff / minute)} 分钟前`;
-  if (diff < 24 * 60 * minute) return `${Math.floor(diff / (60 * minute))} 小时前`;
-  return new Intl.DateTimeFormat("zh-CN", {
+  if (diff < minute) return t("刚刚");
+  if (diff < 60 * minute) return t("{v0} 分钟前", { v0: Math.floor(diff / minute) });
+  if (diff < 24 * 60 * minute) return t("{v0} 小时前", { v0: Math.floor(diff / (60 * minute)) });
+  return new Intl.DateTimeFormat(getLanguage(), {
     month: "numeric",
     day: "numeric",
     hour: "2-digit",
@@ -73,7 +74,7 @@ function exactTime(value: string | null): string {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
-  return new Intl.DateTimeFormat("zh-CN", {
+  return new Intl.DateTimeFormat(getLanguage(), {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -102,7 +103,9 @@ export default function Sessions({
   me: Me;
   focusSessionId?: number | null;
 }) {
+  useI18n();
   const vocab = useVocab();
+  const canonical = useCanonicalVocab();
   const [sessions, setSessions] = useState<RuntimeSessionInfo[]>([]);
   const [actors, setActors] = useState<ActorInfo[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -120,7 +123,7 @@ export default function Sessions({
   const [taskOpen, setTaskOpen] = useState(false);
   const [taskBusy, setTaskBusy] = useState(false);
   const [taskTitle, setTaskTitle] = useState("");
-  const [taskDept, setTaskDept] = useState(vocab.centralHub);
+  const [taskDept, setTaskDept] = useState(canonical.centralHub);
   const [taskHolder, setTaskHolder] = useState("");
   const [taskPriority, setTaskPriority] = useState<Priority>("medium");
   const [taskAcceptance, setTaskAcceptance] = useState("");
@@ -149,7 +152,7 @@ export default function Sessions({
       });
       setError("");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "会话列表加载失败");
+      setError(err instanceof ApiError ? err.message : t("会话列表加载失败"));
     } finally {
       setLoading(false);
     }
@@ -186,7 +189,7 @@ export default function Sessions({
         setTaskHolder((current) => current || row.actor_id);
       })
       .catch((err) =>
-        setError(err instanceof ApiError ? err.message : "会话详情加载失败")
+        setError(err instanceof ApiError ? err.message : t("会话详情加载失败"))
       );
     void api
       .get<SessionCaptureInfo[]>(`/api/sessions/${selectedId}/captures`)
@@ -237,7 +240,7 @@ export default function Sessions({
     setDetail(item);
     setTaskTitle(`${item.actor_name}：${item.title || "会话事项"}`);
     setTaskHolder(item.actor_id);
-    setTaskDept(vocab.centralHub);
+    setTaskDept(canonical.centralHub);
     setTaskPriority("medium");
     setTaskOpen(false);
     setActionNotice("");
@@ -253,10 +256,10 @@ export default function Sessions({
         {}
       );
       setCaptures((current) => [capture, ...current.filter((item) => item.id !== capture.id)]);
-      setActionNotice("已建立 OB 来源卡；同步完成后会写入本地 Vault。");
+      setActionNotice(t("已建立 OB 来源卡；同步完成后会写入本地 Vault。"));
       setError("");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "无法创建 OB 提取队列");
+      setError(err instanceof ApiError ? err.message : t("无法创建 OB 提取队列"));
     } finally {
       setCaptureBusy(false);
     }
@@ -264,7 +267,7 @@ export default function Sessions({
 
   async function createTaskFromSession() {
     if (!detail || !taskTitle.trim() || !taskDept.trim()) {
-      setError("请填写任务标题和业务域。");
+      setError(t("请填写任务标题和业务域。"));
       return;
     }
     const acceptance = taskAcceptance
@@ -272,7 +275,7 @@ export default function Sessions({
       .map((item) => item.trim())
       .filter(Boolean);
     if (acceptance.length === 0) {
-      setError("请至少填写一条可验证的验收条件，再发单。");
+      setError(t("请至少填写一条可验证的验收条件，再发单。"));
       return;
     }
     setTaskBusy(true);
@@ -289,14 +292,14 @@ export default function Sessions({
       );
       const task = await api.get<Task>(`/api/tasks/${created.id}`);
       setLinkedTask(task);
-      setActionNotice(`任务卡 ${task.id} 已发给 ${holderName(task.holder)}，并与本会话互相引用。`);
+      setActionNotice(t("任务卡 {v0} 已发给 {v1}，并与本会话互相引用。", { v0: task.id, v1: holderName(task.holder) }));
       setTaskOpen(false);
       setTaskDrawerId(task.id);
       setDetail(await api.get<RuntimeSessionInfo>(`/api/sessions/${detail.id}`));
       await load();
       setError("");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "无法从会话创建任务");
+      setError(err instanceof ApiError ? err.message : t("无法从会话创建任务"));
     } finally {
       setTaskBusy(false);
     }
@@ -322,26 +325,24 @@ export default function Sessions({
       <Ambient />
       <PageHeader
         kicker="MOBILE SESSION INBOX · READ-ONLY SYNC"
-        title="会话中心"
-        subtitle="把分散在终端的已授权会话，转成可验收、可交接、可归档的真实任务链。"
+        title={t("会话中心")}
+        subtitle={t("把分散在终端的已授权会话，转成可验收、可交接、可归档的真实任务链。")}
         tools={
           <span className="sessions-live">
-            <RefreshCw size={13} />
-            每日同步 · 30 秒刷新视图
-          </span>
+            <RefreshCw size={13} /> {t("每日同步 · 30 秒刷新视图")} </span>
         }
       />
 
       <section className="sessions-privacy-note">
         <span className="sessions-privacy-note__icon"><ShieldCheck size={18} /></span>
         <div>
-          <strong>原会话仍保存在 Agent 所在机器</strong>
+          <strong>{t("原会话仍保存在 Agent 所在机器")}</strong>
           <p>{vocab.membersAuthNote}</p>
         </div>
-        <div className="sessions-mini-stats" aria-label="同步概览">
-          <span><b>{sessions.length}</b> 会话</span>
+        <div className="sessions-mini-stats" aria-label={t("同步概览")}>
+          <span><b>{sessions.length}</b> {t("会话")}</span>
           <span><b>{agentCount}</b> Agent</span>
-          <span><b>{textCount}</b> 含正文</span>
+          <span><b>{textCount}</b> {t("含正文")}</span>
         </div>
       </section>
 
@@ -351,24 +352,24 @@ export default function Sessions({
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="搜索会话、Agent 或摘要"
-            aria-label="搜索会话"
+            placeholder={t("搜索会话、Agent 或摘要")}
+            aria-label={t("搜索会话")}
           />
         </label>
         <label>
-          <span>运行终端</span>
+          <span>{t("运行终端")}</span>
           <select value={runtime} onChange={(event) => setRuntime(event.target.value)}>
-            <option value="all">全部</option>
+            <option value="all">{t("全部")}</option>
             {runtimes.map((item) => <option key={item} value={item}>{runtimeLabel(item)}</option>)}
           </select>
         </label>
         <label>
-          <span>同步内容</span>
+          <span>{t("同步内容")}</span>
           <select value={privacy} onChange={(event) => setPrivacy(event.target.value as SessionPrivacy | "all")}>
-            <option value="all">全部层级</option>
-            <option value="metadata">仅索引</option>
-            <option value="summary">摘要</option>
-            <option value="full">最近消息</option>
+            <option value="all">{t("全部层级")}</option>
+            <option value="metadata">{t("仅索引")}</option>
+            <option value="summary">{t("摘要")}</option>
+            <option value="full">{t("最近消息")}</option>
           </select>
         </label>
       </div>
@@ -379,9 +380,9 @@ export default function Sessions({
         <Panel
           icon={<Cloud size={15} />}
           kicker="SYNCED SESSIONS"
-          title="最近会话"
+          title={t("最近会话")}
           className="sessions-list-panel"
-          tools={<span className="sessions-count">{visible.length} 条</span>}
+          tools={<span className="sessions-count">{visible.length} {t("条")}</span>}
         >
           <div className="sessions-list" aria-live="polite">
             {visible.map((item) => (
@@ -393,11 +394,11 @@ export default function Sessions({
               >
                 <Avatar name={item.actor_name} size={36} square />
                 <span className="session-row__body">
-                  <span className="session-row__title">{item.title || "未命名会话"}</span>
+                  <span className="session-row__title">{item.title || t("未命名会话")}</span>
                   <span className="session-row__meta">{item.actor_name} · {runtimeLabel(item.runtime)}</span>
-                  <span className="session-row__summary">{item.summary || `${item.message_count} 条原生消息，正文未同步`}</span>
+                  <span className="session-row__summary">{item.summary || t("{v0} 条原生消息，正文未同步", { v0: item.message_count })}</span>
                   <span className="session-row__foot">
-                    <em className={`privacy-chip privacy-chip--${item.privacy}`}>{PRIVACY_LABEL[item.privacy]}</em>
+                    <em className={`privacy-chip privacy-chip--${item.privacy}`}>{t(PRIVACY_LABEL[item.privacy])}</em>
                     <time>{timeLabel(item.updated_at || item.synced_at)}</time>
                   </span>
                 </span>
@@ -406,23 +407,22 @@ export default function Sessions({
             {!loading && visible.length === 0 && (
               <div className="sessions-empty">
                 <MessageCircle size={22} />
-                <strong>还没有匹配的会话</strong>
-                <p>调整筛选条件，或先在 Agent 所在机器运行会话同步。</p>
+                <strong>{t("还没有匹配的会话")}</strong>
+                <p>{t("调整筛选条件，或先在 Agent 所在机器运行会话同步。")}</p>
               </div>
             )}
-            {loading && <p className="muted sessions-loading">正在读取会话索引…</p>}
+            {loading && <p className="muted sessions-loading">{t("正在读取会话索引…")}</p>}
           </div>
         </Panel>
 
         <Panel
           icon={<TerminalSquare size={15} />}
           kicker="SESSION TO DELIVERY"
-          title={detail?.title || "会话详情"}
+          title={detail?.title || t("会话详情")}
           className="sessions-detail-panel"
           tools={
             <button type="button" className="sessions-back" onClick={() => setMobileDetail(false)}>
-              <ArrowLeft size={14} /> 返回
-            </button>
+              <ArrowLeft size={14} /> {t("返回")} </button>
           }
         >
           {detail ? (
@@ -433,23 +433,23 @@ export default function Sessions({
                   <strong>{detail.actor_name}</strong>
                   <span><Bot size={12} /> {runtimeLabel(detail.runtime)}{detail.node && <> · {detail.node}</>}</span>
                 </div>
-                <em className={`privacy-chip privacy-chip--${detail.privacy}`}><LockKeyhole size={11} />{PRIVACY_LABEL[detail.privacy]}</em>
+                <em className={`privacy-chip privacy-chip--${detail.privacy}`}><LockKeyhole size={11} />{t(PRIVACY_LABEL[detail.privacy])}</em>
               </header>
 
               <div className="session-detail__facts">
-                <span><Clock3 size={12} />更新 {exactTime(detail.updated_at)}</span>
-                <span><Cloud size={12} />同步 {timeLabel(detail.synced_at)}</span>
-                <span>{detail.message_count} 条原生消息</span>
+                <span><Clock3 size={12} />{t("更新")} {exactTime(detail.updated_at)}</span>
+                <span><Cloud size={12} />{t("同步")} {timeLabel(detail.synced_at)}</span>
+                <span>{detail.message_count} {t("条原生消息")}</span>
                 {detail.task_id && <span className="session-task-link"><Link2 size={12} />{detail.task_title || detail.task_id}</span>}
               </div>
 
-              {detail.summary && <section className="session-summary"><span>会话摘要</span><p>{detail.summary}</p></section>}
+              {detail.summary && <section className="session-summary"><span>{t("会话摘要")}</span><p>{detail.summary}</p></section>}
 
               {detail.privacy === "full" && detail.messages.length > 0 ? (
                 <div className="session-messages">
                   {detail.messages.map((message, index) => (
                     <article key={`${message.at || "message"}-${index}`} className={`session-message session-message--${message.role}`}>
-                      <header><strong>{message.role === "assistant" ? detail.actor_name : "你"}</strong><time>{message.at ? timeLabel(message.at) : ""}</time></header>
+                      <header><strong>{message.role === "assistant" ? detail.actor_name : t("你")}</strong><time>{message.at ? timeLabel(message.at) : ""}</time></header>
                       <p>{message.text}</p>
                     </article>
                   ))}
@@ -457,61 +457,59 @@ export default function Sessions({
               ) : (
                 <div className="session-locked">
                   {detail.privacy === "metadata" ? <LockKeyhole size={22} /> : <MessageCircle size={22} />}
-                  <strong>{detail.privacy === "metadata" ? "这条会话只同步了索引" : "这条会话只同步了摘要"}</strong>
-                  <p>{detail.privacy === "metadata" ? "提示词和回复仍只存在于原终端。" : "逐条消息仍只存在于原终端。"}</p>
+                  <strong>{detail.privacy === "metadata" ? t("这条会话只同步了索引") : t("这条会话只同步了摘要")}</strong>
+                  <p>{detail.privacy === "metadata" ? t("提示词和回复仍只存在于原终端。") : t("逐条消息仍只存在于原终端。")}</p>
                 </div>
               )}
 
               {linkedTask && (
-                <section className="session-task-bridge" aria-label="关联任务进度">
+                <section className="session-task-bridge" aria-label={t("关联任务进度")}>
                   <header>
-                    <div><span>TASK IN MOTION</span><strong>任务已进入执行链</strong></div>
-                    <em className={`session-task-status session-task-status--${linkedTask.status}`}>{STATUS_LABEL[linkedTask.status]}</em>
+                    <div><span>TASK IN MOTION</span><strong>{t("任务已进入执行链")}</strong></div>
+                    <em className={`session-task-status session-task-status--${linkedTask.status}`}>{t(STATUS_LABEL[linkedTask.status])}</em>
                   </header>
                   <div className="session-task-bridge__facts">
                     <span><ListChecks size={13} />{holderName(linkedTask.holder)}</span>
-                    <span>优先级 {PRIORITY_LABEL[linkedTask.priority]}</span>
-                    <span>{linkedTask.acceptance.length} 条验收条件</span>
-                    <span>{linkedTask.progress}% 进度</span>
+                    <span>{t("优先级")} {t(PRIORITY_LABEL[linkedTask.priority])}</span>
+                    <span>{linkedTask.acceptance.length} {t("条验收条件")}</span>
+                    <span>{linkedTask.progress}{t("% 进度")}</span>
                   </div>
                   <div className="session-task-timeline">
                     {linkedTask.chain.slice(-3).reverse().map((event, index) => (
                       <p key={`${event.at}-${index}`}><time>{timeLabel(event.at)}</time><strong>{holderName(event.who)}</strong><span>{event.did}</span></p>
                     ))}
-                    {linkedTask.chain.length === 0 && <p className="muted">任务刚创建，等待执行者接棒。</p>}
+                    {linkedTask.chain.length === 0 && <p className="muted">{t("任务刚创建，等待执行者接棒。")}</p>}
                   </div>
                   <button type="button" className="session-action session-action--primary" onClick={() => setTaskDrawerId(linkedTask.id)}>
-                    <Send size={14} />打开任务详情，推进执行与回执
-                  </button>
+                    <Send size={14} />{t("打开任务详情，推进执行与回执")} </button>
                 </section>
               )}
 
-              <section className="session-workflow" aria-label="会话提取流程">
+              <section className="session-workflow" aria-label={t("会话提取流程")}>
                 <header>
-                  <div><span>CONVERSATION ROUTE</span><strong>查看摘要 · 提取任务 · 发单 · 回执归档</strong></div>
-                  <em>{detail.task_id ? "任务已关联" : detail.privacy === "metadata" ? "先建来源卡" : "可发单"}</em>
+                  <div><span>CONVERSATION ROUTE</span><strong>{t("查看摘要 · 提取任务 · 发单 · 回执归档")}</strong></div>
+                  <em>{detail.task_id ? t("任务已关联") : detail.privacy === "metadata" ? t("先建来源卡") : t("可发单")}</em>
                 </header>
                 <div className="session-route session-route--full">
-                  <span>授权会话</span><b>→</b><span>摘要 / 来源卡</span><b>→</b><span>任务与验收</span><b>→</b><span>执行 / 交接</span><b>→</b><span>回执归档</span>
+                  <span>{t("授权会话")}</span><b>→</b><span>{t("摘要 / 来源卡")}</span><b>→</b><span>{t("任务与验收")}</span><b>→</b><span>{t("执行 / 交接")}</span><b>→</b><span>{t("回执归档")}</span>
                 </div>
-                {detail.privacy === "metadata" && <p className="session-route-note">当前是“仅索引”模式：可以建立来源卡和任务关联，但不会凭空理解正文。若要沉淀内容，请在原设备主动把这条会话升级为“脱敏摘要”后再次同步。</p>}
+                {detail.privacy === "metadata" && <p className="session-route-note">{t("当前是“仅索引”模式：可以建立来源卡和任务关联，但不会凭空理解正文。若要沉淀内容，请在原设备主动把这条会话升级为“脱敏摘要”后再次同步。")}</p>}
 
                 {!readonly && !detail.task_id && (
                   <div className="session-actions">
                     <button type="button" className="session-action session-action--soft" disabled={captureBusy} onClick={() => void queueObsidianCapture()}>
-                      <Link2 size={14} />{captureBusy ? "正在建卡…" : "建立 OB 来源卡"}
+                      <Link2 size={14} />{captureBusy ? t("正在建卡…") : t("建立 OB 来源卡")}
                     </button>
                     <button type="button" className="session-action session-action--primary" onClick={() => setTaskOpen((value) => !value)}>
-                      <Send size={14} />提取并发单
-                    </button>
+                      <Send size={14} />{t("提取并发单")} </button>
                   </div>
                 )}
-                {detail.task_id && <p className="session-route-success">已关联任务：{detail.task_title || detail.task_id}。执行、交接、审核与交付均写入同一条任务链。</p>}
+                {detail.task_id && <p className="session-route-success">{t("已关联任务：")}{detail.task_title || detail.task_id}{t("。执行、交接、审核与交付均写入同一条任务链。")}</p>}
                 {archiveCaptures.length > 0 && (
                   <div className="session-archive-list">
                     {archiveCaptures.slice(0, 2).map((capture) => (
                       <p key={capture.id} className={capture.status === "exported" ? "session-route-success" : "session-route-pending"}>
-                        {capture.kind === "recap" ? "自动 recap" : "OB 来源卡"} · {capture.status === "exported" ? `已归档：${capture.target_path || "已完成"}` : "已排队，等待本机同步写入。"}
+                        {capture.kind === "recap" ? t("自动 recap") : t("OB 来源卡")} · {capture.status === "exported" ? t("已归档：{v0}", { v0: capture.target_path || "已完成" }) : t("已排队，等待本机同步写入。")}
                       </p>
                     ))}
                   </div>
@@ -521,25 +519,25 @@ export default function Sessions({
                 {taskOpen && (
                   <form className="session-task-form" onSubmit={(event) => { event.preventDefault(); void createTaskFromSession(); }}>
                     <div className="session-form-grid">
-                      <label>任务标题<input value={taskTitle} onChange={(event) => setTaskTitle(event.target.value)} required /></label>
-                      <label>业务域<input value={taskDept} onChange={(event) => setTaskDept(event.target.value)} placeholder={vocab.deptPlaceholder} required /></label>
-                      <label>接办成员<select value={taskHolder} onChange={(event) => setTaskHolder(event.target.value)} required>{enabledActors.map((actor) => <option key={actor.id} value={actor.id}>{actor.display_name || actor.id}{actor.kind === "agent" ? "（智能体）" : ""}</option>)}</select></label>
-                      <label>优先级<select value={taskPriority} onChange={(event) => setTaskPriority(event.target.value as Priority)}>{PRIORITIES.map((priorityValue) => <option key={priorityValue} value={priorityValue}>{PRIORITY_LABEL[priorityValue]}</option>)}</select></label>
+                      <label>{t("任务标题")}<input value={taskTitle} onChange={(event) => setTaskTitle(event.target.value)} required /></label>
+                      <label>{t("业务域")}<input value={taskDept} onChange={(event) => setTaskDept(event.target.value)} placeholder={vocab.deptPlaceholder} required /></label>
+                      <label>{t("接办成员")}<select value={taskHolder} onChange={(event) => setTaskHolder(event.target.value)} required>{enabledActors.map((actor) => <option key={actor.id} value={actor.id}>{actor.display_name || actor.id}{actor.kind === "agent" ? t("（智能体）") : ""}</option>)}</select></label>
+                      <label>{t("优先级")}<select value={taskPriority} onChange={(event) => setTaskPriority(event.target.value as Priority)}>{PRIORITIES.map((priorityValue) => <option key={priorityValue} value={priorityValue}>{t(PRIORITY_LABEL[priorityValue])}</option>)}</select></label>
                     </div>
-                    <label>验收条件（至少一条，每行一条）<textarea value={taskAcceptance} onChange={(event) => setTaskAcceptance(event.target.value)} placeholder="例如：交付物路径已登记&#10;审核人可按验收条件复核" required /></label>
-                    <p className="session-form-note">发单后自动绑定本会话为来源证据；任务详情里可推进执行、移交和交付回执。</p>
-                    <button className="session-action session-action--primary" disabled={taskBusy || enabledActors.length === 0} type="submit">{taskBusy ? "正在发单…" : "创建并派给接办成员"}</button>
+                    <label>{t("验收条件（至少一条，每行一条）")}<textarea value={taskAcceptance} onChange={(event) => setTaskAcceptance(event.target.value)} placeholder={t("例如：交付物路径已登记\n审核人可按验收条件复核")} required /></label>
+                    <p className="session-form-note">{t("发单后自动绑定本会话为来源证据；任务详情里可推进执行、移交和交付回执。")}</p>
+                    <button className="session-action session-action--primary" disabled={taskBusy || enabledActors.length === 0} type="submit">{taskBusy ? t("正在发单…") : t("创建并派给接办成员")}</button>
                   </form>
                 )}
               </section>
 
               <footer className="session-relay-note">
                 <span><Smartphone size={16} /></span>
-                <div><strong>移动端用于查看与发单，原生续聊仍留在原设备</strong><p>这样手机上看到的是可靠的任务与证据链，而不是另一份会丢上下文的假会话。</p></div>
+                <div><strong>{t("移动端用于查看与发单，原生续聊仍留在原设备")}</strong><p>{t("这样手机上看到的是可靠的任务与证据链，而不是另一份会丢上下文的假会话。")}</p></div>
               </footer>
             </div>
           ) : (
-            <div className="sessions-empty sessions-empty--detail"><TerminalSquare size={24} /><strong>选择一条会话</strong><p>右侧会显示授权范围内的摘要、任务链与归档状态。</p></div>
+            <div className="sessions-empty sessions-empty--detail"><TerminalSquare size={24} /><strong>{t("选择一条会话")}</strong><p>{t("右侧会显示授权范围内的摘要、任务链与归档状态。")}</p></div>
           )}
         </Panel>
       </div>

@@ -46,6 +46,7 @@ import Workroom from "./pages/Workroom";
 import Sessions from "./pages/Sessions";
 import LiveSessions from "./pages/LiveSessions";
 import { ThemeSwitcher, useVocab } from "./theme";
+import { LanguageSwitcher, useI18n } from "./i18n";
 import { requestDataRefresh } from "./lib/refresh";
 import { demoMode } from "./demo";
 import { navigationGroup, usePageNavigation, writeNavigation, type Page } from "./lib/navigation";
@@ -149,6 +150,7 @@ function groupNav(items: NavItem[]): { label: NavSection; items: NavItem[] }[] {
 
 export default function App() {
   const vocab = useVocab();
+  const { t } = useI18n();
   const [me, setMe] = useState<Me | null>(null);
   const [checking, setChecking] = useState(true);
   const [page, setPage] = usePageNavigation();
@@ -173,9 +175,9 @@ export default function App() {
     void refreshMe();
   }, [refreshMe]);
 
-  if (checking) return <div className="boot">加载中…</div>;
+  if (checking) return <div className="boot">{t("加载中…")}</div>;
   if (!me && !demoMode) return <Login onLogin={() => void refreshMe()} />;
-  if (!me) return <div className="boot">演示数据加载失败，请刷新页面。</div>;
+  if (!me) return <div className="boot">{t("演示数据加载失败，请刷新页面。")}</div>;
 
   // The 中枢 hub embeds the site-specific console (admin-only API).
   const kingdomOn = Boolean(me.site_console) && me.role === "admin";
@@ -214,14 +216,14 @@ export default function App() {
         <nav className="side-nav">
           {navGroups.map((group) => (
             <div key={group.label} className="side-nav__section">
-              <p className="side-nav__label">{group.label}</p>
+              <p className="side-nav__label">{t(group.label)}</p>
               {group.items.map((item) => {
                 const label =
                   item.key === "affairs"
                     ? vocab.affairsLabel
                     : teacherMode && item.key === "agents"
-                      ? "AI 助理"
-                      : item.label;
+                      ? t("AI 助理")
+                      : t(item.label);
                 return (
                   <button
                     key={item.key}
@@ -240,11 +242,11 @@ export default function App() {
         <div className="side-user">
           <div className="side-user__name">
             <strong>{me.display_name || me.name}</strong>
-            <small>{teacherMode ? "老师账号" : demoMode ? "演示观察席" : viewerMode ? "实盘观察席" : me.role === "admin" ? "管理员" : "成员"}</small>
+            <small>{t(teacherMode ? "老师账号" : demoMode ? "演示观察席" : viewerMode ? "实盘观察席" : me.role === "admin" ? "管理员" : "成员")}</small>
           </div>
           <button
-            title="刷新数据（协作总览每 15 秒更新，任务协作每 5 秒更新）"
-            aria-label="刷新数据"
+            title={t("刷新数据（协作总览每 15 秒更新，任务协作每 5 秒更新）")}
+            aria-label={t("刷新数据")}
             onClick={() => {
               void refreshMe();
               requestDataRefresh();
@@ -254,8 +256,8 @@ export default function App() {
           </button>
           {!demoMode && (
           <button
-            title="退出登录"
-            aria-label="退出登录"
+            title={t("退出登录")}
+            aria-label={t("退出登录")}
             onClick={() => {
               void api.post("/api/auth/logout").then(() => setMe(null));
             }}
@@ -265,24 +267,25 @@ export default function App() {
           )}
         </div>
         <div className="side-theme">
+          <LanguageSwitcher />
           <ThemeSwitcher />
         </div>
       </aside>
       <main className="main">
-        {currentModes && <div className="workspace-modes" role="group" aria-label="工作台视图">
-          {currentModes.tabs.filter(tab => allowedPage(tab.key)).map(tab => <button type="button" key={tab.key} aria-pressed={visiblePage === tab.key} onClick={() => navigate(tab.key)}>{tab.icon}{tab.label}</button>)}
+        {currentModes && <div className="workspace-modes" role="group" aria-label={t("工作台视图")}>
+          {currentModes.tabs.filter(tab => allowedPage(tab.key)).map(tab => <button type="button" key={tab.key} aria-pressed={visiblePage === tab.key} onClick={() => navigate(tab.key)}>{tab.icon}{t(tab.label)}</button>)}
         </div>}
-        <p className="workspace-purpose" aria-label="当前页面用途">{PAGE_PURPOSE[visiblePage]}</p>
+        <p className="workspace-purpose" aria-label={t("当前页面用途")}>{t(PAGE_PURPOSE[visiblePage])}</p>
         {demoMode && (
           <div className="real-data-banner">
-            <strong>公开演示 · 只读样本</strong>
-            <span>数据来自演示模板快照，无法改卡或登录写操作。</span>
+            <strong>{t("公开演示 · 只读样本")}</strong>
+            <span>{t("数据来自演示模板快照，无法改卡或登录写操作。")}</span>
           </div>
         )}
         {viewerMode && !demoMode && (
           <div className="real-data-banner">
             <strong>{vocab.liveBanner}</strong>
-            <span>这里展示的成员、任务、节点与流转均来自真实运行数据；观察席不能修改内容。</span>
+            <span>{t("这里展示的成员、任务、节点与流转均来自真实运行数据；观察席不能修改内容。")}</span>
           </div>
         )}
         {visiblePage === "home" && (

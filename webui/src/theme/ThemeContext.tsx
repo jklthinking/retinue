@@ -13,6 +13,7 @@ import {
   type ThemeId,
   type ThemeVocab,
 } from "./vocab";
+import { useI18n } from "../i18n";
 
 const STORAGE_KEY = "retinue.theme";
 
@@ -70,22 +71,32 @@ export function useTheme(): ThemeContextValue {
 
 /** The active theme vocabulary; neutral when no provider is mounted. */
 export function useVocab(): ThemeVocab {
+  const vocab = useContext(ThemeContext).vocab;
+  const { t } = useI18n();
+  return useMemo(() => Object.fromEntries(
+    Object.entries(vocab).map(([key, value]) => [key, t(value)])
+  ) as unknown as ThemeVocab, [vocab, t]);
+}
+
+/** Form defaults remain operator data, independent of the display language. */
+export function useCanonicalVocab(): ThemeVocab {
   return useContext(ThemeContext).vocab;
 }
 
 export function ThemeSwitcher() {
   const { themeId, setTheme } = useTheme();
+  const { t } = useI18n();
   return (
     <label className="theme-switcher">
-      <span>主题词</span>
+      <span>{t("主题词")}</span>
       <select
-        aria-label="界面主题词"
+        aria-label={t("界面主题词")}
         value={themeId}
         onChange={(event) => setTheme(event.target.value as ThemeId)}
       >
         {Object.entries(THEME_PRESETS).map(([id, preset]) => (
           <option key={id} value={id}>
-            {preset.label}
+            {t(preset.label)}
           </option>
         ))}
       </select>

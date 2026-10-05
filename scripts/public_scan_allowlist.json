@@ -57,15 +57,6 @@
       "review_note": "Independently reviewed exact public source context: security-rule-literal. Any content or file change requires new review."
     },
     {
-      "file": "docs/demo/assets/index-yKb0YEP8.js",
-      "line": 175,
-      "category": "address",
-      "line_sha256": "c0561c4907ffc1fae46c1ba92a4e35b6e3ca2eb83d8589fae644fac411f53b2b",
-      "match_sha256": "a38256b48fff62fd48df52a529383b581681bccfd26c314410abd7d5ab818380",
-      "reason": "svg-path-constant",
-      "review_note": "Independently reviewed exact public source context: svg-path-numeric-constant-not-network-address. Any content or file change requires new review."
-    },
-    {
       "file": "docs/THIRD_PARTY_NOTICES.md",
       "line": 52,
       "category": "email",
@@ -685,6 +676,24 @@
       "match_sha256": "4561d1d5af13bee5f3c91f0460007fcd23cb9298db878228b3e0568220df46f9",
       "reason": "synthetic-test",
       "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
+    },
+    {
+      "file": "docs/demo/assets/index-D_lwLXat.js",
+      "line": 175,
+      "category": "address",
+      "line_sha256": "e3a649eb81e4c1d25796136c05651f802389c10cee2d4ccd0c840aa7fed875c7",
+      "match_sha256": "a38256b48fff62fd48df52a529383b581681bccfd26c314410abd7d5ab818380",
+      "reason": "svg-path-constant",
+      "review_note": "Independently reviewed Coins icon SVG d attribute: adjacent decimal coordinates, not a network address. Exact file, source line and candidate hashes only; any change requires new review."
+    },
+    {
+      "file": "docs/demo-en/assets/index-Cr1whxH3.js",
+      "line": 175,
+      "category": "address",
+      "line_sha256": "e3a649eb81e4c1d25796136c05651f802389c10cee2d4ccd0c840aa7fed875c7",
+      "match_sha256": "a38256b48fff62fd48df52a529383b581681bccfd26c314410abd7d5ab818380",
+      "reason": "svg-path-constant",
+      "review_note": "Independently reviewed Coins icon SVG d attribute: adjacent decimal coordinates, not a network address. Exact file, source line and candidate hashes only; any change requires new review."
     }
   ]
 }

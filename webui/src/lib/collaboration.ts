@@ -1,3 +1,4 @@
+import { t, getLanguage } from "../i18n";
 import type { Status, TaskAttempt, TaskSummary } from "../types";
 
 export interface CollaborationDelegation {
@@ -173,36 +174,36 @@ export function countedProgress(run: CollaborationRun): string {
   const progress = run.progress;
   if (!progress || !Number.isFinite(progress.completed) || !Number.isFinite(progress.total)
     || progress.total <= 0 || progress.completed < 0 || progress.completed > progress.total) {
-    return "尚未上报可计数进度";
+    return t("尚未上报可计数进度");
   }
-  return `已完成 ${progress.completed}/${progress.total} ${progress.unit}`.trim();
+  return t("已完成 {v0}/{v1} {v2}", { v0: progress.completed, v1: progress.total, v2: progress.unit }).trim();
 }
 
 export function collaborationTime(value: string | null | undefined): string {
-  if (!value) return "尚未记录";
+  if (!value) return t("尚未记录");
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return value;
-  return new Intl.DateTimeFormat("zh-CN", {
+  return new Intl.DateTimeFormat(getLanguage(), {
     month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
   }).format(date);
 }
 
 export function runIdentity(run: CollaborationRun): string {
-  return (run.node || "设备未知") + " · " + (run.model || "模型未知");
+  return (run.node || t("设备未知")) + " · " + (run.model || t("模型未知"));
 }
 
 export function missingIdentity(run: CollaborationRun): string[] {
   return [
-    !run.node ? "设备" : "",
-    !run.model ? "模型" : "",
-    !run.runtime ? "运行端" : "",
+    !run.node ? t("设备") : "",
+    !run.model ? t("模型") : "",
+    !run.runtime ? t("运行端") : "",
   ].filter(Boolean);
 }
 
 export function runStatus(run: CollaborationRun): string {
   return (run.lease_current === false || run.lease_live === false) && ["running", "waiting"].includes(run.status)
-    ? "状态待核实" : run.execution_state === "prepared" && ["running", "waiting", "queued"].includes(run.status)
-      ? "待启动" : RUN_STATUS[run.status];
+    ? t("状态待核实") : run.execution_state === "prepared" && ["running", "waiting", "queued"].includes(run.status)
+      ? t("待启动") : t(RUN_STATUS[run.status]);
 }
 
 /** Completed execution reports remain historical evidence, not overdue work. */
@@ -211,14 +212,14 @@ export function needsProgressUpdate(run: CollaborationRun): boolean {
 }
 
 export function identitySource(source: IdentitySource | undefined): string {
-  if (source === "reported") return "本次上报";
-  if (source === "registry") return "当次登记";
-  return "来源未记录";
+  if (source === "reported") return t("本次上报");
+  if (source === "registry") return t("当次登记");
+  return t("来源未记录");
 }
 
 export function reporterLabel(reporter: RunReporter | null | undefined): string {
-  if (!reporter) return "记录者未上报";
-  const role = ({ actor: "Agent", agent: "Agent", user: "操作员", operator: "操作员", node: "设备" } as Record<string, string>)[reporter.kind] || reporter.kind;
+  if (!reporter) return t("记录者未上报");
+  const role = ({ actor: "Agent", agent: "Agent", user: t("操作员"), operator: t("操作员"), node: t("设备") } as Record<string, string>)[reporter.kind] || reporter.kind;
   return role + " " + reporter.id;
 }
 export interface TaskContextSnapshot {
