@@ -41,6 +41,9 @@ def _api_routes(app) -> list[APIRoute]:
 
 # (path, methods, endpoint name, dependency chain) for every API route.
 EXPECTED_ROUTES = {
+    ("/api/nodes/quota", ("POST",), "report_quota", ("get_db",)),
+    ("/api/quota", ("GET",), "get_quota", ("require_auth", "get_db", "get_db")),
+    ("/api/quota/history", ("GET",), "quota_history", ("require_auth", "get_db", "get_db")),
     ("/api/tasks/{task_id}/collaboration", ("GET",), "get_collaboration", ("require_auth", "get_db", "get_db")),
     ("/api/tasks/{task_id}/context", ("GET",), "get_task_context", ("require_auth", "get_db", "get_db")),
     ("/api/tasks/{task_id}/collaboration/events", ("GET",), "get_collaboration_events", ("require_auth", "get_db", "get_db")),

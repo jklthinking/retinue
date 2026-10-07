@@ -1,0 +1,3 @@
+Plan usage
+5h limit ░░ 12% used resets in 2h 13m
+Weekly limit ██ 90% used resets in 3d 17h 13m

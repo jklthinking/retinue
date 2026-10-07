@@ -281,12 +281,69 @@ def cmd_enroll(args: argparse.Namespace) -> int:
         duty_keys=duty_keys,
         package_path=args.package_path or os.environ.get(ENV_PACKAGE_PATH) or "",
     )
+    _enroll_quota(args)
     if args.install:
         enroll.install(config, args.target)
         print(f"节点调度已安装: {node} ({args.target})")
     else:
         print(enroll.render(config, args.target))
     return 0
+
+
+def cmd_quota(args: argparse.Namespace) -> int:
+    from . import quota_probe as quota
+
+    config = quota.load_config()
+    if args.enable or args.disable:
+        try:
+            enabled = quota.selection(args.enable or [])
+            disabled = quota.selection(args.disable or [])
+        except ValueError:
+            raise SystemExit("未知额度 provider") from None
+        config['enabled_providers'] = list(dict.fromkeys(
+            [p for p in config.get('enabled_providers', []) if p not in disabled] + enabled
+        ))
+        config['consented_at'] = quota.iso(quota.now())
+        quota.save_config(config)
+    if args.status or args.enable or args.disable:
+        print(json.dumps({'enabled_providers': config.get('enabled_providers', []),
+                          'consented_at': config.get('consented_at')}, ensure_ascii=False, indent=2))
+        return 0
+    payload = quota.collect(_resolve_node(args), [args.provider] if args.provider else None, config)
+    if args.dry_run:
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+    else:
+        try:
+            quota.push(_resolve_url(args), _read_token(args), payload)
+        except Exception:
+            raise SystemExit("额度上报失败；请检查节点配置与服务端接口") from None
+        print("节点额度已上报")
+    return 0
+
+
+def _enroll_quota(args):
+    from . import quota_probe as quota
+    import sys
+
+    choice = args.quota_consent
+    if choice is None and args.install and sys.stdin.isatty():
+        providers = quota.detected()
+        print("检测到可查额度的 CLI/凭证: " + (', '.join(providers) or '无'))
+        try:
+            answer = input("是否允许 RETINUE 读取这些本机登录凭证来查询模型额度？"
+                           "凭证不会离开本机，只上报用量与重置时间。[y/N] ")
+        except EOFError:
+            answer = ''
+        choice = ','.join(providers) if answer.strip().lower() in ('y', 'yes') else 'none'
+    if choice is None and not args.install:
+        return
+    try:
+        enabled = list(quota.PROVIDERS[:6]) if choice == 'all' else ([] if choice in (None, 'none') else quota.selection([choice]))
+    except ValueError:
+        raise SystemExit("未知额度 provider") from None
+    config = quota.load_config()
+    config.update(enabled_providers=enabled, consented_at=quota.iso(quota.now()))
+    quota.save_config(config)
 
 
 def cmd_whoami(args: argparse.Namespace) -> int:
@@ -495,7 +552,19 @@ def build_parser() -> argparse.ArgumentParser:
     enroll.add_argument(
         "--privacy", choices=("metadata", "summary", "full"), default="metadata"
     )
+    enroll.add_argument('--quota-consent', help='额度凭证读取同意: all|none|claude,codex,...，默认否')
     enroll.set_defaults(func=cmd_enroll)
+
+    from .quota_probe import PROVIDERS
+
+    quota = sub.add_parser('quota', help='查询并上报模型额度')
+    add_common(quota)
+    quota.add_argument('--dry-run', action='store_true')
+    quota.add_argument('--provider', choices=PROVIDERS)
+    quota.add_argument('--enable', nargs='+')
+    quota.add_argument('--disable', nargs='+')
+    quota.add_argument('--status', action='store_true')
+    quota.set_defaults(func=cmd_quota)
 
     return parser
 

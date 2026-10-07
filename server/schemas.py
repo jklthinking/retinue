@@ -682,3 +682,102 @@ class DistillCandidateBody(BaseModel):
 
 class DistillRejectBody(BaseModel):
     decision_note: str = Field(min_length=1, max_length=240)
+
+
+# Quota telemetry is a deliberately closed schema: no vendor payloads or
+# credential fields can survive validation, including inside windows/balance.
+class QuotaValue(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_credentials(cls, value):
+        import re
+        def inspect(item):
+            if isinstance(item, dict):
+                for child in item.values():
+                    inspect(child)
+            elif isinstance(item, list):
+                for child in item:
+                    inspect(child)
+            elif isinstance(item, str) and re.search(
+                r"(?i)bearer\s|sk-[a-z0-9_-]{16,}|(?:rtn|rts|rtd)_[a-z0-9_-]{30,}|"
+                r"ghp_[a-z0-9]{20,}|AKIA[0-9A-Z]{16}|xai-[a-z0-9_-]{16,}|eyJ[a-z0-9_-]+\.eyJ|-----BEGIN|"
+                r"(?:token|cookie|password|secret|authorization)\s*[:=]", item
+            ):
+                raise ValueError("credential-like quota content is forbidden")
+        inspect(value)
+        return value
+
+
+class QuotaWindow(QuotaValue):
+    key: str = Field(min_length=1, max_length=128)
+    label: str = Field(max_length=128)
+    period: str = Field(max_length=32)
+    used_percent: float | None = Field(default=None, ge=0, le=100, allow_inf_nan=False)
+    used: float | None = Field(default=None, allow_inf_nan=False)
+    limit: float | None = Field(default=None, allow_inf_nan=False)
+    unit: str = Field(max_length=32)
+    resets_at: str | None = Field(default=None, max_length=64)
+    raw_reset: str | float | None = None
+
+    @model_validator(mode="after")
+    def validate_reset(self):
+        if isinstance(self.raw_reset, str) and len(self.raw_reset) > 128:
+            raise ValueError("raw_reset too long")
+        if isinstance(self.raw_reset, float):
+            import math
+            if not math.isfinite(self.raw_reset):
+                raise ValueError("invalid raw_reset")
+        if self.resets_at is not None:
+            quota_timestamp(self.resets_at)
+        return self
+
+
+def quota_timestamp(value: str) -> dt.datetime:
+    if "T" not in value:
+        raise ValueError("ISO timestamp required")
+    stamp = dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if stamp.tzinfo is None:
+        raise ValueError("timestamp requires timezone")
+    return stamp.astimezone(dt.timezone.utc)
+
+
+class QuotaBalance(QuotaValue):
+    amount: float = Field(allow_inf_nan=False)
+    currency: str = Field(pattern=r"^[A-Z]{3}$")
+
+
+class QuotaProvider(QuotaValue):
+    provider: str = Field(max_length=32)
+    kind: str = Field(pattern=r"^(subscription|api)$")
+    status: str = Field(pattern=r"^(ok|error|expired|not_configured|consent_missing)$")
+    plan: str | None = Field(default=None, max_length=64)
+    account_fp: str | None = Field(default=None, pattern=r"^(?:[a-f0-9]{12,64})?$")
+    source: str = Field(pattern=r"^(api|cli)$")
+    windows: list[QuotaWindow] = Field(default_factory=list, max_length=50)
+    balance: QuotaBalance | None = None
+    error: str | None = Field(default=None, max_length=256)
+    fetched_at: str = Field(max_length=64)
+
+    @model_validator(mode="after")
+    def validate_provider(self):
+        from node.quota_probe import PROVIDERS
+        if self.provider not in PROVIDERS:
+            raise ValueError("unknown provider")
+        quota_timestamp(self.fetched_at)
+        return self
+
+
+class QuotaReportBody(QuotaValue):
+    node: str = Field(min_length=1, max_length=64, pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+    collected_at: str = Field(max_length=64)
+    providers: list[QuotaProvider] = Field(max_length=10)
+
+    @model_validator(mode="after")
+    def validate_report(self):
+        quota_timestamp(self.collected_at)
+        names = [item.provider for item in self.providers]
+        if len(names) != len(set(names)):
+            raise ValueError("providers must be unique")
+        return self

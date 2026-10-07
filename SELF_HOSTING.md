@@ -322,10 +322,10 @@ Upgrade the server in this order:
    scheduled jobs. This is the complete writer sequence: **stop, migrate,
    start**.
 
-For `0.3.0a1`, the integrated production migration advances the database
-through schema v23-v25, adding live-session observations, explicit endpoint
-bindings, control envelopes,
-and append-only control events. Older server binaries intentionally refuse the
+For `0.3.0a2`, the integrated migration advances the database through schema
+v23-v26: live-session observations, endpoint bindings and control events,
+followed by quota reports and snapshots. Quota collection remains disabled
+until enabled locally on each node. Older server binaries intentionally refuse the
 new schema. A database downgrade is not performed in place: stop writers,
 restore the complete pre-migration data-directory backup, reinstall the prior
 binary, and start it against that restored directory. Controls created after

@@ -79,7 +79,7 @@ def test_runtime_version_is_the_pyproject_version():
 
     declared = _manifest()["project"]["version"]
     assert __version__ == declared
-    assert declared == "0.3.0a1"
+    assert declared == "0.3.0a2"
 
 
 def test_python_artifacts_declare_the_built_webui_as_package_data():

@@ -28,6 +28,7 @@
   "/api/metrics/throughput?days=7&timezone=Asia%2FShanghai": "metrics_throughput_days_7_timezone_Asia_2FShanghai.json",
   "/api/nodes": "nodes.json",
   "/api/pipeline-templates": "pipeline-templates.json",
+  "/api/quota": "quota.json",
   "/api/sessions?limit=200": "sessions_limit_200.json",
   "/api/sessions?limit=24": "sessions_limit_24.json",
   "/api/sessions?task_id=task-20260831-001": "sessions_task_id_task-20260831-001.json",

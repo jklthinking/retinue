@@ -46,6 +46,73 @@ def _synthetic_sources_only():
         yield
 
 
+def demo_quota_payload(generated_at: str) -> dict:
+    """Synthetic quota rows for the offline panel; no real account identifiers."""
+    fetched = f"{DEMO_TODAY}T09:30:00+00:00"
+    return {
+        "generated_at": generated_at,
+        "providers": [
+            {
+                "provider": "claude",
+                "kind": "subscription",
+                "status": "ok",
+                "plan": "pro",
+                "account_fp": "a1b2c3d4e5f6",
+                "nodes": ["demo-node"],
+                "windows": [
+                    {
+                        "key": "five_hour",
+                        "label": "five_hour",
+                        "period": "5h",
+                        "used_percent": 42,
+                        "used": None,
+                        "limit": None,
+                        "unit": "percent",
+                        "resets_at": f"{DEMO_TODAY}T14:00:00+00:00",
+                        "raw_reset": None,
+                    }
+                ],
+                "balance": None,
+                "fetched_at": fetched,
+                "error": None,
+                "stale": False,
+            },
+            *[
+                {
+                    "provider": provider, "kind": "subscription", "status": "ok",
+                    "plan": plan, "account_fp": None, "nodes": ["demo-node"],
+                    "windows": [{
+                        "key": key, "label": key, "period": period,
+                        "used_percent": percent, "used": None, "limit": None,
+                        "unit": "percent", "resets_at": f"{DEMO_TODAY}T14:00:00+00:00",
+                        "raw_reset": None,
+                    }],
+                    "balance": None, "fetched_at": fetched, "error": None, "stale": False,
+                }
+                for provider, plan, key, period, percent in [
+                    ("codex", "plus", "five_hour", "5h", 78),
+                    ("grok", "premium", "daily", "daily", 23),
+                    ("cursor", "pro", "monthly", "monthly", 54),
+                    ("kimi", "moderato", "weekly", "weekly", 17),
+                ]
+            ],
+            {
+                "provider": "moonshot",
+                "kind": "api",
+                "status": "ok",
+                "plan": None,
+                "account_fp": "f6e5d4c3b2a1",
+                "nodes": ["demo-node"],
+                "windows": [],
+                "balance": {"amount": 128.5, "currency": "CNY"},
+                "fetched_at": fetched,
+                "error": None,
+                "stale": False,
+            },
+        ],
+    }
+
+
 def route_filename(path: str) -> str:
     """Map a request path (with optional query) to a flat file name under api/."""
     cleaned = path.lstrip("/")
@@ -99,6 +166,7 @@ def collect_api_paths(client: TestClient, today: str) -> list[str]:
         "/api/approvals?pending=true",
         "/api/pipeline-templates",
         "/api/todos/home",
+        "/api/quota",
     ]
     # The shared operations period control must work without a live API too.
     for days in (1, 7, 30):
@@ -135,6 +203,8 @@ def dump_api_snapshots(client: TestClient, api_dir: Path, today: str, *, languag
         name = route_filename(path)
         target = api_dir / name
         payload = response.json()
+        if path == "/api/quota":
+            payload = demo_quota_payload(payload.get("generated_at") or f"{today}T09:42:00+00:00")
         if path.startswith("/api/auth/me") and isinstance(payload, dict):
             payload = {**payload, "role": "viewer", "readonly": True}
         if path.endswith("/collaboration") and isinstance(payload, dict):
