@@ -29,6 +29,7 @@ import { STATUS_LABEL, localTodayISO } from "../types";
 import DispatchMap from "../components/DispatchMap";
 import TaskFlowDiagram from "../components/TaskFlowDiagram";
 import ActionQueue from "../components/ActionQueue";
+import QuotaPanel from "../components/QuotaPanel";
 import InboxLanes from "../components/InboxLanes";
 import { Ambient, DataState, Metric, PageHeader, Panel } from "../components/ui";
 import { useVocab } from "../theme";
@@ -241,6 +242,8 @@ export default function Home({
           onClick={() => onNavigate("knowledge")}
         />
       </div>
+
+      <QuotaPanel />
 
       <Panel
         icon={<Route size={15} />}

@@ -1,0 +1,32 @@
+{
+  "usage": {
+    "billingCycleEnd": "2026-10-16T13:27:30.000Z",
+    "membershipType": "ultra",
+    "individualUsage": {
+      "plan": {
+        "enabled": true,
+        "used": 12792,
+        "limit": 40000,
+        "remaining": 27208,
+        "breakdown": {
+          "included": 12792,
+          "bonus": 0,
+          "total": 12792
+        },
+        "autoPercentUsed": 0.9743333333333333,
+        "apiPercentUsed": 98.69,
+        "totalPercentUsed": 4.126451612903226
+      },
+      "onDemand": {
+        "enabled": false,
+        "used": 0,
+        "limit": null,
+        "remaining": null
+      }
+    }
+  },
+  "sand": {
+    "nextResetTimestampUtc": "2026-10-05T12:23:03.175Z",
+    "usagePercent": 0.783434
+  }
+}

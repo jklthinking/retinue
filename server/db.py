@@ -50,6 +50,34 @@ class Base(DeclarativeBase):
     pass
 
 
+class QuotaReport(Base):
+    __tablename__ = "quota_reports"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    node_id: Mapped[str] = mapped_column(String(64), ForeignKey("nodes.id"))
+    collected_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True))
+    received_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), index=True)
+
+
+class QuotaSnapshot(Base):
+    __tablename__ = "quota_snapshots"
+    __table_args__ = (Index("ix_quota_account_fetched", "provider", "account_fp", "fetched_at"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    report_id: Mapped[int] = mapped_column(Integer, ForeignKey("quota_reports.id"), index=True)
+    node_id: Mapped[str] = mapped_column(String(64), ForeignKey("nodes.id"))
+    provider: Mapped[str] = mapped_column(String(32))
+    kind: Mapped[str] = mapped_column(String(16))
+    status: Mapped[str] = mapped_column(String(32))
+    plan: Mapped[str | None] = mapped_column(String(64))
+    account_fp: Mapped[str | None] = mapped_column(String(64))
+    source: Mapped[str] = mapped_column(String(16))
+    windows: Mapped[str] = mapped_column(Text)
+    balance: Mapped[str | None] = mapped_column(Text)
+    error: Mapped[str | None] = mapped_column(String(256))
+    fetched_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True))
+
+
 class SchemaVersion(Base):
     """The single applied-version record for the server schema."""
 
@@ -3106,6 +3134,7 @@ SCHEMA_MIGRATIONS = (
         ),
         tables=("control_envelopes", "control_events"),
     ),
+    _Migration(26, (), tables=("quota_reports", "quota_snapshots")),
 )
 LATEST_SCHEMA_VERSION = SCHEMA_MIGRATIONS[-1].version
 

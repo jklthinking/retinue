@@ -1,0 +1,7 @@
+[Unit]
+Description=Retinue read-only model quota report
+
+[Service]
+Type=oneshot
+EnvironmentFile=%h/.config/retinue/node.env
+ExecStart=retinue-node quota

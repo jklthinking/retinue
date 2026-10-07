@@ -3,12 +3,13 @@ import shared from "./dictionaries/shared";
 import workspace from "./dictionaries/workspace";
 import operations from "./dictionaries/operations";
 import remaining from "./dictionaries/remaining";
+import quota from "./dictionaries/quota";
 
 export type Language = "zh-CN" | "en";
 export type TranslationValues = Record<string, string | number | null | undefined>;
 const STORAGE_KEY = "retinue.language";
 // Common menu, theme and stage labels have one consistent wording across pages.
-const translations: Record<string, string> = { ...workspace, ...operations, ...remaining, ...shared };
+const translations: Record<string, string> = { ...workspace, ...operations, ...remaining, ...quota, ...shared };
 let activeLanguage: Language = "zh-CN";
 
 function validLanguage(value: unknown): value is Language {

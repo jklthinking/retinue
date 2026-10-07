@@ -678,22 +678,49 @@
       "review_note": "Independently reviewed exact public source context: temporary-database-auth-fixture. Any content or file change requires new review."
     },
     {
-      "file": "docs/demo/assets/index-D_lwLXat.js",
-      "line": 175,
-      "category": "address",
-      "line_sha256": "e3a649eb81e4c1d25796136c05651f802389c10cee2d4ccd0c840aa7fed875c7",
-      "match_sha256": "a38256b48fff62fd48df52a529383b581681bccfd26c314410abd7d5ab818380",
-      "reason": "svg-path-constant",
-      "review_note": "Independently reviewed Coins icon SVG d attribute: adjacent decimal coordinates, not a network address. Exact file, source line and candidate hashes only; any change requires new review."
+      "file": "tests/test_node_quota.py",
+      "line": 158,
+      "category": "credential",
+      "line_sha256": "151410e0965d6730487803aa8db13c9c5cee8e55de8b5fe003bdfd3b12bd4f22",
+      "match_sha256": "02c31990407916c41659dba76d821622764f37ad029b8e2eacf7e9924c108218",
+      "reason": "synthetic-test",
+      "review_note": "Mocked HTTP Authorization header uses the literal Bearer synthetic; no real request or credential."
     },
     {
-      "file": "docs/demo-en/assets/index-Cr1whxH3.js",
+      "file": "tests/test_server_quota.py",
+      "line": 54,
+      "category": "credential",
+      "line_sha256": "66a368b925eae8a728d42e6952cbed2dcaf7a87f7406187c67773705762890bf",
+      "match_sha256": "e8b90ede6bf475d99038b26d8abc831b42aa78716eb443d6b6e64430f1a2e9f6",
+      "reason": "negative-test",
+      "review_note": "The literal synthetic access_token is deliberately rejected as an extra field; no account token."
+    },
+    {
+      "file": "tests/test_server_quota.py",
+      "line": 147,
+      "category": "credential",
+      "line_sha256": "3c6264ef436c5d60d1de373147c37fcbd5594bb07e72d72c168776d06e5c98a5",
+      "match_sha256": "bba034bde008edfedd9ed9354ec5568e871cebc6ff542c0b47ce35b678546374",
+      "reason": "synthetic-test",
+      "review_note": "The sample-user login password is synthetic-pass in an isolated temporary database only."
+    },
+    {
+      "file": "docs/demo/assets/index-CGgfCSVV.js",
       "line": 175,
       "category": "address",
-      "line_sha256": "e3a649eb81e4c1d25796136c05651f802389c10cee2d4ccd0c840aa7fed875c7",
+      "line_sha256": "fda18cf14577bbd5fd95be68678743c88faa93da94dc22b73579c942e16e6f0e",
       "match_sha256": "a38256b48fff62fd48df52a529383b581681bccfd26c314410abd7d5ab818380",
       "reason": "svg-path-constant",
-      "review_note": "Independently reviewed Coins icon SVG d attribute: adjacent decimal coordinates, not a network address. Exact file, source line and candidate hashes only; any change requires new review."
+      "review_note": "Reviewed lucide Coins icon SVG d attribute: adjacent decimal drawing coordinates, not a network address. Exact source-line and candidate hashes only."
+    },
+    {
+      "file": "docs/demo-en/assets/index-CZhPMGP4.js",
+      "line": 175,
+      "category": "address",
+      "line_sha256": "fda18cf14577bbd5fd95be68678743c88faa93da94dc22b73579c942e16e6f0e",
+      "match_sha256": "a38256b48fff62fd48df52a529383b581681bccfd26c314410abd7d5ab818380",
+      "reason": "svg-path-constant",
+      "review_note": "Reviewed lucide Coins icon SVG d attribute: adjacent decimal drawing coordinates, not a network address. Exact source-line and candidate hashes only."
     }
   ]
 }

@@ -1,5 +1,19 @@
 ## Unreleased
 
+### 0.3.0a2: Home model quota (2026-10-07)
+
+- Adds consent-gated node probes for Claude, Codex, Grok, Cursor and Kimi
+  subscription usage plus Moonshot API balance. Credentials stay local; probes
+  send no inference prompts. Optional systemd collection templates are provided.
+- Schema 26 adds node-scoped quota reporting, authenticated grouped/compact reads
+  and UTC daily history, strict bounded payloads and 90-day ingestion retention.
+- Home cards support English and Chinese, used percentages, reset and fetch times,
+  stale data, last-successful readings and generic multiple-account labels.
+  Elapsed reset time is labelled awaiting refresh rather than implying zero usage.
+- Rebuilds both offline demo sites with synthetic quota data and documents setup,
+  migration and a proposed task conversation timeline. The timeline is not
+  implemented by this release.
+
 ### Server: personal-agenda M1 stage 5 — 分享会 walkthrough
 - Todo payloads add `ready_to_close` when every live child is done and the
   parent is still open. Completing the parent stays a human action.

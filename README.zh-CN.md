@@ -1,5 +1,7 @@
 **[免安装查看 seed-42 静态演示 →](docs/demo/index.html)** · [English README](README.en.md) · [英文演示](https://jklthinking.github.io/retinue/demo-en/?lang=en) · [英文 PRD](docs/PRD.en.md) · [英文截图与版本介绍](docs/releases/2026-10-03-english-edition.md)
 
+2026-10-07 更新：首页新增模型额度（`0.3.0a2`）。支持 Claude、Codex、Grok、Cursor、Kimi 订阅额度及 Moonshot API 余额，逐节点开启采集，中英文显示。[更新说明](docs/releases/2026-10-07-model-quota.md) · [配置说明](docs/node-quota.md) · [沟通记录设计](docs/design/collaboration-conversations.md)。已有数据库需按自托管文档迁移到 schema 26。
+
 # Retinue
 
 Retinue 是一个本地、文件驱动的 AI agent 协作控制面：给不同运行时派发任务，

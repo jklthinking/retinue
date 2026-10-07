@@ -831,3 +831,24 @@ sites:
   entity: Task
   decider: no-durable-change
   reason: Synthetic task rows in a temporary database verify that read-only checks never mutate retained history.
+
+- file: tests/test_server_quota.py
+  entity: Actor
+  decider: no-durable-change
+  reason: Synthetic quota reader exists only in an isolated temporary test database.
+- file: tests/test_server_quota.py
+  entity: ApiToken
+  decider: no-durable-change
+  reason: Synthetic reader credential tests authenticated quota reads in a temporary database.
+- file: tests/test_server_quota.py
+  entity: Node
+  decider: no-durable-change
+  reason: Synthetic admitted nodes test quota report scope without changing the durable roster.
+- file: tests/test_server_quota.py
+  entity: NodeToken
+  decider: no-durable-change
+  reason: Synthetic node credentials exist only in a temporary test database.
+- file: tests/test_server_quota.py
+  entity: User
+  decider: no-durable-change
+  reason: Synthetic viewer tests session authenticated quota reads in a temporary database.

@@ -27,6 +27,7 @@ function stubHome({ sessions = [session], fail = () => false }: { sessions?: Run
     "api/summary": () => fail() ? { status: 500, body: { detail: "summary unavailable" } } : { body: summary() },
     "api/status": () => ({ body: { version: "test", task_counts: {}, actors: 3, online_actors: 2, skills: 4, nodes: 2, knowledge_sources: 1 } }),
     "api/sessions": () => ({ body: sessions }),
+    "api/quota": () => ({ body: { generated_at: "2026-10-04T03:00:00Z", providers: [] } }),
     "api/inbox": () => ({ body: { decisions: { count: 0, items: [] }, reviews: { count: 0, items: [] }, blocked: { count: 0, items: [] }, stale: { count: 0, items: [] } } }),
   });
 }

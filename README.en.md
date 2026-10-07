@@ -21,6 +21,17 @@ write back, and you accept the card or send it back. There is no hosted
 control plane, no vendor account requirement, and no telemetry. The server-backed
 hub uses operator-managed local accounts and scoped credentials.
 
+## 2026-10-07: model quota on Home
+
+Version `0.3.0a2` adds opt-in node quota collection and bilingual Home cards for
+Claude, Codex, Grok, Cursor and Kimi subscriptions, plus Moonshot API balance.
+See used percentages, reset time, report age and labelled last-successful data.
+[Setup and API semantics](docs/node-quota.en.md) ·
+[Update notes](docs/releases/2026-10-07-model-quota.md) ·
+[Conversation timeline design](docs/design/collaboration-conversations.md).
+Existing servers require the explicit schema-26 migration; collectors stay off
+until enabled locally. The online demos show synthetic data only.
+
 ## 2026-10-03 English edition: visible collaboration
 
 Version `0.3.0a1` brings the collaboration process into each task. See who
@@ -141,9 +152,9 @@ Wait until the logs show the hub listening, then:
 curl -fsS http://127.0.0.1:9219/api/health
 ```
 
-That returns JSON like `{"status":"ok","version":"0.3.0a1"}` with no
+That returns JSON like `{"status":"ok","version":"0.3.0a2"}` with no
 authentication. `version` is the PEP 440 string from `pyproject.toml` (the
-same spelling as the wheel name and the next git tag, `v0.3.0a1`). Open
+same spelling as the wheel name and the next git tag, `v0.3.0a2`). Open
 <http://127.0.0.1:9219/> and sign in as `operator` with that password. The
 image is the authenticated v0.2 hub, not the old read-only panel.
 
