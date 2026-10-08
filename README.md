@@ -23,7 +23,7 @@ hub uses operator-managed local accounts and scoped credentials.
 
 ## 2026-10-07: model quota on Home
 
-Version `0.3.0a3` adds manual node quota refresh. [Release notes](docs/releases/2026-10-08-quota-refresh.md).
+Version `0.3.0a4` adds task conversation histories behind an opt-in flag. [Release notes](docs/releases/2026-10-08-task-conversations.md). Manual quota refresh remains available.
 
 Opt-in node quota collection and bilingual Home cards for
 Claude, Codex, Grok, Cursor and Kimi subscriptions, plus Moonshot API balance.
@@ -154,9 +154,9 @@ Wait until the logs show the hub listening, then:
 curl -fsS http://127.0.0.1:9219/api/health
 ```
 
-That returns JSON like `{"status":"ok","version":"0.3.0a3"}` with no
+That returns JSON like `{"status":"ok","version":"0.3.0a4"}` with no
 authentication. `version` is the PEP 440 string from `pyproject.toml` (the
-same spelling as the wheel name and the next git tag, `v0.3.0a3`). Open
+same spelling as the wheel name and the next git tag, `v0.3.0a4`). Open
 <http://127.0.0.1:9219/> and sign in as `operator` with that password. The
 image is the authenticated v0.2 hub, not the old read-only panel.
 
@@ -397,8 +397,8 @@ docker compose up --build
 curl -fsS http://127.0.0.1:9219/api/health
 ```
 
-应返回类似 `{"status":"ok","version":"0.3.0a3"}`，无需登录。`version`
-与 `pyproject.toml`、wheel 文件名、下次 git tag（`v0.3.0a3`）是同一串。
+应返回类似 `{"status":"ok","version":"0.3.0a4"}`，无需登录。`version`
+与 `pyproject.toml`、wheel 文件名、下次 git tag（`v0.3.0a4`）是同一串。
 打开 <http://127.0.0.1:9219/>，用 `operator` 和上面的密码登录。默认镜像
 是带登录的 v0.2 中枢，不再是旧只读面板。
 

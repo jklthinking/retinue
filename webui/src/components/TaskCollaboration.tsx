@@ -9,6 +9,7 @@ import {
   collaborationTime, countedProgress, WAIT_KIND, runIdentity, runStatus, missingIdentity, identitySource, reporterLabel, needsProgressUpdate,
 } from "../lib/collaboration";
 import "./task-collaboration.css";
+import TaskConversations from "./TaskConversations";
 import DelegateTaskForm from "./DelegateTaskForm";
 import RunProgress from "./RunProgress";
 import TaskContextPanel from "./TaskContextPanel";
@@ -32,7 +33,7 @@ export default function TaskCollaboration({ taskId, actors, me, onChanged, onOpe
   const [error, setError] = useState("");
   const [unsupported, setUnsupported] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState<"delegations" | "timeline" | "modules" | "runs">("delegations");
+  const [view, setView] = useState<"delegations" | "timeline" | "modules" | "runs" | "conversations">("delegations");
   const [selection, setSelection] = useState("");
   const [retryNote, setRetryNote] = useState("");
   const [busy, setBusy] = useState(false);
@@ -172,10 +173,11 @@ export default function TaskCollaboration({ taskId, actors, me, onChanged, onOpe
             <button type="button" aria-pressed={view === "delegations"} onClick={() => setView("delegations")}><GitBranch size={14} aria-hidden="true" /> {t("任务关系图")}</button>
             <button type="button" aria-pressed={view === "timeline"} onClick={() => setView("timeline")}><GanttChart size={14} aria-hidden="true" /> {t("设备模型泳道")}</button>
             <button type="button" aria-pressed={view === "modules"} onClick={() => setView("modules")}><Layers size={14} aria-hidden="true" /> {t("模块贡献")}</button>
+            {me.task_conversations && <button type="button" aria-pressed={view === "conversations"} onClick={() => setView("conversations")}>{t("沟通记录")}</button>}
             <button type="button" aria-pressed={view === "runs"} onClick={() => setView("runs")}><ListChecks size={14} aria-hidden="true" /> {t("执行进展")}</button>
           </div>
           <div className="collab-visual__stage">
-          {view === "delegations" ? (
+          {view === "conversations" ? <TaskConversations key={taskId} taskId={taskId} /> : view === "delegations" ? (
             <TaskRelationshipGraph snapshot={data} selectedTaskId={selectedTaskId} selectedRunId={selectedRun?.id} actors={actors} disabled={busy} onSelectTask={chooseTask} onSelectRun={(id) => setSelection(`run:${id}`)} onOpenTask={onOpenTask} />
           ) : view === "timeline" ? (
             <WorkerTimeline snapshot={data} selectedTaskId={selectedTaskId} selectedRunId={selectedRun?.id} actors={actors} disabled={busy} onSelectTask={chooseTask} onSelectRun={(id) => { setSelection(`run:${id}`); setRetryNote(""); setNotice(""); }} />
@@ -199,7 +201,7 @@ export default function TaskCollaboration({ taskId, actors, me, onChanged, onOpe
             </div>
           )}
 
-          {(selectedTask || selectedRun) && <article className="task-collaboration__detail" aria-label={t("选中分支的执行证据")}>
+          {view !== "conversations" && (selectedTask || selectedRun) && <article className="task-collaboration__detail" aria-label={t("选中分支的执行证据")}>
             <header><div><small>{t("选中分支")}</small><h4>{selectedRun?.title || selectedTask?.title}</h4></div>
               {onOpenTask && selectedTaskId && selectedTaskId !== taskId && <button type="button" onClick={() => onOpenTask(selectedTaskId)}>{t("查看任务")}</button>}
             </header>

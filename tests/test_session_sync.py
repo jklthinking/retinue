@@ -500,3 +500,22 @@ def test_idle_summary_automatically_queues_idempotent_recap(client):
     )
     assert unchanged.status_code == 200
     assert client.get("/api/session-captures/pending", headers=headers).json() == []
+
+
+def test_claude_export_filters_injection_meta_and_tools_before_truncation(tmp_path):
+    source = tmp_path / 'claude'
+    def entry(role, content, **extra):
+        return {'type': role, 'timestamp': '2026-01-01T00:00:00Z', 'sessionId': 'synthetic-filter', 'message': {'role': role, 'content': content}, **extra}
+    records = [
+        entry('user', '<system-reminder>' + 'Internal environment. ' * 1000 + '</system-reminder>Visible request'),
+        entry('user', 'Meta-only content', isMeta=True),
+        entry('user', [{'type':'tool_result','content':'Secret tool body'}]),
+        entry('assistant', [{'type':'thinking','thinking':'Private reasoning'}, {'type':'tool_use','name':'Read'}, {'type':'text','text':'Visible answer'}]),
+        entry('user', '<system-reminder>Outer<system-reminder>Inner</system-reminder>Outer</system-reminder>Follow-up'),
+        entry('user', '<local-command-caveat>Local environment</local-command-caveat>'),
+        entry('user', '<system-reminder>Unterminated injected context'),
+    ]
+    write_jsonl(source / 'synthetic-filter.jsonl', records)
+    result = collect_sessions(source, runtime='claude-code', agent_id='reviewer', privacy='full', max_messages=80)[0]
+    assert [message['text'] for message in result['messages']] == ['Visible request', 'Visible answer', 'Follow-up']
+    assert 'Internal environment' not in result['summary']

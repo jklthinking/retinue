@@ -542,6 +542,36 @@ class RuntimeSession(Base):
     )
 
 
+class TaskConversationLink(Base):
+    """Operator-selected source ranges; bodies remain in the runtime source."""
+
+    __tablename__ = "task_conversation_links"
+    __table_args__ = (Index("ux_task_conversation_active_selection", "task_id", "session_id", "selection_key",
+        unique=True, sqlite_where=text("revoked_at IS NULL"), postgresql_where=text("revoked_at IS NULL")),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), index=True)
+    session_id: Mapped[int] = mapped_column(ForeignKey("runtime_sessions.id"), index=True)
+    selection_key: Mapped[str] = mapped_column(String(64))
+    linked_by: Mapped[str] = mapped_column(String(64))
+    linked_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    snapshot_json: Mapped[str] = mapped_column(Text)
+    hashes_json: Mapped[str] = mapped_column(Text)
+    revoked_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+    revoked_by: Mapped[str | None] = mapped_column(String(64))
+
+
+class ConversationProtectedSource(Base):
+    """Permanent source protection, independent of links and feature flags."""
+
+    __tablename__ = "conversation_protected_sources"
+    session_id: Mapped[int] = mapped_column(ForeignKey("runtime_sessions.id"), primary_key=True)
+    actor_id: Mapped[str] = mapped_column(String(64))
+    runtime: Mapped[str] = mapped_column(String(64))
+    external_id: Mapped[str] = mapped_column(String(256))
+    protected_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 class LiveSession(Base):
     """One currently reachable runtime instance, separate from transcript sync.
 
@@ -3170,6 +3200,8 @@ SCHEMA_MIGRATIONS = (
     _Migration(26, (), tables=("quota_reports", "quota_snapshots")),
     _Migration(27, (), indexes=(("quota_refresh_requests", "ux_quota_refresh_active_node"),),
                tables=("quota_refresh_requests", "quota_refresh_batches")),
+    _Migration(28, (), indexes=(("task_conversation_links", "ux_task_conversation_active_selection"),),
+               tables=("task_conversation_links", "conversation_protected_sources")),
 )
 LATEST_SCHEMA_VERSION = SCHEMA_MIGRATIONS[-1].version
 

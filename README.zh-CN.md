@@ -1,4 +1,4 @@
-2026-10-08 更新：首页额度新增手动刷新查询（`0.3.0a3`）。管理员点击后由节点重新查询，只运行本机已同意的采集器，并明确显示等待、部分失败和超时。[更新说明](docs/releases/2026-10-08-quota-refresh.md)。已有数据库需停写、备份，再迁移到 schema 27。
+2026-10-08 更新：任务工作台新增「沟通记录」，可查看明确关联的 Codex/Claude 可见消息（`0.3.0a4`）。默认关闭，启用前停写、备份并迁移到 schema 28。[更新说明](docs/releases/2026-10-08-task-conversations.md)。首页额度的手动「刷新查询」保持可用。
 
 **[免安装查看 seed-42 静态演示 →](docs/demo/index.html)** · [English README](README.en.md) · [英文演示](https://jklthinking.github.io/retinue/demo-en/?lang=en) · [英文 PRD](docs/PRD.en.md) · [英文截图与版本介绍](docs/releases/2026-10-03-english-edition.md)
 

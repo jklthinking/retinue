@@ -1,0 +1,9 @@
+.task-conversations { padding: 12px; min-width: 0; }
+.task-conversations__hint { color: var(--muted); font-size: 12px; line-height: 1.7; }
+.task-conversations__source { padding: 16px; border: 1px solid var(--line); border-radius: 12px; margin-block: 12px; }
+.task-conversations header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 12px; }
+.task-conversations header span, .task-conversations time, .task-conversations small { color: var(--muted); font-size: 11px; }
+.task-conversations pre { font: inherit; font-size: 13px; line-height: 1.75; white-space: pre-wrap; overflow-wrap: anywhere; margin-block: 8px; }
+.task-conversations__messages { list-style: none; padding: 0; margin: 16px 0 0; }
+.task-conversations__messages li { border-top: 1px solid var(--line); padding-block: 14px; }
+.task-conversations details { margin-block: 12px; }

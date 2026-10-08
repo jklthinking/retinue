@@ -363,8 +363,10 @@ def test_channel_credentials_cannot_read_collaboration_or_event_feed(environment
         db.add(ChannelToken(token_hash=hash_token("synthetic-channel-bearer"), channel_id="demo-channel", label="test"))
         db.commit()
     channel = {"Authorization": "Bearer synthetic-channel-bearer"}
-    for suffix in ("collaboration", "collaboration/events", "context"):
+    for suffix in ("collaboration", "collaboration/events", "context", "conversations"):
         assert client.get(f"/api/tasks/{root}/{suffix}", headers=channel).status_code == 403
+    for path in ("/api/sessions", "/api/sessions/1", "/api/session-captures/pending"):
+        assert client.get(path, headers=channel).status_code == 403
 
 
 def test_disabled_delegate_and_policy_target_are_rejected(environment):

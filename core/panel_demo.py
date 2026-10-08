@@ -38,12 +38,30 @@ def _synthetic_sources_only():
     """Capture seeded data without consulting the build host's deployment."""
     isolated_env = {key: value for key, value in os.environ.items()
                     if not key.startswith("RETINUE_")}
+    isolated_env["RETINUE_TASK_CONVERSATIONS"] = "1"
     # The actor scanner otherwise inspects Path.home(); optional overview
     # paths may already have been cached when the kingdom module was imported.
     with patch.dict(os.environ, isolated_env, clear=True), \
             patch("server.routers.actors.scan_local_runtimes", return_value=[]), \
             patch("server.kingdom._read_snapshot", return_value=None):
         yield
+
+
+def demo_conversation_payload(language: str) -> dict:
+    """Fictional four-message exchange in the static read-only demo only."""
+    writer = {"id": "demo-writer", "name": "Codex", "model": None, "model_source": "unknown"}
+    reviewer = {"id": "demo-reviewer", "name": "Claude", "model": None, "model_source": "unknown"}
+    lines = (["Please draft a task brief and review criteria.", "Show personal reading progress; pause time when the reader is idle.",
+              "How should quota refresh work?", "Query only locally enabled providers and show partial failures."] if language == "en" else
+             ["请出具任务书和审核标准。", "先做个人阅读进度，离开阅读页面后暂停计时。", "额度刷新应该怎样处理？", "只查询本机已开启的供应商，部分失败要明确显示。"])
+    return {"items": [{"id": 1, "state": "available", "capture_mode": "imported", "runtime": "demo-runtime", "node": "demo-node",
+                      "linked_at": "2026-08-31T09:42:00+00:00", "receiver": reviewer, "summary": None,
+                      "retained_messages": 4, "source_message_count": 4,
+                      "messages": [{"role": "user" if index % 2 == 0 else "assistant", "text": line,
+                                    "at": f"2026-08-31T09:{10+index:02}:00+00:00", "sender": writer if index % 2 == 0 else reviewer,
+                                    "receiver": reviewer if index % 2 == 0 else writer,
+                                    "identity_source": "operator_annotation" if index % 2 == 0 else "session_metadata"}
+                                   for index, line in enumerate(lines)]}], "empty_reason": None}
 
 
 def demo_quota_payload(generated_at: str) -> dict:
@@ -184,6 +202,7 @@ def collect_api_paths(client: TestClient, today: str) -> list[str]:
     for task_id in sorted(task_ids):
         paths.append(f"/api/tasks/{task_id}")
         paths.append(f"/api/tasks/{task_id}/collaboration")
+        paths.append(f"/api/tasks/{task_id}/conversations")
         paths.append(f"/api/tasks/{task_id}/context")
         paths.append(f"/api/approvals?task_id={task_id}")
         paths.append(f"/api/sessions?task_id={task_id}")
@@ -208,7 +227,9 @@ def dump_api_snapshots(client: TestClient, api_dir: Path, today: str, *, languag
         if path == "/api/quota":
             payload = demo_quota_payload(payload.get("generated_at") or f"{today}T09:42:00+00:00")
         if path.startswith("/api/auth/me") and isinstance(payload, dict):
-            payload = {**payload, "role": "viewer", "readonly": True}
+            payload = {**payload, "role": "viewer", "readonly": True, "task_conversations": True}
+        if path.endswith("/conversations"):
+            payload = demo_conversation_payload(language) if path == "/api/tasks/task-20260831-009/conversations" else {"items": [], "empty_reason": "no_visible_conversations"}
         if path.endswith("/collaboration") and isinstance(payload, dict):
             payload["can_delegate"] = False
             payload["can_manage_delegation_policy"] = False

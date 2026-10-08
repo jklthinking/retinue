@@ -852,3 +852,30 @@ sites:
   entity: User
   decider: no-durable-change
   reason: Synthetic viewer tests session authenticated quota reads in a temporary database.
+- file: server/routers/conversations.py
+  entity: TaskConversationLink
+  contexts:
+  - link_conversation
+  decider: administrator-session
+  reason: Only an authenticated administrator explicitly selects a retained full-privacy range and its existing task before the association is created.
+- file: server/conversations.py
+  entity: ConversationProtectedSource
+  contexts:
+  - protect_source
+  decider: scoped-credential
+  reason: An authenticated source actor explicitly opts into a smaller legacy audience during synchronization, or an administrator associates its selected messages; neither operation grants new identity or execution permissions.
+
+- file: tests/test_task_conversations.py
+  entity: Actor
+  decider: no-durable-change
+  reason: Synthetic actors and credentials exist only in the temporary database to test private conversation ranges and do not alter the operator roster.
+
+- file: tests/test_task_conversations.py
+  entity: ApiToken
+  decider: no-durable-change
+  reason: Synthetic actors and credentials exist only in the temporary database to test private conversation ranges and do not alter the operator roster.
+
+- file: tests/test_task_conversations.py
+  entity: User
+  decider: no-durable-change
+  reason: Synthetic actors and credentials exist only in the temporary database to test private conversation ranges and do not alter the operator roster.

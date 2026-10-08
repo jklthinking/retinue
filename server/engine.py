@@ -2246,10 +2246,11 @@ def build_start_briefing(
         }
         for row in db.execute(similar_query).scalars()
     ][:5]
+    from .conversations import protected as conversation_protected
     sessions = [
         {
             "id": row.id,
-            "title": row.title,
+            "title": "受保护会话" if conversation_protected(db, row) and row.actor_id != claimant else row.title,
             "runtime": row.runtime,
             "task_id": row.task_id,
             "resume_capable": row.resume_capable,

@@ -15,6 +15,8 @@ from adapters.exporters.sessions import redact_text
 from core.protocol.task import ProtocolError
 
 from ..db import Actor, RuntimeSession, SessionCapture, Task, utcnow
+from .. import conversations as cv
+from ..quota_refresh import serialize
 from ..deps import Principal, get_db, require_auth, wrap_protocol_errors
 from ..engine import create_task
 from ..helpers import notify_feishu, task_response
@@ -73,7 +75,7 @@ def runtime_session_to_dict(
 
 
 def session_body_hash(body: SessionSyncBody, actor_id: str) -> str:
-    payload = body.model_dump(mode="json", exclude={"actor_id"})
+    payload = body.model_dump(mode="json", exclude={"actor_id", "protect_conversation"})
     payload["actor_id"] = actor_id
     raw = json.dumps(
         payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")
@@ -81,7 +83,8 @@ def session_body_hash(body: SessionSyncBody, actor_id: str) -> str:
     return hashlib.sha256(raw).hexdigest()
 
 
-def require_session_access(row: RuntimeSession, principal: Principal) -> None:
+def require_session_access(row: RuntimeSession, principal: Principal, db: Session) -> None:
+    cv.require_source_access(db, row, principal)
     if principal.kind == "agent" and row.actor_id != principal.actor_id:
         raise HTTPException(status_code=403, detail="session belongs to another actor")
 
@@ -194,6 +197,8 @@ def recap_markdown(row: RuntimeSession, db: Session) -> tuple[str, str]:
 def maybe_queue_session_recap(
     row: RuntimeSession, db: Session, requested_by: str
 ) -> SessionCapture | None:
+    if cv.protected(db, row) and row.privacy != "full":
+        return None
     if (
         row.privacy not in {"summary", "full"}
         or not row.summary.strip()
@@ -244,6 +249,13 @@ def capture_to_dict(capture: SessionCapture) -> dict[str, Any]:
     }
 
 
+def safe_capture_to_dict(capture, source, db):
+    value = capture_to_dict(capture)
+    if cv.protected(db, source) and source.privacy != "full":
+        value.update(title="", markdown="", status="withheld")
+    return value
+
+
 @router.post("/api/sessions/sync")
 def sync_runtime_session(
     body: SessionSyncBody,
@@ -286,7 +298,10 @@ def sync_runtime_session(
     for message in body.messages:
         message.text = redact_text(message.text)
 
+    if body.protect_conversation and (not cv.enabled() or not (cv.admin(principal) or (principal.kind == "agent" and principal.actor_id == actor_id))):
+        raise HTTPException(403, "conversation protection requires enabled feature and source actor or administrator")
     digest = session_body_hash(body, actor_id)
+    serialize(db)
     row = db.execute(
         select(RuntimeSession)
         .where(RuntimeSession.actor_id == actor_id)
@@ -295,7 +310,12 @@ def sync_runtime_session(
     ).scalar()
     status = "created"
     if row is not None:
-        if body.cursor < row.cursor:
+        if body.protect_conversation:
+            cv.protect_source(db, row, principal)
+        if cv.protected(db, row) and not (cv.admin(principal) or (principal.kind == "agent" and principal.actor_id == row.actor_id)):
+            raise HTTPException(403, "source owner or administrator required")
+        lowering = cv.protected(db, row) and {"full": 2, "summary": 1, "metadata": 0}[body.privacy] < {"full": 2, "summary": 1, "metadata": 0}[row.privacy]
+        if body.cursor < row.cursor and not lowering:
             raise HTTPException(status_code=409, detail="stale session cursor")
         if (
             body.cursor == row.cursor
@@ -324,7 +344,7 @@ def sync_runtime_session(
     row.title = body.title.strip()
     row.summary = body.summary.strip()
     row.privacy = body.privacy
-    row.cursor = body.cursor
+    row.cursor = max(row.cursor or 0, body.cursor)
     row.content_hash = digest
     row.message_count = body.message_count
     row.messages_json = json.dumps(
@@ -337,6 +357,13 @@ def sync_runtime_session(
     row.updated_at = session_utc(body.updated_at)
     row.synced_at = utcnow()
     db.flush()
+    if body.protect_conversation:
+        cv.protect_source(db, row, principal)
+    if cv.protected(db, row) and row.privacy != "full":
+        for capture in db.scalars(select(SessionCapture).where(SessionCapture.session_id == row.id)):
+            capture.markdown = ""
+            capture.title = ""
+            capture.status = "withheld"
     maybe_queue_session_recap(row, db, f"auto:{actor_id}")
     result = runtime_session_to_dict(row, db, include_messages=True)
     result["sync_status"] = status
@@ -356,7 +383,7 @@ def list_runtime_sessions(
 ) -> list[dict[str, Any]]:
     if len(q) > 200:
         raise HTTPException(status_code=422, detail="搜索内容不能超过 200 字")
-    query = select(RuntimeSession)
+    query = select(RuntimeSession).where(cv.visible_sources(principal))
     if principal.kind == "agent":
         query = query.where(RuntimeSession.actor_id == principal.actor_id)
     elif actor_id:
@@ -393,8 +420,7 @@ def get_runtime_session(
     row = db.get(RuntimeSession, session_id)
     if row is None:
         raise HTTPException(status_code=404, detail="session not found")
-    if principal.kind == "agent" and row.actor_id != principal.actor_id:
-        raise HTTPException(status_code=403, detail="session belongs to another actor")
+    require_session_access(row, principal, db)
     return runtime_session_to_dict(row, db, include_messages=True)
 
 
@@ -407,13 +433,13 @@ def get_session_captures(
     row = db.get(RuntimeSession, session_id)
     if row is None:
         raise HTTPException(status_code=404, detail="session not found")
-    require_session_access(row, principal)
+    require_session_access(row, principal, db)
     captures = db.execute(
         select(SessionCapture)
         .where(SessionCapture.session_id == row.id)
         .order_by(SessionCapture.id.desc())
     ).scalars()
-    return [capture_to_dict(item) for item in captures]
+    return [safe_capture_to_dict(item, row, db) for item in captures]
 
 
 @router.post("/api/sessions/{session_id}/capture-obsidian")
@@ -426,12 +452,14 @@ def queue_obsidian_capture(
     row = db.get(RuntimeSession, session_id)
     if row is None:
         raise HTTPException(status_code=404, detail="session not found")
-    require_session_access(row, principal)
+    require_session_access(row, principal, db)
     capture = db.execute(
         select(SessionCapture)
         .where(SessionCapture.session_id == row.id)
         .where(SessionCapture.kind == "obsidian")
     ).scalar_one_or_none()
+    if cv.protected(db, row) and row.privacy != "full":
+        raise HTTPException(410, "source content withheld")
     title, markdown = capture_markdown(row, db, body.title)
     if capture is None:
         capture = SessionCapture(
@@ -455,11 +483,13 @@ def get_pending_session_captures(
     principal: Principal = Depends(require_auth),
     db: Session = Depends(get_db, scope="function"),
 ) -> list[dict[str, Any]]:
-    query = select(SessionCapture).where(SessionCapture.status == "queued")
+    query = select(SessionCapture).join(RuntimeSession, SessionCapture.session_id == RuntimeSession.id).where(
+        SessionCapture.status == "queued", cv.visible_sources(principal))
     if principal.kind == "agent":
         query = query.where(SessionCapture.actor_id == principal.actor_id)
     rows = db.execute(query.order_by(SessionCapture.id.asc()).limit(100)).scalars()
-    return [capture_to_dict(row) for row in rows]
+    return [safe_capture_to_dict(row, db.get(RuntimeSession, row.session_id), db) for row in rows
+            if not (cv.protected(db, db.get(RuntimeSession, row.session_id)) and db.get(RuntimeSession, row.session_id).privacy != "full")]
 
 
 @router.post("/api/session-captures/{capture_id}/exported")
@@ -472,6 +502,12 @@ def mark_session_capture_exported(
     capture = db.get(SessionCapture, capture_id)
     if capture is None:
         raise HTTPException(status_code=404, detail="session capture not found")
+    source = db.get(RuntimeSession, capture.session_id)
+    if source is None:
+        raise HTTPException(404, "session capture source not found")
+    require_session_access(source, principal, db)
+    if cv.protected(db, source) and source.privacy != "full":
+        raise HTTPException(410, "source content withheld")
     if principal.kind == "agent" and capture.actor_id != principal.actor_id:
         raise HTTPException(status_code=403, detail="capture belongs to another actor")
     capture.status = "exported"
@@ -491,7 +527,7 @@ def create_task_from_session(
     row = db.get(RuntimeSession, session_id)
     if row is None:
         raise HTTPException(status_code=404, detail="session not found")
-    require_session_access(row, principal)
+    require_session_access(row, principal, db)
     if row.task_id:
         raise HTTPException(status_code=409, detail=f"session already links to task {row.task_id}")
     creator = principal.write_identity
