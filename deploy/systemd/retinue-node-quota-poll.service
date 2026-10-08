@@ -1,0 +1,8 @@
+[Unit]
+Description=Retinue consent-gated quota refresh poll
+
+[Service]
+Type=oneshot
+EnvironmentFile=%h/.config/retinue/node.env
+ExecStart=retinue-node quota-poll
+TimeoutStartSec=180

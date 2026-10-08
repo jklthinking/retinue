@@ -51,6 +51,8 @@ def demo_quota_payload(generated_at: str) -> dict:
     fetched = f"{DEMO_TODAY}T09:30:00+00:00"
     return {
         "generated_at": generated_at,
+        "refresh_enabled": True,
+        "can_refresh": False,
         "providers": [
             {
                 "provider": "claude",

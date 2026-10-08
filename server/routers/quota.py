@@ -13,6 +13,7 @@ from ..db import NodeToken, QuotaReport, QuotaSnapshot, utcnow
 from ..deps import get_db, require_auth, require_node_credential, require_node_heartbeat
 from ..schemas import QuotaReportBody, quota_timestamp
 from ..security import hash_token
+from .. import quota_refresh as refresh
 
 router = APIRouter()
 MAX_BODY_BYTES = 256 * 1024
@@ -48,8 +49,11 @@ async def report_quota(request: Request, db: Session = Depends(get_db, scope='fu
         # Never reflect submitted secrets in Pydantic's input diagnostics.
         raise HTTPException(422, 'invalid quota report') from None
     require_node_heartbeat(request, body.node, db)
+    if body.refresh_request_id:
+        refresh.serialize(db)
     now = utcnow()
     cutoff = now - dt.timedelta(days=90)
+    refresh.prune(db, cutoff)
     old = select(QuotaReport.id).where(QuotaReport.received_at < cutoff)
     db.execute(delete(QuotaSnapshot).where(QuotaSnapshot.report_id.in_(old)))
     db.execute(delete(QuotaReport).where(QuotaReport.received_at < cutoff))
@@ -64,7 +68,11 @@ async def report_quota(request: Request, db: Session = Depends(get_db, scope='fu
         values['account_fp'] = item.account_fp or None
         db.add(QuotaSnapshot(report_id=report.id, node_id=body.node, **values))
     db.flush()
-    return {'status': 'ok', 'report_id': report.id}
+    outcome = refresh.complete(db, body, report, now)
+    result = {'status': 'ok', 'report_id': report.id}
+    if outcome is not None:
+        result['refresh_status'] = outcome
+    return result
 
 
 def groups(db):
@@ -105,7 +113,8 @@ def get_quota(compact: bool = False, principal=Depends(require_auth), db: Sessio
             entries.append(dict(provider=provider, status=account['status'], window=window,
                                 resets_at=window['resets_at'] if window else None,
                                 fetched_at=account['fetched_at'], stale=account['stale']))
-    return {'generated_at': now.isoformat(), 'providers': sorted(entries, key=lambda item: (item['provider'], item.get('account_fp') or '', item.get('nodes', [])))}
+    return {'generated_at': now.isoformat(), 'providers': sorted(entries, key=lambda item: (item['provider'], item.get('account_fp') or '', item.get('nodes', []))),
+            'refresh_enabled': refresh.enabled(), 'can_refresh': refresh.can_refresh(principal)}
 
 
 @router.get('/api/quota/history')

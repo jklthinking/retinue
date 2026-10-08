@@ -75,7 +75,7 @@ def test_version_twenty_database_gains_live_session_tables(tmp_path):
     upgraded = make_session_factory(db_path)
 
     assert (result.from_version, result.to_version) == (20, LATEST_SCHEMA_VERSION)
-    assert LATEST_SCHEMA_VERSION == 26
+    assert LATEST_SCHEMA_VERSION == 27
     inspector = inspect(upgraded.kw["bind"])
     assert inspector.has_table("live_sessions")
     assert inspector.has_table("session_endpoint_bindings")
@@ -123,7 +123,7 @@ def test_version_twenty_one_database_gains_observation_read_model(tmp_path):
     result = migrate_database(db_path)
     upgraded = make_session_factory(db_path)
 
-    assert (result.from_version, result.to_version) == (21, 26)
+    assert (result.from_version, result.to_version) == (21, 27)
     inspector = inspect(upgraded.kw["bind"])
     assert inspector.has_table("session_endpoint_observations")
     assert "sessions_probed_at" in {
@@ -146,7 +146,7 @@ def test_version_twenty_two_database_gains_control_envelopes(tmp_path):
     result = migrate_database(db_path)
     upgraded = make_session_factory(db_path)
 
-    assert (result.from_version, result.to_version) == (22, 26)
+    assert (result.from_version, result.to_version) == (22, 27)
     inspector = inspect(upgraded.kw["bind"])
     assert inspector.has_table("control_envelopes")
     assert inspector.has_table("control_events")

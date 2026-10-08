@@ -23,6 +23,20 @@ from core.protocol.task import (
 from node.runtime_pins import ENV_PINS_FILE
 
 
+@pytest.fixture(autouse=True)
+def isolate_quota_consent(tmp_path, monkeypatch):
+    """Enrollment tests must never change the operator's consent file."""
+    monkeypatch.setenv("RETINUE_QUOTA_CONFIG", str(tmp_path / "quota-test" / "quota.json"))
+    for key in ("HOME", "USERPROFILE", "XDG_CONFIG_HOME", "APPDATA", "LOCALAPPDATA"):
+        monkeypatch.setenv(key, str(tmp_path / "isolated-home"))
+    from node import quota_probe
+    original_save = quota_probe.save_config
+    def guarded_save(config):
+        assert quota_probe.config_file().resolve().is_relative_to(tmp_path.resolve()), "quota write escaped test directory"
+        return original_save(config)
+    monkeypatch.setattr(quota_probe, "save_config", guarded_save)
+
+
 _TASK_FILE = re.compile(r"^task-[0-9]{8}-[0-9]{3}\.ya?ml$")
 
 

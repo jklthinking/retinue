@@ -250,7 +250,7 @@ def test_http_progress_true_is_422(tmp_path):
 def test_schema_21_agenda_migration_survives_to_latest(tmp_path):
     db_path = tmp_path / "from-v21.db"
     factory = make_session_factory(db_path)
-    assert LATEST_SCHEMA_VERSION == 26
+    assert LATEST_SCHEMA_VERSION == 27
 
     raw = sqlite3.connect(db_path)
     raw.execute("DROP INDEX IF EXISTS ix_todo_proposals_parent")
@@ -295,13 +295,13 @@ def test_schema_21_agenda_migration_survives_to_latest(tmp_path):
 
     result = migrate_database(db_path)
     upgraded = make_session_factory(db_path)
-    assert (result.from_version, result.to_version) == (21, 26)
+    assert (result.from_version, result.to_version) == (21, 27)
     raw = sqlite3.connect(db_path)
     stored = raw.execute(
         "SELECT version FROM schema_version WHERE id = 1"
     ).fetchone()[0]
     raw.close()
-    assert stored == 26 == LATEST_SCHEMA_VERSION
+    assert stored == 27 == LATEST_SCHEMA_VERSION
 
     inspector = inspect(upgraded.kw["bind"])
     proposal_columns = {

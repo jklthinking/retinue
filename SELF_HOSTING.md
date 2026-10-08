@@ -322,9 +322,11 @@ Upgrade the server in this order:
    scheduled jobs. This is the complete writer sequence: **stop, migrate,
    start**.
 
-For `0.3.0a2`, the integrated migration advances the database through schema
-v23-v26: live-session observations, endpoint bindings and control events,
-followed by quota reports and snapshots. Quota collection remains disabled
+For `0.3.0a3`, the integrated migration advances the database through schema
+v23-v27: live-session observations, endpoint bindings and control events,
+followed by quota reports, snapshots, and manual-refresh requests/batches.
+Manual refresh needs the opt-in node poll timer described in [quota setup](docs/node-quota.en.md).
+Quota collection remains disabled
 until enabled locally on each node. Older server binaries intentionally refuse the
 new schema. A database downgrade is not performed in place: stop writers,
 restore the complete pre-migration data-directory backup, reinstall the prior

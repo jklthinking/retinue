@@ -248,8 +248,8 @@ def test_agent_cannot_promote(tmp_path, monkeypatch):
 
 
 def test_migrate_v18_to_v19(tmp_path):
-    """A v18 database gains v19 distill tables while migrating through latest v26."""
-    assert LATEST_SCHEMA_VERSION == 26
+    """A v18 database gains v19 distill tables while migrating through latest v27."""
+    assert LATEST_SCHEMA_VERSION == 27
     db_path = tmp_path / "from-v18.db"
     factory = make_session_factory(db_path)
     with factory() as db:
@@ -257,7 +257,7 @@ def test_migrate_v18_to_v19(tmp_path):
             db.execute(
                 select(SchemaVersion.version).where(SchemaVersion.id == 1)
             ).scalar_one()
-            == 26
+            == 27
         )
         # Downgrade the stamp to simulate a v18 deployment that lacks the
         # distill tables only in the version bookkeeping sense; create_all on
@@ -288,7 +288,7 @@ def test_migrate_v18_to_v19(tmp_path):
         conn.close()
 
     result = migrate_database(db_path)
-    assert (result.from_version, result.to_version) == (18, 26)
+    assert (result.from_version, result.to_version) == (18, 27)
 
     conn = sqlite3.connect(db_path)
     try:
@@ -314,7 +314,7 @@ def test_migrate_v18_to_v19(tmp_path):
         } <= cols
         assert conn.execute(
             "SELECT version FROM schema_version WHERE id = 1"
-        ).fetchone() == (26,)
+        ).fetchone() == (27,)
     finally:
         conn.close()
 

@@ -233,13 +233,13 @@ def test_tenant_app_send_and_refresh_with_http_stub(tmp_path, monkeypatch):
 
 
 def test_migration_v18_to_latest(tmp_path):
-    """A downgrade-to-v18 stamp migrates through notifier v20 to latest v26."""
+    """A downgrade-to-v18 stamp migrates through notifier v20 to latest v27."""
     db_path = tmp_path / "migrate.db"
     factory = make_session_factory(db_path)
-    assert LATEST_SCHEMA_VERSION == 26
+    assert LATEST_SCHEMA_VERSION == 27
     with factory() as db:
         version = db.execute(text("SELECT version FROM schema_version WHERE id = 1")).scalar_one()
-        assert version == 26
+        assert version == 27
         # Table exists on the fresh schema.
         db.execute(text("SELECT dedupe_key FROM notification_deliveries LIMIT 0"))
         db.commit()
@@ -257,10 +257,10 @@ def test_migration_v18_to_latest(tmp_path):
         raw.close()
 
     result = migrate_database(db_path)
-    assert (result.from_version, result.to_version) == (18, 26)
+    assert (result.from_version, result.to_version) == (18, 27)
     factory2 = make_session_factory(db_path)
     with factory2() as db:
         version = db.execute(text("SELECT version FROM schema_version WHERE id = 1")).scalar_one()
-        assert version == 26
+        assert version == 27
         db.execute(text("SELECT dedupe_key, message_ref, attempts FROM notification_deliveries LIMIT 0"))
         db.commit()

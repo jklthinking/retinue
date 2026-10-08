@@ -773,6 +773,7 @@ class QuotaReportBody(QuotaValue):
     node: str = Field(min_length=1, max_length=64, pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
     collected_at: str = Field(max_length=64)
     providers: list[QuotaProvider] = Field(max_length=10)
+    refresh_request_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{32}$")
 
     @model_validator(mode="after")
     def validate_report(self):
@@ -781,3 +782,23 @@ class QuotaReportBody(QuotaValue):
         if len(names) != len(set(names)):
             raise ValueError("providers must be unique")
         return self
+
+
+class QuotaRefreshBody(QuotaValue):
+    providers: list[str] | None = Field(default=None, min_length=1, max_length=10)
+    nodes: list[str] | None = Field(default=None, min_length=1, max_length=64)
+    request_key: str | None = Field(default=None, pattern=r"^[a-f0-9-]{16,64}$")
+
+    @model_validator(mode="after")
+    def validate_scope(self):
+        import re
+        from node.quota_probe import PROVIDERS
+        if self.providers is not None and (len(set(self.providers)) != len(self.providers) or any(p not in PROVIDERS for p in self.providers)):
+            raise ValueError("invalid providers")
+        if self.nodes is not None and (len(set(self.nodes)) != len(self.nodes) or any(not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", p) or len(p) > 64 for p in self.nodes)):
+            raise ValueError("invalid nodes")
+        return self
+
+
+class QuotaRefreshClaimBody(QuotaValue):
+    node: str = Field(min_length=1, max_length=64, pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")

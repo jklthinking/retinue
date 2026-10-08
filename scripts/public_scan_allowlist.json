@@ -705,22 +705,31 @@
       "review_note": "The sample-user login password is synthetic-pass in an isolated temporary database only."
     },
     {
-      "file": "docs/demo/assets/index-CGgfCSVV.js",
-      "line": 175,
-      "category": "address",
-      "line_sha256": "fda18cf14577bbd5fd95be68678743c88faa93da94dc22b73579c942e16e6f0e",
-      "match_sha256": "a38256b48fff62fd48df52a529383b581681bccfd26c314410abd7d5ab818380",
-      "reason": "svg-path-constant",
-      "review_note": "Reviewed lucide Coins icon SVG d attribute: adjacent decimal drawing coordinates, not a network address. Exact source-line and candidate hashes only."
+      "file": "tests/test_server_quota.py",
+      "line": 158,
+      "category": "credential",
+      "line_sha256": "a950c27f04e030cecfcb0ed5eea2b2382d034d001900d63860177905b8f4de01",
+      "match_sha256": "bba034bde008edfedd9ed9354ec5568e871cebc6ff542c0b47ce35b678546374",
+      "reason": "synthetic-test",
+      "review_note": "Reviewed login fixture: explicitly synthetic password used only by the temporary database test operator."
     },
     {
-      "file": "docs/demo-en/assets/index-CZhPMGP4.js",
+      "file": "docs/demo/assets/index-BgpriTCa.js",
       "line": 175,
       "category": "address",
       "line_sha256": "fda18cf14577bbd5fd95be68678743c88faa93da94dc22b73579c942e16e6f0e",
       "match_sha256": "a38256b48fff62fd48df52a529383b581681bccfd26c314410abd7d5ab818380",
       "reason": "svg-path-constant",
-      "review_note": "Reviewed lucide Coins icon SVG d attribute: adjacent decimal drawing coordinates, not a network address. Exact source-line and candidate hashes only."
+      "review_note": "Individually reviewed the exact SVG icon drawing constant in this bundle; the numeric sequence is coordinate data."
+    },
+    {
+      "file": "docs/demo-en/assets/index-CazfzlM-.js",
+      "line": 175,
+      "category": "address",
+      "line_sha256": "fda18cf14577bbd5fd95be68678743c88faa93da94dc22b73579c942e16e6f0e",
+      "match_sha256": "a38256b48fff62fd48df52a529383b581681bccfd26c314410abd7d5ab818380",
+      "reason": "svg-path-constant",
+      "review_note": "Individually reviewed the exact SVG icon drawing constant in this bundle; the numeric sequence is coordinate data."
     }
   ]
 }

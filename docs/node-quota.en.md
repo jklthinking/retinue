@@ -57,3 +57,46 @@ before installing them. Collection/reporting is separate from dashboard refresh.
 
 See [the detailed Chinese contract](node-quota.md) for payloads, limits,
 deduplication and provider configuration.
+
+## Manual refresh (schema 27)
+
+The Home **Refresh** button asks nodes to query vendors again; reading the old
+`GET /api/quota` snapshot alone never counts as success. Only administrators can
+start it by default. Set `RETINUE_QUOTA_REFRESH_MEMBERS=1` to allow members or
+`RETINUE_QUOTA_REFRESH=0` to disable the feature. Re-enrollment without a new
+`--quota-consent` selection preserves existing consent and proxy settings.
+
+`POST /api/quota/refresh` accepts an idempotent `request_key` and optional
+allowlisted `providers` and `nodes`. Node credentials claim only their own work
+with `POST /api/nodes/quota/refresh/claim` and `{node}` (204 when idle). Fresh
+reports carry the claimed `refresh_request_id`. Authenticated readers can inspect
+`GET /api/quota/refresh/{batch_id}`; it includes no credentials or account data.
+No remote field can become a command, argument, path, or vendor URL.
+
+The queue expires after 120 seconds, claims after 180 seconds, and local
+collection after 150 seconds. The UI distinguishes pending, querying, complete,
+partial failure and timeout, and retains the previous values when no fresh
+successful receipt exists. Same-scope active requests are reused; a different
+scope conflicts. Completed work has a 120-second cooldown and each node is
+limited to 48 requests per UTC day. Batch membership stays immutable.
+
+Run `retinue-node quota-poll` with the same local node environment as the daily
+collector. The new systemd user samples in `deploy/systemd/` poll every 30 seconds
+and share a collection lock with the daily timer. After reviewing the node's
+consent and PATH, operators copy both quota-poll samples into the user unit
+directory and run `systemctl --user daemon-reload` followed by
+`systemctl --user enable --now retinue-node-quota-poll.timer`.
+They are opt-in deployment samples and are never auto-enabled by installation.
+Existing heartbeat, runtimes, session and live-control schedules are unchanged.
+Windows may schedule the same command locally; typical latency is 30–120 seconds.
+
+Stop all writers and make a consistent SQLite backup before explicit migration.
+Schema 27 adds only request and batch tables, with 90-day retention. Prefer a
+feature-flag rollback plus disabling the poll timer. Restoring an older binary
+also requires restoring the pre-upgrade database, losing later writes, because
+old binaries reject newer schemas.
+
+The initial UI summarizes each batch rather than expanding node countdowns.
+Node timestamps allow 120 seconds of clock skew; completion uses Hub receipt
+time. Windows process timeouts mark the whole batch failed and discard partial
+results; this fallback has not been exercised on a physical Windows node.

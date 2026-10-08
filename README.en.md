@@ -5,7 +5,7 @@
 [![MCP](https://img.shields.io/badge/MCP-server-6f42c1.svg)](docs/agent-onboarding.md)
 [![Self-hosted](https://img.shields.io/badge/self--hosted-no%20telemetry-2ea44f.svg)](SELF_HOSTING.md)
 
-**English** · [简体中文](README.zh-CN.md) · [English demo](https://jklthinking.github.io/retinue/demo-en/?lang=en) · [中文演示](https://jklthinking.github.io/retinue/demo/?lang=zh-CN)
+**English** · [简体中文](#众卿-retinue简体中文) · [English demo](https://jklthinking.github.io/retinue/demo-en/?lang=en) · [中文演示](https://jklthinking.github.io/retinue/demo/?lang=zh-CN)
 
 The dashboard now switches between English and 简体中文. The language preference
 is saved locally and preserves the selected task/page. User-authored task content
@@ -23,7 +23,9 @@ hub uses operator-managed local accounts and scoped credentials.
 
 ## 2026-10-07: model quota on Home
 
-Version `0.3.0a2` adds opt-in node quota collection and bilingual Home cards for
+Version `0.3.0a3` adds manual node quota refresh. [Release notes](docs/releases/2026-10-08-quota-refresh.md).
+
+Opt-in node quota collection and bilingual Home cards for
 Claude, Codex, Grok, Cursor and Kimi subscriptions, plus Moonshot API balance.
 See used percentages, reset time, report age and labelled last-successful data.
 [Setup and API semantics](docs/node-quota.en.md) ·
@@ -152,9 +154,9 @@ Wait until the logs show the hub listening, then:
 curl -fsS http://127.0.0.1:9219/api/health
 ```
 
-That returns JSON like `{"status":"ok","version":"0.3.0a2"}` with no
+That returns JSON like `{"status":"ok","version":"0.3.0a3"}` with no
 authentication. `version` is the PEP 440 string from `pyproject.toml` (the
-same spelling as the wheel name and the next git tag, `v0.3.0a2`). Open
+same spelling as the wheel name and the next git tag, `v0.3.0a3`). Open
 <http://127.0.0.1:9219/> and sign in as `operator` with that password. The
 image is the authenticated v0.2 hub, not the old read-only panel.
 
@@ -310,3 +312,199 @@ third-party services must not represent themselves as official RETINUE.
 
 RETINUE is announced and discussed on the [LINUX DO](https://linux.do) community.
 Issues and pull requests are welcome on GitHub.
+
+# 众卿 RETINUE（简体中文）
+
+**众卿 Retinue** 是一套可自托管的 **AI 智能体任务看板与多智能体编排中枢**：
+人和 AI agent 共用同一批任务卡。每一件工作对应一张任务卡——有唯一持有人、
+有可观测的验收条件、有只可追加的回执链。你来跑看板，agent 通过 MCP 或 HTTP
+认领，回写结果，你验收或退回。没有托管控制面或第三方账号要求，也没有遥测；
+服务端中枢使用部署方管理的本地账号与限定范围的凭据。
+
+## 2026-10-02 社区更新：看清每项任务的协作
+
+版本 `0.3.0a1` 补齐每任务的关系图、设备/模型时间泳道和功能模块贡献。
+点击节点可以查看委派指令、进展、等待对象、成果引用和下一步；新会话通过只读
+任务上下文了解验收条件、已有状态记录和尚未核验的工作声明。
+
+首页的任务流转、派单协调和会话流转台继续保留。运营效率入口统一，任务看板、
+列表、协作空间、历史会话和实时会话仍各有自己的用途。执行 Worker 标清设备、
+runtime 与模型；同步与观察服务单列，不算作执行者。
+
+cc-connect 原生会话观察以只读方式接入，用量按实际消息模型分层、稳定 delivery
+标识去重。运营看板把任务事件、runtime 日报和会话累计来源分开解释，未上报
+显示未知，采集回执与模型最后活动分别说明。
+
+委派排队不代表模型已启动，原生会话采集不自动生成任务进度，任务 done 记录也
+不代表独立验收。真实任务仍需显式绑定与结构化回执。GitHub 保存代码、PR 和 CI
+证据；Retinue 保存 holder、租约、任务状态与协作事件。
+
+上方配图均为固定种子的**合成演示**；协作图、泳道、模块和分支详情展示同一固定
+任务，时间来自分阶段演示时钟。图片不包含真实业务记录，不声称真实模型闭环
+已全部通过验收。自有代码采用 MIT，第三方声明保留，历史标签许可不改写。
+
+查看 [完整版本说明](docs/releases/2026-10-02-collaboration-observability.md)、
+[PRD](docs/PRD.md)、[小红书草稿](docs/sharing/xiaohongshu.md)；
+也可打开 [只读演示](docs/demo/index.html)。
+
+## 众卿 Retinue 是什么
+
+它是**本地优先、可自托管的 AI agent 任务板与审计层**，不是聊天壳，也不是
+agent 框架。它垫在你已经在用的 agent（Claude Code、OpenAI Codex、任意 MCP
+客户端，或者一个开着浏览器的人）下面。
+
+- **一卡一持有人**：同一时刻只有一个执行者握棒，只有持有人能写。别的 agent
+  的令牌会收到 `403 holder-only-writes`。
+- **只可追加的回执链**：认领、进度、交接、阻塞、验收全部留痕，事后改不掉。
+- **验收条件写在卡上**：开工前写清「怎样算完成」，任务完成记录与独立质量
+  核验分别解释。
+- **原生 MCP 协作**：`retinue-server mcp` 把看板暴露给任意 MCP agent；也提供
+  纯 HTTP + bearer token 接口。
+- **运行时 exporter**：只读导入 Claude Code / Codex 会话数据，按 agent 看
+  token 消耗，不改动来源。
+- **可选 IM 适配器**：飞书 / Lark 与 Telegram 桥接把聊天消息变成「意图」，
+  绝不直接变成命令。
+- **数据主权**：文件模式的事实源是一个数据目录（`org.yaml`、`tasks/`、
+  `metrics/`、`nodes/`），停掉写入者后复制；服务端事实源是 `retinue.db`，
+  使用一致性 SQLite 快照备份。运行时源记录、外部成果、凭据与部署配置
+  分别恢复，详见[备份说明](SELF_HOSTING.md#backup)。
+
+## 适合谁
+
+手上跑着**一队 AI 编程 agent** 的个人和小团队：想要一块持久的看板、可观测的
+回执、随时能带走的数据，又不想被托管平台绑住。单机、homelab 主机、NAS 都能跑。
+
+
+## 十分钟走廊
+
+以下步骤只走本机回环。凭据放在环境变量里，不写进任务卡。
+
+### 1. 用 Compose 起完整中枢
+
+本机 9219 端口必须空闲（否则 compose 会报 address already in use）。
+管理员密码至少八位。
+
+```bash
+read -rsp 'Choose an admin password (at least 8 characters): ' RETINUE_ADMIN_PASSWORD
+printf '\n'
+export RETINUE_ADMIN_PASSWORD
+docker compose up --build
+```
+
+等日志里出现监听后再探活：
+
+```bash
+curl -fsS http://127.0.0.1:9219/api/health
+```
+
+应返回类似 `{"status":"ok","version":"0.3.0a3"}`，无需登录。`version`
+与 `pyproject.toml`、wheel 文件名、下次 git tag（`v0.3.0a3`）是同一串。
+打开 <http://127.0.0.1:9219/>，用 `operator` 和上面的密码登录。默认镜像
+是带登录的 v0.2 中枢，不再是旧只读面板。
+
+### 2. 开一张卡
+
+先在侧栏 **管理** 入职执行者 `worker-1`，把一次性令牌存到数据卷以外。
+再到 **任务看板** → **新建任务**：
+
+- 标题、持有人填 `worker-1`（下一步要用该 agent 的令牌认领，不要填成
+  你自己）
+- 优先级 `high`，写上可观测的验收条件
+
+记下任务 id（`task-YYYYMMDD-NNN`）。
+
+### 3. Agent 认领
+
+用第 2 步的一次性令牌：
+
+```bash
+export RETINUE_AGENT_TOKEN='<one-time-agent-token>'
+export RETINUE_TASK_ID='<task-id-from-the-board>'
+
+curl --fail --request POST \
+  --header "Authorization: Bearer $RETINUE_AGENT_TOKEN" \
+  --header 'Content-Type: application/json' \
+  --data '{"status":"doing","note":"claimed through the agent API"}' \
+  "http://127.0.0.1:9219/api/tasks/$RETINUE_TASK_ID/update"
+```
+
+### 4. 回写
+
+```bash
+curl --fail --request POST \
+  --header "Authorization: Bearer $RETINUE_AGENT_TOKEN" \
+  --header 'Content-Type: application/json' \
+  --data '{"progress":80,"refs":["artifact:hello.txt"],"note":"recorded the result reference"}' \
+  "http://127.0.0.1:9219/api/tasks/$RETINUE_TASK_ID/update"
+```
+
+### 5. 验收
+
+验收条件真正成立后再把卡标为 `done`：
+
+```bash
+curl --fail --request POST \
+  --header "Authorization: Bearer $RETINUE_AGENT_TOKEN" \
+  --header 'Content-Type: application/json' \
+  --data '{"status":"done","note":"acceptance checked; hello.txt matches"}' \
+  "http://127.0.0.1:9219/api/tasks/$RETINUE_TASK_ID/update"
+```
+
+刷新看板。卡在 `done`，事件链上能看到认领、回写和完成。另一名
+agent 的令牌会得到 `403 holder-only-writes`。
+
+文件总线走廊见
+[`docs/closed-loop-walkthrough.md`](docs/closed-loop-walkthrough.md)。安装、
+备份和暴露警告见 [`SELF_HOSTING.md`](SELF_HOSTING.md)。
+
+## 架构一页图
+
+见上方英文节的文字架构图。文件模式的事实源是运营者选定的数据目录，停掉
+写入者后复制；服务端使用 `retinue.db`，需要一致性 SQLite 快照。运行时源记录、
+外部成果、凭据与部署配置分别恢复，详见[备份说明](SELF_HOSTING.md#backup)。
+文件模式的 `on_claim` 钩子只来自 `org.yaml`，任务卡不能指定要执行的命令。
+
+## 常见问题
+
+**众卿 Retinue 用来干什么？**
+把工作派给人和 AI agent 组成的混合团队，在一块自托管看板上执行，并留下可核
+验的记录：谁握过这张卡、声称做了什么、验收条件是否真的通过。
+
+**支持 Claude Code、Codex 和其他 MCP 客户端吗？**
+支持。MCP agent 通过 `retinue-server mcp` 接入；不支持 MCP 的用 HTTP 接口加
+受限 actor 令牌。Claude Code 和 Codex 另有只读会话 exporter 统计 token。
+
+**它是开源软件吗？**
+是，当前版本自有源码采用 **MIT 开源许可证**。允许个人与商业使用、修改、
+分发及再许可，分发时须保留版权与许可声明。详见 [LICENSE](LICENSE)。
+
+**会把我的数据传到哪里去吗？**
+不会。没有遥测、没有托管控制面、没有远程账号、没有强制外呼。核心、面板、
+daemon、demo、exporter 全部可离线运行。只有你显式配置的 IM 适配器会外联。
+
+**可以部署在 homelab 或 NAS 上吗？**
+可以。`docker compose up --build` 起一个端口即可；下面的十分钟走廊全程走回
+环。暴露风险与备份见 [`SELF_HOSTING.md`](SELF_HOSTING.md)。
+
+**和 Vibe Kanban 这类 AI kanban 有什么不同？**
+众卿是「看板 + 审计边界」。agent 被当作不可信执行者：它永远不能指定要跑的
+hook（hook 只来自运营者的 `org.yaml`）、写权限只归持有人、回执链只增不改。
+看板本身就是治理面，不只是任务队列。
+
+**必须用 Docker 吗？**
+不必。无 Docker 的文件总线走廊见
+[`docs/closed-loop-walkthrough.md`](docs/closed-loop-walkthrough.md)。
+
+
+## 许可证
+
+当前版本的 RETINUE 自有源码采用 **MIT**（SPDX: MIT），允许个人与商业使用、
+修改、分发和再许可，无需另行取得商业授权；分发时保留版权与许可声明。
+见 [LICENSE](LICENSE) 与 [NOTICE](NOTICE)。第三方依赖继续遵循各自许可证。
+
+历史版本仍遵循各版本发布时的许可证，历史标签不改写。RETINUE 与「众卿」
+名称、标识由 JKL Thinking 保留，第三方 fork、镜像与服务不得冒充官方。
+
+## 社区
+
+RETINUE 在 [LINUX DO](https://linux.do) 社区发布与交流，欢迎在 GitHub 提交 issue 与 PR。

@@ -57,6 +57,43 @@ export interface QuotaProviderEntry {
 export interface QuotaResponse {
   generated_at: string;
   providers: QuotaProviderEntry[];
+  refresh_enabled?: boolean;
+  can_refresh?: boolean;
+}
+
+export interface QuotaRefreshBatch {
+  batch_id: string;
+  created_at: string;
+  poll_after_ms: number;
+  requests: {
+    id?: string;
+    node: string;
+    status: "queued" | "claimed" | "done" | "partial" | "failed" | "timeout" | "cooldown";
+    fetched_at?: string | null;
+    received_at?: string | null;
+    results?: { provider: string; status: QuotaStatus }[];
+  }[];
+}
+
+export function startQuotaRefresh(requestKey: string): Promise<QuotaRefreshBatch> {
+  return api.post("/api/quota/refresh", { request_key: requestKey });
+}
+
+export function fetchQuotaRefresh(batchId: string): Promise<QuotaRefreshBatch> {
+  return api.get(`/api/quota/refresh/${encodeURIComponent(batchId)}`);
+}
+
+export function quotaRefreshMessage(batch: QuotaRefreshBatch): string {
+  if (batch.requests.some((row) => row.status === "claimed")) return "正在查询额度…";
+  if (batch.requests.some((row) => row.status === "queued")) return "等待节点查询…";
+  const fresh = batch.requests.filter((row) =>
+    (row.status === "done" || row.status === "partial") && row.received_at &&
+    Date.parse(row.received_at) >= Date.parse(batch.created_at) &&
+    row.results?.some((result) => result.status === "ok"));
+  if (fresh.length === batch.requests.length && fresh.every((row) => row.status === "done")) return "额度已更新";
+  if (fresh.length) return "部分额度已更新，其余仍为旧数据。";
+  if (batch.requests.some((row) => row.status === "timeout")) return "查询超时，仍为旧数据。";
+  return "未获取到新额度，仍为旧数据。";
 }
 
 const SHANGHAI = "Asia/Shanghai";
