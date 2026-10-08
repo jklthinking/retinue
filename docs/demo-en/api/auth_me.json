@@ -1,1 +1,1 @@
-{"kind":"user","name":"pm","role":"viewer","actor_id":"pm","display_name":"Project manager","site_console":false,"mode":"","site_label":"Retinue public demo","readonly":true}
+{"kind":"user","name":"pm","role":"viewer","actor_id":"pm","display_name":"Project manager","site_console":false,"mode":"","site_label":"Retinue public demo","readonly":true,"task_conversations":true}

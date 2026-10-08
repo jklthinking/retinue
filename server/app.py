@@ -45,6 +45,7 @@ from .routers import (
     todos,
     card_pipelines,
     collaboration,
+    conversations,
 )
 from .security import LoginThrottle, verify_password  # noqa: F401 — re-exported:
 # tests patch ``server.app.verify_password`` to observe the login hash path.
@@ -60,6 +61,7 @@ _ROUTERS = (
     actors.router,
     tasks.router,
     collaboration.router,
+    conversations.router,
     approvals.router,
     templates.router,
     card_pipelines.router,
@@ -86,6 +88,15 @@ def create_app(
     data_dir: Path | None = None,
 ) -> FastAPI:
     app = FastAPI(title="Retinue Server", version=__version__)
+
+    @app.middleware("http")
+    async def conversation_cache_policy(request, call_next):
+        response = await call_next(request)
+        path = request.url.path
+        if path.startswith(("/api/sessions", "/api/session-captures")) or path.endswith("/conversations"):
+            response.headers["Cache-Control"] = "no-store"
+        return response
+
     app.state.session_factory = session_factory
     app.state.data_dir = data_dir
     app.state.login_throttle = LoginThrottle()

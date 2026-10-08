@@ -327,6 +327,7 @@ class SessionMessageBody(BaseModel):
 
 
 class SessionSyncBody(BaseModel):
+    protect_conversation: bool = Field(default=False, strict=True)
     actor_id: str | None = Field(
         default=None, pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$"
     )
@@ -782,6 +783,16 @@ class QuotaReportBody(QuotaValue):
         if len(names) != len(set(names)):
             raise ValueError("providers must be unique")
         return self
+
+
+class ConversationLinkBody(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    session_id: int = Field(ge=1, le=9223372036854775807)
+    msg_from: int = Field(default=0, ge=0, le=80)
+    msg_to: int | None = Field(default=None, ge=0, le=80)
+    capture_mode: str = Field(default="imported", pattern=r"^(imported|live)$")
+    sender_actor_id: str | None = Field(default=None, max_length=64,
+        pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 
 class QuotaRefreshBody(QuotaValue):

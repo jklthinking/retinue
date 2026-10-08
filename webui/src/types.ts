@@ -164,6 +164,7 @@ export interface Me {
   actor_id: string | null;
   display_name: string;
   site_console?: boolean;
+  task_conversations?: boolean;
   mode?: string;
   site_label?: string;
   readonly?: boolean;

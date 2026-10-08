@@ -100,13 +100,48 @@ def _content_text(value: Any) -> str:
     return ""
 
 
+# Runtime-injected blocks are not messages submitted by the named participant.
+_CLAUDE_INJECTION_TAG = re.compile(
+    r"<(/)?(system-reminder|system_reminder|system-message|local-command-caveat|local-command-stdout|user-prompt-submit-hook|user_prompt_submit_hook)\b[^>]*>", re.I)
+
+
+def _claude_visible_text(value: Any) -> str:
+    if isinstance(value, str):
+        raw = value
+    elif isinstance(value, list):
+        raw = "\n".join(item if isinstance(item, str) else item["text"]
+            for item in value if isinstance(item, str) or
+            (isinstance(item, dict) and item.get("type") in {"text", "input_text", "output_text"}
+             and isinstance(item.get("text"), str)))
+    else:
+        raw = ""
+    # Strip before truncation: a long injection must not hide its closing tag
+    # and cause a partial block to become apparently visible text.
+    pieces: list[str] = []
+    stack: list[str] = []
+    cursor = 0
+    for match in _CLAUDE_INJECTION_TAG.finditer(raw):
+        if not stack:
+            pieces.append(raw[cursor:match.start()])
+        label = match.group(2).lower()
+        if match.group(1):
+            if stack and stack[-1] == label:
+                stack.pop()
+        elif not match.group().endswith("/>"):
+            stack.append(label)
+        cursor = match.end()
+    if not stack:
+        pieces.append(raw[cursor:])
+    return _redact("".join(pieces))
+
+
 def _message(record: dict[str, Any], runtime: str) -> tuple[str, str] | None:
     if runtime == "claude-code" and record.get("type") in {"user", "assistant"}:
         message = record.get("message")
-        if not isinstance(message, dict):
+        if not isinstance(message, dict) or record.get("isMeta") or message.get("isMeta"):
             return None
         role = message.get("role") or record.get("type")
-        text = _content_text(message.get("content"))
+        text = _claude_visible_text(message.get("content"))
         if role in {"user", "assistant"} and text:
             return role, text
 

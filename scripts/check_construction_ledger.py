@@ -51,6 +51,8 @@ ENTITY_KINDS = {
     "WebSession": "credential record (web session)",
     "ApiToken": "credential record (API token)",
     "NodeToken": "credential record (node token)",
+    "TaskConversationLink": "private conversation association",
+    "ConversationProtectedSource": "permanent conversation protection",
 }
 
 # Who may decide a durable, shared change. "unresolved" is permitted only on

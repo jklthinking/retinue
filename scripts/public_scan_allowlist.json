@@ -714,22 +714,40 @@
       "review_note": "Reviewed login fixture: explicitly synthetic password used only by the temporary database test operator."
     },
     {
-      "file": "docs/demo/assets/index-BgpriTCa.js",
+      "file": "docs/demo/assets/index--qGG73dT.js",
       "line": 175,
       "category": "address",
       "line_sha256": "fda18cf14577bbd5fd95be68678743c88faa93da94dc22b73579c942e16e6f0e",
       "match_sha256": "a38256b48fff62fd48df52a529383b581681bccfd26c314410abd7d5ab818380",
       "reason": "svg-path-constant",
-      "review_note": "Individually reviewed the exact SVG icon drawing constant in this bundle; the numeric sequence is coordinate data."
+      "review_note": "Individually reviewed the exact Lucide SVG icon drawing constant in this bundle; the matched sequence is coordinate data, not a host address."
     },
     {
-      "file": "docs/demo-en/assets/index-CazfzlM-.js",
+      "file": "docs/demo-en/assets/index-DyRw71Rw.js",
       "line": 175,
       "category": "address",
       "line_sha256": "fda18cf14577bbd5fd95be68678743c88faa93da94dc22b73579c942e16e6f0e",
       "match_sha256": "a38256b48fff62fd48df52a529383b581681bccfd26c314410abd7d5ab818380",
       "reason": "svg-path-constant",
-      "review_note": "Individually reviewed the exact SVG icon drawing constant in this bundle; the numeric sequence is coordinate data."
+      "review_note": "Individually reviewed the exact Lucide SVG icon drawing constant in this bundle; the matched sequence is coordinate data, not a host address."
+    },
+    {
+      "file": "tests/test_task_conversations.py",
+      "line": 16,
+      "category": "credential",
+      "line_sha256": "a503eb2f94a246fe86571c1b1ec3177f9657df49d01de3e7c7639f7bf59953af",
+      "match_sha256": "5d88caa8e7e32ee29b4d076e43cbc43a5e627d305cdacd466e8068b74a7eef1b",
+      "reason": "synthetic-test",
+      "review_note": "Literal synthetic-pass is used solely for users in the isolated temporary test database."
+    },
+    {
+      "file": "tests/test_task_conversations.py",
+      "line": 48,
+      "category": "credential",
+      "line_sha256": "5c7fc22ee96bb3e3b07139e5587f3046faedb8fb094cef4bbf92fbd54389c20d",
+      "match_sha256": "2918e43f2f5af33a994ebca0b3645b9949d887c60e1ec1ea9ef82807cb3493e8",
+      "reason": "synthetic-test",
+      "review_note": "Bearer synthetic- is a deliberately fictional fixture credential followed by a synthetic actor name."
     }
   ]
 }

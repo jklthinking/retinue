@@ -1,7 +1,6 @@
 # Proposal: a conversation timeline for each task
 
-Status: product design; this document does not add a chat transport or publish
-private conversations. All examples below are fictional.
+Status: the read-only first delivery ships in 0.3.0a4; see [the implemented scope and access rules](../releases/2026-10-08-task-conversations.md). The later UI, filters and exports below remain proposed. This feature does not add a chat transport or automatically publish private conversations. All examples below are fictional.
 
 ## What an owner should be able to see
 

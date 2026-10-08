@@ -118,7 +118,7 @@ def test_upgrade_25_only_adds_tables(tmp_path):
         before = db.execute("SELECT name, sql FROM sqlite_master WHERE type='table'").fetchall()
     migrate_database(path)
     with sqlite3.connect(path) as db:
-        assert db.execute('SELECT version FROM schema_version').fetchone()[0] == 27
+        assert db.execute('SELECT version FROM schema_version').fetchone()[0] == 28
         after = dict(db.execute("SELECT name, sql FROM sqlite_master WHERE type='table'").fetchall())
         assert all(after[name] == ddl for name, ddl in before)
         assert {'quota_reports', 'quota_snapshots'} <= after.keys()
@@ -316,7 +316,7 @@ def test_upgrade_26_preserves_old_tables_and_data(tmp_path):
         before = dict(db.execute("SELECT name, sql FROM sqlite_master WHERE type='table'"))
     migrate_database(path)
     with sqlite3.connect(path) as db:
-        assert db.execute('SELECT version FROM schema_version').fetchone()[0] == 27
+        assert db.execute('SELECT version FROM schema_version').fetchone()[0] == 28
         after = dict(db.execute("SELECT name, sql FROM sqlite_master WHERE type='table'"))
         assert all(after[name] == ddl for name, ddl in before.items())
         assert db.execute("SELECT name FROM sqlite_master WHERE name='ux_quota_refresh_active_node'").fetchone()

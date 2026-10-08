@@ -156,4 +156,5 @@ def me(request: Request, principal: Principal = Depends(require_auth)) -> dict[s
         "mode": site_config(data_dir).get("mode", ""),
         "site_label": site_config(data_dir).get("label", ""),
         "readonly": principal.role == "viewer",
+        **({"task_conversations": True} if os.environ.get("RETINUE_TASK_CONVERSATIONS") == "1" else {}),
     }
