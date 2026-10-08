@@ -336,3 +336,60 @@ def test_grok_product_windows_are_named_and_empty_products_skipped():
     windows = q.parse('grok', data['monthly'], credits)
     products = [w for w in windows if w['key'].startswith('weekly.product.')]
     assert [(w['key'], w['label'], w['used_percent']) for w in products] == [('weekly.product.GrokBuild', 'GrokBuild 每周', 40.0)]
+
+
+def test_reenroll_preserves_consent_and_proxy(monkeypatch):
+    original = {'enabled_providers':['codex'], 'consented_at':'2026-01-01T00:00:00Z',
+                'providers':{'codex':{'proxy':''}}}
+    q.save_config(original)
+    monkeypatch.setattr('sys.stdin.isatty', lambda: False)
+    args = cli.build_parser().parse_args(['enroll','--target','linux-user','--install'])
+    cli._enroll_quota(args)
+    assert q.load_config() == original
+    args.quota_consent = 'none'
+    cli._enroll_quota(args)
+    assert q.load_config()['enabled_providers'] == []
+    assert q.load_config()['providers'] == original['providers']
+
+
+def test_quota_poll_shares_lock_and_preserves_consent(monkeypatch):
+    from node import quota_refresh as r
+    q.save_config({'enabled_providers':[]})
+    claim = Mock(return_value={'id':'a'*32,'providers':['grok'],
+                'deadline_in':180, 'deadline':q.iso(q.now()+dt.timedelta(minutes=3))})
+    monkeypatch.setattr(r, 'claim', claim)
+    monkeypatch.setattr(q, 'credential_path', Mock(side_effect=AssertionError('credential read')))
+    monkeypatch.setattr(q, 'kimi_cli', Mock(side_effect=AssertionError('CLI')))
+    push = Mock(); monkeypatch.setattr(q, 'push', push)
+    with r.collection_lock() as acquired:
+        assert acquired
+        assert r.poll('http://127.0.0.1:9219','synthetic','sample-node') == 'busy'
+        claim.assert_not_called()
+    assert r.poll('http://127.0.0.1:9219','synthetic','sample-node') == 'reported'
+    body = push.call_args.args[2]
+    assert body['refresh_request_id'] == 'a'*32
+    assert body['providers'][0]['status'] == 'consent_missing'
+    assert dt.datetime.fromisoformat(body['collected_at'].replace('Z','+00:00')) >= q.now()-dt.timedelta(seconds=2)
+
+
+def test_quota_deadline_retains_successful_providers(monkeypatch):
+    from node import quota_refresh as r
+    def adapter(provider, config, result):
+        if provider == 'grok': raise r.CollectionDeadline()
+        result['windows'] = q.parse('claude', fixture('claude'))
+    monkeypatch.setitem(q.REGISTRY,'claude', adapter); monkeypatch.setitem(q.REGISTRY,'grok', adapter)
+    body = r.bounded_collect('sample-node',['claude','grok'],{'enabled_providers':['claude','grok']})
+    assert [row['status'] for row in body['providers']] == ['ok','error']
+
+
+@pytest.mark.parametrize('mutation', [lambda x:x.update(command='whoami'), lambda x:x.update(providers=['unknown']),
+                                     lambda x:x.update(type='execute'), lambda x:x.update(id='../path')])
+def test_quota_claim_rejects_executable_input(monkeypatch, mutation):
+    from node import quota_refresh as r
+    body = {'id':'a'*32,'type':'quota_refresh','providers':['grok'],
+            'deadline_in':180, 'deadline':q.iso(q.now()+dt.timedelta(minutes=3))}
+    mutation(body)
+    response = MagicMock(); response.__enter__.return_value = response
+    response.read.return_value = json.dumps(body).encode(); response.status = 200
+    monkeypatch.setattr(r, 'open_url', Mock(return_value=response))
+    with pytest.raises(ValueError): r.claim('http://127.0.0.1:9219','synthetic','sample-node')

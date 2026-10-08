@@ -191,3 +191,15 @@ verb.
 | Vendor telemetry | None in Retinue | Audit and configure optional runtimes/adapters separately |
 | Login brute force / scrypt CPU exhaustion | Pre-hash account and source backoff | Use a shared trusted-gateway limiter for strict multi-worker limits |
 | Agent-invented fleet members or forged node reports | Explicit node membership and exact node-token scope | Admit/retire nodes through admin operations; protect node tokens |
+
+### Quota refresh requests
+
+Manual quota refresh is a fixed-purpose pull protocol, not an execution channel.
+Only authenticated administrators (or explicitly enabled members) create a
+request. Exact-node credentials claim it, and local consent limits which fixed
+collectors may run. Requests accept no executable, argv, filesystem path or URL.
+Credentials remain on the node; no model inference request is used to measure
+quota. A fresh correlated report, within the claim deadline, is required for a
+successful receipt. Active-request deduplication, cooldown, daily limits, bounded
+bodies and a shared local collector lock limit repeated work. The feature can be
+disabled independently of daily quota reporting.

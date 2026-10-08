@@ -1,3 +1,5 @@
+2026-10-08 更新：首页额度新增手动刷新查询（`0.3.0a3`）。管理员点击后由节点重新查询，只运行本机已同意的采集器，并明确显示等待、部分失败和超时。[更新说明](docs/releases/2026-10-08-quota-refresh.md)。已有数据库需停写、备份，再迁移到 schema 27。
+
 **[免安装查看 seed-42 静态演示 →](docs/demo/index.html)** · [English README](README.en.md) · [英文演示](https://jklthinking.github.io/retinue/demo-en/?lang=en) · [英文 PRD](docs/PRD.en.md) · [英文截图与版本介绍](docs/releases/2026-10-03-english-edition.md)
 
 2026-10-07 更新：首页新增模型额度（`0.3.0a2`）。支持 Claude、Codex、Grok、Cursor、Kimi 订阅额度及 Moonshot API 余额，逐节点开启采集，中英文显示。[更新说明](docs/releases/2026-10-07-model-quota.md) · [配置说明](docs/node-quota.md) · [沟通记录设计](docs/design/collaboration-conversations.md)。已有数据库需按自托管文档迁移到 schema 26。

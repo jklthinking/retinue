@@ -366,7 +366,7 @@ def test_version_nine_tokens_gain_expires_at_as_migration_ten(tmp_path):
     upgraded = make_session_factory(db_path)
 
     assert (result.from_version, result.to_version) == (9, LATEST_SCHEMA_VERSION)
-    assert _stored_version(upgraded) == LATEST_SCHEMA_VERSION == 26
+    assert _stored_version(upgraded) == LATEST_SCHEMA_VERSION == 27
     with upgraded() as db:
         token = db.execute(
             select(ApiToken).where(ApiToken.label == "pre-expiry")
@@ -399,7 +399,7 @@ def test_version_ten_tasks_gain_due_at_as_migration_eleven(tmp_path):
     upgraded = make_session_factory(db_path)
 
     assert (result.from_version, result.to_version) == (10, LATEST_SCHEMA_VERSION)
-    assert _stored_version(upgraded) == 26 == LATEST_SCHEMA_VERSION
+    assert _stored_version(upgraded) == 27 == LATEST_SCHEMA_VERSION
     with upgraded() as db:
         task = db.execute(select(Task)).scalars().one()
         assert task.due_at is None
@@ -426,7 +426,7 @@ def test_version_eleven_skills_gain_bindings_as_migration_twelve(tmp_path):
     upgraded = make_session_factory(db_path)
 
     assert (result.from_version, result.to_version) == (11, LATEST_SCHEMA_VERSION)
-    assert _stored_version(upgraded) == 26 == LATEST_SCHEMA_VERSION
+    assert _stored_version(upgraded) == 27 == LATEST_SCHEMA_VERSION
     inspector = inspect(upgraded.kw["bind"])
     skill_columns = {column["name"] for column in inspector.get_columns("skills")}
     assert {
@@ -492,7 +492,7 @@ def test_version_twelve_tasks_gain_lease_as_migration_thirteen(tmp_path):
     upgraded = make_session_factory(db_path)
 
     assert (result.from_version, result.to_version) == (12, LATEST_SCHEMA_VERSION)
-    assert _stored_version(upgraded) == 26 == LATEST_SCHEMA_VERSION
+    assert _stored_version(upgraded) == 27 == LATEST_SCHEMA_VERSION
     inspector = inspect(upgraded.kw["bind"])
     task_columns = {column["name"] for column in inspector.get_columns("tasks")}
     assert {"lease_term", "lease_expires_at", "retry_count", "hall_opened_at"} <= (
@@ -539,7 +539,7 @@ def test_version_thirteen_databases_gain_seq_counters_as_migration_fourteen(tmp_
     upgraded = make_session_factory(db_path)
 
     assert (result.from_version, result.to_version) == (13, LATEST_SCHEMA_VERSION)
-    assert _stored_version(upgraded) == 26 == LATEST_SCHEMA_VERSION
+    assert _stored_version(upgraded) == 27 == LATEST_SCHEMA_VERSION
     inspector = inspect(upgraded.kw["bind"])
     assert inspector.has_table("seq_counters")
     with upgraded() as db:
@@ -586,8 +586,8 @@ def test_version_fourteen_gains_dispatch_v2_as_migration_fifteen(tmp_path):
     result = migrate_database(db_path)
     upgraded = make_session_factory(db_path)
 
-    assert (result.from_version, result.to_version) == (14, 26)
-    assert _stored_version(upgraded) == 26 == LATEST_SCHEMA_VERSION
+    assert (result.from_version, result.to_version) == (14, 27)
+    assert _stored_version(upgraded) == 27 == LATEST_SCHEMA_VERSION
     inspector = inspect(upgraded.kw["bind"])
     assert inspector.has_table("squads")
     assert inspector.has_table("dispatch_schedules")
@@ -623,8 +623,8 @@ def test_version_fifteen_gains_card_pipelines_as_migration_seventeen(tmp_path):
     result = migrate_database(db_path)
     upgraded = make_session_factory(db_path)
 
-    assert (result.from_version, result.to_version) == (15, 26)
-    assert _stored_version(upgraded) == 26 == LATEST_SCHEMA_VERSION
+    assert (result.from_version, result.to_version) == (15, 27)
+    assert _stored_version(upgraded) == 27 == LATEST_SCHEMA_VERSION
     inspector = inspect(upgraded.kw["bind"])
     assert inspector.has_table("card_pipeline_templates")
     assert inspector.has_table("card_pipeline_instances")
@@ -675,8 +675,8 @@ def test_version_seventeen_gains_private_todos_as_migration_eighteen(tmp_path):
     result = migrate_database(db_path)
     upgraded = make_session_factory(db_path)
 
-    assert (result.from_version, result.to_version) == (17, 26)
-    assert _stored_version(upgraded) == 26 == LATEST_SCHEMA_VERSION
+    assert (result.from_version, result.to_version) == (17, 27)
+    assert _stored_version(upgraded) == 27 == LATEST_SCHEMA_VERSION
     inspector = inspect(upgraded.kw["bind"])
     for table in (
         "todo_proposals",
@@ -739,7 +739,7 @@ def test_version_twenty_todos_gain_agenda_columns_as_migration_twenty_one(tmp_pa
     upgraded = make_session_factory(db_path)
 
     assert (result.from_version, result.to_version) == (20, LATEST_SCHEMA_VERSION)
-    assert _stored_version(upgraded) == 26 == LATEST_SCHEMA_VERSION
+    assert _stored_version(upgraded) == 27 == LATEST_SCHEMA_VERSION
     inspector = inspect(upgraded.kw["bind"])
     todo_columns = {column["name"] for column in inspector.get_columns("todo_items")}
     assert {"event_on", "parent_id", "progress"} <= todo_columns

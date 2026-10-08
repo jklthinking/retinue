@@ -1,0 +1,10 @@
+[Unit]
+Description=Poll for requested model quota refreshes
+
+[Timer]
+OnBootSec=15s
+OnUnitInactiveSec=30s
+Persistent=false
+
+[Install]
+WantedBy=timers.target

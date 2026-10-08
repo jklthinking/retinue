@@ -3,7 +3,8 @@
 支持 Claude、Codex、Grok、Cursor、Kimi 订阅额度与 Moonshot API 余额。
 xAI management、Anthropic admin、OpenAI admin、Cursor admin 仅保留注册扩展点。
 
-安装节点时 `enroll --install` 会列出检测到的 CLI/凭证并询问同意，默认否。
+首次安装节点时 `enroll --install` 会列出检测到的 CLI/凭证并询问同意，默认否。
+重新安装时不传 `--quota-consent` 会保留已有选择、同意时间和每家的代理配置。
 非交互使用 `--quota-consent all|none|claude,codex,...`。
 默认仅渲染调度时不写配置，显式传入同意选项则保存选择。
 事后使用 `retinue-node quota --enable codex grok`、`--disable grok` 或 `--status`。
@@ -35,7 +36,7 @@ Codex/Grok 分别尊重 `CODEX_HOME`/`GROK_HOME`。
 百分比均为 0–100 的百分数；Grok Bot 接口的比例会乘 100。
 
 未同意的 provider 不读取凭证或执行 CLI。凭证仅用于本机向固定厂商额度接口鉴权，
-不会发送给 Retinue；不发送模型推理请求，我们的代码不调用刷新接口、不改写凭证，
+不会发送给 Retinue；不发送模型推理请求，我们的代码不调用凭证 / OAuth 刷新接口、不改写凭证，
 不输出 token、cookie、邮箱、账号 ID。单家失败不影响其他家。
 Kimi 直接在临时空工作目录运行内置 `/usage`，允许 CLI 按正常启动流程续凭证；
 若 CLI 先要求信任工作区，仅确认本次创建的临时空目录。
@@ -101,3 +102,40 @@ days 允许 1–90，包含今天在内的 UTC 日期；每个账号（空指纹
 used_percent、fetched_at。无读数的日期不补值，未来读数不进入历史。
 
 节点上报前按 period + resets_at + used_percent 去重，优先保留语义化 key 而非数字索引别名。
+
+## 手动刷新（schema 27）
+
+首页「模型额度」右侧的「刷新查询」会创建一次真实查询请求。节点用自己的令牌
+领取请求，只运行本机已同意的采集器，再带 `refresh_request_id` 上报。
+单纯重新读取 `/api/quota` 不算完成查询。默认管理员可点击；viewer 只能看数据。
+`RETINUE_QUOTA_REFRESH_MEMBERS=1` 可允许 member，`RETINUE_QUOTA_REFRESH=0` 可关闭功能。
+
+- `POST /api/quota/refresh`：登录管理员提交 `{request_key}`，可加白名单 `providers`
+  子集和 `nodes` 子集；不接受命令、参数、路径或 URL。
+- `POST /api/nodes/quota/refresh/claim`：有效节点令牌提交 `{node}`；无请求时返回 204。
+- `GET /api/quota/refresh/{batch_id}`：登录用户或有效 agent 查看脱敏的批次状态。
+
+请求先等待节点，120 秒内无人领取则超时。领取后有 180 秒上报期限；节点采集硬超时
+150 秒。只有关联的新上报能完成请求。全部成功、部分成功、失败和超时分别提示，
+没有新数据时保留并明确标注上次数据。节点重复领取和终态后迟到的上报不改变终态。
+同范围的活跃请求复用；不同范围返回冲突。每节点完成后冷却 120 秒，每 UTC 日最多
+48 次。批次成员不可变，多个点击可引用同一个节点请求。
+
+手动运行 `retinue-node quota-poll --node sample-node --url http://127.0.0.1:9219
+--token-file NODE_TOKEN_FILE`。自动查询使用新增的
+`deploy/systemd/retinue-node-quota-poll.service` 和 `.timer`，沿用 `node.env`。
+部署者将样板复制到用户的 systemd 单元目录，确认 CLI/PATH 与本机同意配置后运行
+`systemctl --user daemon-reload` 和
+`systemctl --user enable --now retinue-node-quota-poll.timer`。
+每 30 秒轮询一次，典型等待约 30 秒到 2 分钟。已有每日额度 timer 保留，共用采集锁；
+heartbeat、runtimes、sessions 和 live-cycle 的周期均不改变。
+这些是部署样板，不会随着安装包自动启用。Windows 可由本机调度器定期运行相同命令。
+
+升级前停止所有写入并做一致性 SQLite 备份，再执行显式 migrate。schema 27 仅新增
+`quota_refresh_requests` 和 `quota_refresh_batches`，保留 90 天。
+回滚优先关闭开关并停用 poll timer；如恢复旧二进制，必须同时恢复升级前备份，
+因为旧版拒绝更高 schema。恢复备份会丢失备份后的写入。已有同意选择不应清空。
+
+首版首页按批次汇总状态，不展开每个节点的倒计时。节点时钟允许与 Hub 相差 120 秒，
+查询完成证明用 Hub 接收时间，原始查询时间仍按节点上报显示。Windows 硬超时会
+把整批记为失败；成功的中间结果不保留。Windows 分支尚未在真实设备上验证。

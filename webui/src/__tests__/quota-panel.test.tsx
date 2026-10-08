@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import QuotaPanel from "../components/QuotaPanel";
 import { ThemeProvider } from "../theme";
@@ -10,6 +10,8 @@ import {
   formatShanghaiDateTime,
   formatUsedPercent,
   sortQuotaProviders,
+  quotaRefreshMessage,
+  type QuotaRefreshBatch,
   type QuotaProviderEntry,
   type QuotaResponse,
 } from "../lib/quota";
@@ -260,5 +262,47 @@ describe("QuotaPanel 模型额度", () => {
     renderPanel();
     expect(await screen.findByText(/reset time reached; awaiting the next report/)).toBeInTheDocument();
     expect(screen.getByRole("article", { name: "Claude quota" })).toHaveTextContent("42%");
+  });
+
+  it("requests an actual node query, blocks double clicks, then waits for correlated data", async () => {
+    const batch: QuotaRefreshBatch = { batch_id: "a".repeat(32), created_at: "2026-10-08T01:00:00Z", poll_after_ms: 1000,
+      requests: [{ id: "b".repeat(32), node: "sample-node", status: "queued" }] };
+    const { calls } = mockFetch({
+      "api/quota/refresh/": () => ({ body: { ...batch, requests: [{ ...batch.requests[0], status: "done",
+        received_at: "2026-10-08T01:00:01Z", fetched_at: "2026-10-08T01:00:01Z", results: [{ provider: "claude", status: "ok" }] }] } }),
+      "api/quota/refresh": () => ({ body: batch }),
+      "api/quota": () => ({ body: { ...makeQuota([makeProvider()]), refresh_enabled: true, can_refresh: true } }),
+    });
+    renderPanel();
+    const button = await screen.findByRole("button", { name: "刷新查询" });
+    fireEvent.click(button); fireEvent.click(button);
+    expect(await screen.findByText("等待节点查询…")).toBeInTheDocument();
+    expect(button).toBeDisabled();
+    expect(screen.queryByText("额度已更新")).not.toBeInTheDocument();
+    await userEvent.setup().selectOptions(screen.getByLabelText("Language / 语言"), "en");
+    expect(screen.getByText("Waiting for nodes…")).toBeInTheDocument();
+    expect(await screen.findByText("Quota updated", {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(calls.filter((call) => call.init?.method === "POST")).toHaveLength(1);
+    expect(calls.find((call) => call.init?.method === "POST")?.url).toBe("api/quota/refresh");
+    await waitFor(() => expect(screen.getByRole("button", { name: "Refresh" })).toBeEnabled());
+  });
+
+  it("disables query for a read-only viewer", async () => {
+    mockFetch({ "api/quota": () => ({ body: { ...makeQuota([makeProvider()]), refresh_enabled: true, can_refresh: false } }) });
+    renderPanel();
+    expect(await screen.findByRole("button", { name: "刷新查询" })).toBeDisabled();
+  });
+
+  it("shows partial and timeout results without calling old data updated", () => {
+    const batch: QuotaRefreshBatch = { batch_id: "a".repeat(32), created_at: "2026-10-08T01:00:00Z", poll_after_ms: 1000,
+      requests: [{ node: "sample-node", status: "done", received_at: "2026-10-07T01:00:00Z", fetched_at: "2026-10-07T01:00:00Z", results: [{provider:"claude",status:"ok"}] }] };
+    expect(quotaRefreshMessage(batch)).toBe("未获取到新额度，仍为旧数据。");
+    batch.requests[0].received_at = "2026-10-08T01:00:01Z";
+    batch.requests[0].status = "partial";
+    expect(quotaRefreshMessage(batch)).toBe("部分额度已更新，其余仍为旧数据。");
+    batch.requests[0].status = "timeout";
+    expect(quotaRefreshMessage(batch)).toBe("查询超时，仍为旧数据。");
+    batch.requests[0].status = "failed";
+    expect(quotaRefreshMessage(batch)).toBe("未获取到新额度，仍为旧数据。");
   });
 });

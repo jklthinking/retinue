@@ -78,6 +78,39 @@ class QuotaSnapshot(Base):
     fetched_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True))
 
 
+class QuotaRefreshRequest(Base):
+    """A fixed, consent-preserving quota query; never a command envelope."""
+
+    __tablename__ = "quota_refresh_requests"
+    __table_args__ = (Index("ux_quota_refresh_active_node", "node_id", unique=True,
+        sqlite_where=text("status IN ('queued', 'claimed')"),
+        postgresql_where=text("status IN ('queued', 'claimed')")),)
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    node_id: Mapped[str] = mapped_column(ForeignKey("nodes.id"), index=True)
+    providers_json: Mapped[str | None] = mapped_column(Text)
+    requested_by: Mapped[str] = mapped_column(String(128))
+    status: Mapped[str] = mapped_column(String(16), index=True)
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), index=True)
+    claimed_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+    expires_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True))
+    report_id: Mapped[int | None] = mapped_column(Integer)
+    result_json: Mapped[str] = mapped_column(Text, default="[]")
+
+
+class QuotaRefreshBatch(Base):
+    """Immutable request references allow deduplication across separate clicks."""
+
+    __tablename__ = "quota_refresh_batches"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    requested_by: Mapped[str] = mapped_column(String(128))
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), index=True)
+    entries_json: Mapped[str] = mapped_column(Text)
+    intent_json: Mapped[str] = mapped_column(Text)
+
+
 class SchemaVersion(Base):
     """The single applied-version record for the server schema."""
 
@@ -3135,6 +3168,8 @@ SCHEMA_MIGRATIONS = (
         tables=("control_envelopes", "control_events"),
     ),
     _Migration(26, (), tables=("quota_reports", "quota_snapshots")),
+    _Migration(27, (), indexes=(("quota_refresh_requests", "ux_quota_refresh_active_node"),),
+               tables=("quota_refresh_requests", "quota_refresh_batches")),
 )
 LATEST_SCHEMA_VERSION = SCHEMA_MIGRATIONS[-1].version
 

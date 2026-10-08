@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Gauge } from "lucide-react";
+import { Gauge, RefreshCw } from "lucide-react";
 import { t, useI18n } from "../i18n";
-import { readErrorMessage } from "../api";
+import { ApiError, readErrorMessage } from "../api";
 import { panelNow } from "../demo";
 import {
   fetchQuota,
+  fetchQuotaRefresh,
+  startQuotaRefresh,
+  quotaRefreshMessage,
   formatBalance,
   formatFetchedAgo,
   formatUsedPercent,
@@ -114,6 +117,12 @@ export default function QuotaPanel() {
   const [loaded, setLoaded] = useState(false);
   const [tick, setTick] = useState(0);
   const seq = useRef(0);
+  const refreshSeq = useRef(0);
+  const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const refreshingRef = useRef(false);
+  const requestKey = useRef<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
 
   const reload = useCallback(() => {
     const ticket = ++seq.current;
@@ -134,6 +143,57 @@ export default function QuotaPanel() {
       });
   }, []);
 
+  const refresh = useCallback(async () => {
+    if (refreshingRef.current || !payload?.can_refresh) return;
+    refreshingRef.current = true;
+    setRefreshing(true);
+    setRefreshMessage("正在提交查询…");
+    const ticket = ++refreshSeq.current;
+    // Reuse the key after an uncertain network failure so a retry cannot
+    // create another batch. Keys are discarded only on a definitive response.
+    requestKey.current ??= Array.from(crypto.getRandomValues(new Uint8Array(16)),
+      (value) => value.toString(16).padStart(2, "0")).join("");
+    const until = Date.now() + 6 * 60_000;
+    const finish = () => {
+      if (ticket !== refreshSeq.current) return;
+      refreshingRef.current = false;
+      setRefreshing(false);
+    };
+    try {
+      const batch = await startQuotaRefresh(requestKey.current);
+      if (ticket !== refreshSeq.current) return;
+      requestKey.current = null;
+      const watch = async (value: typeof batch) => {
+        if (ticket !== refreshSeq.current) return;
+        setRefreshMessage(quotaRefreshMessage(value));
+        if (!value.requests.some((row) => row.status === "queued" || row.status === "claimed")) {
+          reload();
+          finish();
+          return;
+        }
+        if (Date.now() >= until) {
+          setRefreshMessage("查询超时，仍为旧数据。");
+          finish();
+          return;
+        }
+        refreshTimer.current = setTimeout(() => {
+          void fetchQuotaRefresh(batch.batch_id).then(watch).catch(() => {
+            if (ticket !== refreshSeq.current) return;
+            setRefreshMessage("查询状态无法确认，仍显示上次数据。请重试。");
+            finish();
+          });
+        }, Math.max(1000, Math.min(5000, value.poll_after_ms || 3000)));
+      };
+      await watch(batch);
+    } catch (reason) {
+      if (ticket !== refreshSeq.current) return;
+      if (reason instanceof ApiError && reason.status >= 400 && reason.status < 500) requestKey.current = null;
+      setRefreshMessage(reason instanceof ApiError && reason.status === 429
+        ? "查询过于频繁，请稍后再试。" : "查询状态无法确认，仍显示上次数据。请重试。");
+      finish();
+    }
+  }, [payload?.can_refresh, reload]);
+
   useEffect(() => {
     reload();
     const timer = setInterval(reload, BOARD_REFRESH_MS);
@@ -143,6 +203,8 @@ export default function QuotaPanel() {
       clearInterval(timer);
       window.removeEventListener(DATA_REFRESH_EVENT, onManual);
       seq.current += 1;
+      refreshSeq.current += 1;
+      if (refreshTimer.current) clearTimeout(refreshTimer.current);
     };
   }, [reload]);
 
@@ -160,8 +222,17 @@ export default function QuotaPanel() {
       kicker="MODEL QUOTA"
       title={t("模型额度")}
       className="rt-quota-panel"
+      tools={payload?.refresh_enabled && (
+        <button type="button" className="rt-quota-refresh" onClick={() => void refresh()}
+          disabled={!payload.can_refresh || refreshing}
+          title={!payload.can_refresh ? t("需要管理员权限才能查询额度。") : undefined}
+          aria-busy={refreshing}>
+          <RefreshCw size={14} />{t(refreshing ? "查询中…" : "刷新查询")}
+        </button>
+      )}
     >
       <p className="rt-quota-hint">{t("显示已用比例；API 账号显示余额。")}</p>
+      {refreshMessage && <p className="rt-quota-refresh-status" role="status" aria-live="polite">{t(refreshMessage)}</p>}
       {loading && !loaded && <DataState loading />}
       {error && (
         <DataState error={error} stale={loaded} onRetry={reload} />

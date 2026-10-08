@@ -292,6 +292,7 @@ def cmd_enroll(args: argparse.Namespace) -> int:
 
 def cmd_quota(args: argparse.Namespace) -> int:
     from . import quota_probe as quota
+    from .quota_refresh import collection_lock
 
     config = quota.load_config()
     if args.enable or args.disable:
@@ -309,7 +310,11 @@ def cmd_quota(args: argparse.Namespace) -> int:
         print(json.dumps({'enabled_providers': config.get('enabled_providers', []),
                           'consented_at': config.get('consented_at')}, ensure_ascii=False, indent=2))
         return 0
-    payload = quota.collect(_resolve_node(args), [args.provider] if args.provider else None, config)
+    with collection_lock() as acquired:
+        if not acquired:
+            print("额度采集已在运行")
+            return 0
+        payload = quota.collect(_resolve_node(args), [args.provider] if args.provider else None, quota.load_config())
     if args.dry_run:
         print(json.dumps(payload, ensure_ascii=False, indent=2))
     else:
@@ -321,12 +326,22 @@ def cmd_quota(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_quota_poll(args: argparse.Namespace) -> int:
+    from .quota_refresh import poll
+    try:
+        status = poll(_resolve_url(args), _read_token(args), _resolve_node(args))
+    except Exception:
+        raise SystemExit("额度刷新失败；请检查节点与服务端配置") from None
+    print("额度刷新周期：" + status)
+    return 0
+
+
 def _enroll_quota(args):
     from . import quota_probe as quota
     import sys
 
     choice = args.quota_consent
-    if choice is None and args.install and sys.stdin.isatty():
+    if choice is None and args.install and sys.stdin.isatty() and not quota.config_file().exists():
         providers = quota.detected()
         print("检测到可查额度的 CLI/凭证: " + (', '.join(providers) or '无'))
         try:
@@ -335,7 +350,9 @@ def _enroll_quota(args):
         except EOFError:
             answer = ''
         choice = ','.join(providers) if answer.strip().lower() in ('y', 'yes') else 'none'
-    if choice is None and not args.install:
+    # Re-enrollment without a new consent choice must preserve prior consent.
+    # Default-off is already supplied by load_config when no file exists.
+    if choice is None:
         return
     try:
         enabled = list(quota.PROVIDERS[:6]) if choice == 'all' else ([] if choice in (None, 'none') else quota.selection([choice]))
@@ -565,6 +582,10 @@ def build_parser() -> argparse.ArgumentParser:
     quota.add_argument('--disable', nargs='+')
     quota.add_argument('--status', action='store_true')
     quota.set_defaults(func=cmd_quota)
+
+    quota_poll = sub.add_parser('quota-poll', help='领取一次固定额度刷新请求并按本地同意上报')
+    add_common(quota_poll)
+    quota_poll.set_defaults(func=cmd_quota_poll)
 
     return parser
 

@@ -41,6 +41,9 @@ def _api_routes(app) -> list[APIRoute]:
 
 # (path, methods, endpoint name, dependency chain) for every API route.
 EXPECTED_ROUTES = {
+    ("/api/quota/refresh", ("POST",), "request_refresh", ("operator_identity", "get_db", "get_db")),
+    ("/api/quota/refresh/{batch_id}", ("GET",), "refresh_status", ("require_auth", "get_db", "get_db")),
+    ("/api/nodes/quota/refresh/claim", ("POST",), "claim_refresh", ("get_db",)),
     ("/api/nodes/quota", ("POST",), "report_quota", ("get_db",)),
     ("/api/quota", ("GET",), "get_quota", ("require_auth", "get_db", "get_db")),
     ("/api/quota/history", ("GET",), "quota_history", ("require_auth", "get_db", "get_db")),

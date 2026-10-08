@@ -172,3 +172,21 @@
   color: var(--muted);
   font-size: 12px;
 }
+
+.rt-quota-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.rt-quota-refresh:disabled { opacity: 0.55; cursor: default; }
+.rt-quota-refresh-status { font-size: 12px; color: var(--ink-soft); overflow-wrap: anywhere; }
