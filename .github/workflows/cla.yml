@@ -1,0 +1,33 @@
+name: CLA Assistant (disabled draft)
+
+# Disabled until explicitly approved: the job-level literal false is a hard lock.
+# After review, remove only "false &&", create the signature branch, then set
+# the repository variable CLA_ENABLED=true. No contributor code is checked out.
+on:
+  issue_comment:
+    types: [created]
+  pull_request_target:
+    types: [opened, reopened, synchronize]
+
+permissions: {}
+
+jobs:
+  cla:
+    if: ${{ false && vars.CLA_ENABLED == 'true' && (github.event_name == 'pull_request_target' || (github.event.issue.pull_request && (github.event.comment.body == 'recheck' || github.event.comment.body == 'I have read CLA v1 and I hereby sign the individual CLA'))) }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      statuses: write
+    steps:
+      - name: Record individual CLA v1 acceptance
+        uses: contributor-assistant/github-action@ca4a40a7d1004f18d9960b404b97e5f30a505a08 # v2.6.1 (archived upstream)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          path-to-signatures: signatures/cla-v1.json
+          branch: cla-signatures-v1
+          path-to-document: https://github.com/jklthinking/retinue/blob/045988f182bf39976fedd9cf97defa9e5ac2e8a6/CLA.md
+          custom-pr-sign-comment: I have read CLA v1 and I hereby sign the individual CLA
+          custom-notsigned-prcomment: Please read CLA v1. Individual consent does not replace employer or corporate authorization; maintainers verify that separately. Do not post private details.
+          lock-pullrequest-aftermerge: false
