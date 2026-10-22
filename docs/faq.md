@@ -17,11 +17,11 @@ container image is not official RETINUE.
 
 ## Is RETINUE open source?
 
-RETINUE's own code in this public version is open source under **MIT**. Personal and commercial
-use, modification and redistribution are permitted with the copyright and permission notice
-preserved. Third-party dependencies and assets retain their own notices and licenses. Historical
-versions keep the license they shipped with; their tags are not rewritten. See [LICENSE](../LICENSE)
-and [third-party notices](THIRD_PARTY_NOTICES.md).
+Retinue's current source uses **AGPL-3.0-only**, with separate commercial licensing.
+Personal and internal company use are free, including commercial use. Modified
+network services must offer Corresponding Source to users; commercial licensing
+is available instead. Versions 0.3.0a4 and earlier released under MIT remain MIT.
+See [LICENSE](../LICENSE) and [COMMERCIAL.md](../COMMERCIAL.md).
 
 ## How is RETINUE different from Trello, Jira, Linear or Notion?
 
@@ -103,7 +103,7 @@ GitHub 上另有若干同名但毫无关联的项目。RETINUE 名称与中文�
 
 ## 众卿是开源软件吗？
 
-本公开版本的众卿自有代码采用 **MIT** 开源许可，允许个人与商业使用、修改和再分发，须保留版权与许可声明。
+当前众卿自有代码采用 **AGPL-3.0-only**，个人及公司内部使用免费（含商用）。修改后通过网络对外服务须向用户提供对应源码，也可另购商业授权。0.3.0a4 及以前已按 MIT 发布的版本保持 MIT。见 [商业授权](../COMMERCIAL.md)。
 第三方依赖和资产仍按各自声明与许可证使用。历史版本保留发布时的许可证，历史标签不改写。
 详见 [LICENSE](../LICENSE) 与[第三方声明](THIRD_PARTY_NOTICES.md)。
 

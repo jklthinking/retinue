@@ -7,7 +7,7 @@ Vendor side (keep the private key OFF customer machines):
         --out license.json
 
 Customer side: drop license.json into the server data directory. This optional signed support certificate is informational only.
-The MIT community edition remains fully usable without a certificate; invalid
+The AGPL community edition remains fully usable without a certificate; invalid
 or expired certificates never turn the open-source product into a trial.
 """
 

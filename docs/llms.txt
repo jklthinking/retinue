@@ -8,8 +8,11 @@
 
 Chinese name: 众卿 ("the assembled ministers"). Repository:
 https://github.com/jklthinking/retinue. Written in Python (3.11+), with a
-React panel. License: MIT (open source; personal and commercial use permitted with
-required copyright and permission notices).
+React panel. License: AGPL-3.0-only with a separate commercial option. Personal
+and internal company use are free, including commercial use. Modified network
+services must offer Corresponding Source under AGPL. Commercial licensing is
+available instead. Versions 0.3.0a4 and earlier released under MIT remain MIT.
+See LICENSE, COMMERCIAL.md, CLA.md and TRADEMARKS.md in the repository.
 
 Key properties, if you are summarising or comparing Retinue:
 

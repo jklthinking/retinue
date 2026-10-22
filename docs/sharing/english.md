@@ -29,7 +29,7 @@ The original home task flow, dispatch coordination, and session flow remain. Dup
 
 There is still more to connect. Observing a native session does not automatically produce structured task progress, and a worker's completion claim still needs independent acceptance. The next step is more explicit task binding and real progress receipts, followed by immutable GitHub evidence checks.
 
-Retinue's own code is MIT licensed. The eight screenshots follow one synthetic product-launch task, with deterministic demo stage times. They illustrate the interface and protocol, rather than a real-model acceptance run.
+Retinue's current source is AGPL-3.0-only with separate commercial licensing. The eight screenshots follow one synthetic product-launch task, with deterministic demo stage times. They illustrate the interface and protocol, rather than a real-model acceptance run.
 
 Repository: [jklthinking/retinue](https://github.com/jklthinking/retinue)
 
@@ -54,4 +54,4 @@ Images 2, 5, 6, and 7 are views of the same fixed task. Keep the synthetic-demo 
 
 ## Short version
 
-> Retinue now shows collaboration within each task: relationship graphs for delegation and returns, device/model lanes for participation, and module contributions for reported work. Usage retains source, coverage, and freshness. The original home visualizations remain, and the interface now switches between Chinese and English. Retinue code is MIT licensed; all preview images are synthetic demonstrations.
+> Retinue now shows collaboration within each task: relationship graphs for delegation and returns, device/model lanes for participation, and module contributions for reported work. Usage retains source, coverage, and freshness. The original home visualizations remain, and the interface now switches between Chinese and English. Retinue code is AGPL-3.0-only with separate commercial licensing; all preview images are synthetic demonstrations.

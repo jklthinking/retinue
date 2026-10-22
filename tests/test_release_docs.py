@@ -19,7 +19,7 @@ def test_readmes_publish_demo_sovereignty_roadmap_support_and_scale_boundaries()
     assert "RETINUE" in english
     assert "seed=42" in english
     assert "SELF_HOSTING.md" in english
-    assert "MIT" in english
+    assert "AGPL-3.0-only" in english
     assert "no telemetry" in english
 
 

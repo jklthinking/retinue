@@ -123,4 +123,20 @@ lint。
 安装、升级、备份/恢复演练、Compose 以及端口暴露警告见
 [`SELF_HOSTING.md`](SELF_HOSTING.md)。协议文档位于
 [`docs/protocol/`](docs/protocol/)，安全边界位于
-[`docs/security.md`](docs/security.md)。项目采用 MIT 许可证。
+[`docs/security.md`](docs/security.md)。当前源码采用 AGPL-3.0-only，并提供商业授权。
+
+## 许可证
+
+Copyright (c) 2026 JKL Thinking。当前源码树采用 **AGPL-3.0-only**，
+同时提供单独的商业授权。
+
+- 个人和公司内部使用都免费，包括商用。
+- 修改后通过网络对外提供服务，必须按 AGPL 向这些用户提供修改版本的对应源码。
+- 不想履行这些要求，可以购买商业授权。
+- **已按 MIT 发布的 0.3.0a4 及以前版本永远是 MIT，不追溯。**
+
+分发和其他使用场景也须履行适用的 AGPL 条款。此说明针对该分界后的开发源码，
+不改写旧发行版或标签。详见 [LICENSE](LICENSE)、[NOTICE](NOTICE)、
+[商业授权](COMMERCIAL.md)、[贡献者协议](CLA.md) 和 [商标说明](TRADEMARKS.md)。
+第三方依赖继续遵循各自许可证，声明见
+[THIRD_PARTY_NOTICES](docs/THIRD_PARTY_NOTICES.md)。

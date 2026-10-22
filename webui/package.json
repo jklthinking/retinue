@@ -26,5 +26,5 @@
     "vite": "^5.4.11",
     "vitest": "^2.1.9"
   },
-  "license": "MIT"
+  "license": "AGPL-3.0-only"
 }

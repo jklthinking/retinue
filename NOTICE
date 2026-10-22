@@ -1,19 +1,18 @@
-RETINUE (Chinese name: 众卿)
-Copyright 2026 JKL Thinking
+Retinue / 众卿
+Copyright (c) 2026 JKL Thinking
 
-This release of RETINUE's own source code is licensed under the MIT License
-(SPDX: MIT). See LICENSE and LICENSE.md. Commercial use, modification, and
-redistribution are permitted under that license without a separate commercial
-license. Preserve the copyright and permission notice when redistributing.
+The current source tree is licensed under AGPL-3.0-only.
+SPDX-License-Identifier: AGPL-3.0-only
+See LICENSE for the unmodified GNU Affero General Public License version 3.
+Separate commercial terms are available as described in COMMERCIAL.md.
+Third-party licenses and copyright notices remain in force; see
+ docs/THIRD_PARTY_NOTICES.md and docs/licenses-inventory.md.
 
-Third-party dependencies retain their own licenses. See
-docs/licenses-inventory.md; this change does not relicense third-party code.
+Versions 0.3.0a4 and earlier released under MIT remain MIT forever.
+This change does not rewrite historical releases or tags. Other historical
+FSL or PolyForm releases retain the terms supplied with those releases.
+The development tree after that cutoff uses AGPL; do not republish an old
+version number as a newly licensed release.
 
-Historical releases keep the licenses published with those versions, including
-FSL-1.1-Apache-2.0 and PolyForm-Noncommercial-1.0.0 where applicable. This MIT
-release does not rewrite historical tags or their notices.
-
-RETINUE, 众卿, and the RETINUE marks remain trademarks or trade names of
-JKL Thinking. The MIT License grants no additional trademark rights.
-Unofficial forks, images, and hosted services must not claim to be official
-RETINUE. Reasonable attribution of origin is welcome.
+The Retinue, RETINUE and 众卿 names and logo are reserved marks of JKL Thinking.
+No trademark rights are granted by the code license. See TRADEMARKS.md.

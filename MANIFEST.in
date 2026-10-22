@@ -1,0 +1,6 @@
+include LICENSE
+include NOTICE
+include COMMERCIAL.md
+include CLA.md
+include TRADEMARKS.md
+include docs/THIRD_PARTY_NOTICES.md

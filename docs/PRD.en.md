@@ -1,5 +1,7 @@
 # Retinue product requirements
 
+> Historical release note: the 0.3.0a1 release described here remains MIT. The current development tree uses AGPL-3.0-only with [commercial licensing](../COMMERCIAL.md).
+
 [简体中文](PRD.md) · **English** · [English demo](https://jklthinking.github.io/retinue/demo-en/?lang=en)
 
 Edition: 2026-10-03 English edition of the community update. Software version: `0.3.0a1`. Retinue's own code is MIT licensed.

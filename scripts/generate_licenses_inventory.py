@@ -179,14 +179,15 @@ def main() -> int:
         conclusion = (
             "Every listed production dependency is under a permissive SPDX "
             "license. That is compatible with self-hosting, forking, and the "
-            "MIT licensing of RETINUE itself."
+            "AGPL-3.0-only licensing of RETINUE itself."
         )
     body = f"""# Dependency license inventory
 
 Generated from the CycloneDX documents in `dist/` (`sbom-python.cdx.json`,
 `sbom-frontend.cdx.json`). Re-run `bash scripts/generate_sbom.sh` then
 `python scripts/generate_licenses_inventory.py` after a dependency change.
-Those JSON files stay out of git. Generators: `cyclonedx-py` 7.3.1
+Those JSON files stay out of git. AGPL compatibility and the complete test/build
+dependency review are in [agpl-compatibility.md](agpl-compatibility.md). Generators: `cyclonedx-py` 7.5.0
 (`cyclonedx-bom`) and `@cyclonedx/cyclonedx-npm` 4.0.0.
 
 Python rows are the resolved install of `retinue[server]` in a throwaway

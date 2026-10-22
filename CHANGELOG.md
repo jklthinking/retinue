@@ -1,5 +1,12 @@
 ## Unreleased
 
+### License transition
+
+- Current development source: AGPL-3.0-only with optional commercial licensing,
+  CLA v1 (individual and corporate), and separate trademark guidance.
+- Versions 0.3.0a4 and earlier released under MIT retain MIT; tags are unchanged.
+- CLA automation remains disabled pending maintainer approval.
+
 ### 0.3.0a2: Home model quota (2026-10-07)
 
 - Adds consent-gated node probes for Claude, Codex, Grok, Cursor and Kimi

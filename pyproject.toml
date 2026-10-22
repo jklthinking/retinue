@@ -8,7 +8,8 @@ version = "0.3.0a4"
 description = "Local control and observability for heterogeneous AI agents"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "MIT"}
+license = {text = "AGPL-3.0-only"}
+classifiers = ["License :: OSI Approved :: GNU Affero General Public License v3"]
 dependencies = ["PyYAML>=6.0"]
 
 [project.optional-dependencies]
@@ -45,7 +46,7 @@ retinue-node = "node.cli:main"
 retinue-server = "server.main:main"
 
 [tool.setuptools]
-license-files = ["LICENSE*", "NOTICE*", "docs/THIRD_PARTY_NOTICES.md"]
+license-files = ["LICENSE", "NOTICE", "COMMERCIAL.md", "CLA.md", "TRADEMARKS.md", "docs/THIRD_PARTY_NOTICES.md"]
 
 [tool.setuptools.package-data]
 server = ["static/*", "static/assets/*"]

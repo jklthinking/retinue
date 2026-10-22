@@ -54,12 +54,26 @@ the test fails against the old code and passes against the new one.
 need something, argue for it in the pull request and confine it to the
 narrowest extra.
 
-## Contribution license
+## Contribution license / 贡献许可与 CLA
 
-By submitting a contribution, you confirm that you have the right to submit it
-and agree to license it under this project’s MIT License. Retain third-party
-notices and identify any imported material and its license in your pull request.
-No separate commercial relicensing agreement is required for this MIT release.
+The project uses AGPL-3.0-only with separate commercial licensing. Before a
+contribution is merged, read and sign [CLA v1](CLA.md): the individual form
+for your own rights, and the corporate form when an employer or organization
+holds the rights. You retain copyright and expressly permit sublicensing,
+including commercial terms, and grant the stated patent license. Identify
+third-party material and preserve its notices; do not grant rights you lack.
+
+The CLA workflow is a disabled draft. Until maintainers approve activation,
+they must obtain and retain explicit manual acceptance of CLA v1 and verify
+employer/corporate authority before merging. A PR checkbox alone is not a
+signature. Use a maintainer-designated private channel for corporate records;
+do not put private identity or contact details in a public PR. Existing
+contributions are not signed retroactively by this file.
+
+合并前须签署 [CLA v1](CLA.md)（个人版；机构持有权利时另需机构版或授权证明）。
+贡献者保留版权，并同意维护者以包括商业授权在内的其他条款再许可，另授予专利
+许可。机器人草稿尚未启用，目前由维护者人工收取明确同意并核验权限；勾选 PR
+清单不能代替签署。第三方材料须注明来源与许可，不得无权授权。
 
 ## Reporting a security issue
 

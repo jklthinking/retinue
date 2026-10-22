@@ -70,14 +70,14 @@ def test_dirty_report_exposes_no_identifier_values_and_preserves_old_export(tmp_
 def test_private_artifacts_are_excluded(name):
     assert is_excluded(name)
 
-def test_mit_source_metadata_is_consistent():
+def test_agpl_source_metadata_is_consistent():
     root=Path(__file__).resolve().parents[1]
     assert (root/'LICENSE').read_bytes() == (root/'LICENSE.md').read_bytes()
-    assert 'MIT License' in (root/'LICENSE').read_text(encoding='utf-8')
-    assert 'Copyright (c) 2026 JKL Thinking' in (root/'LICENSE').read_text(encoding='utf-8')
-    assert 'license = {text = "MIT"}' in (root/'pyproject.toml').read_text(encoding='utf-8')
-    assert json.loads((root/'webui/package.json').read_text())['license'] == 'MIT'
-    assert json.loads((root/'webui/package-lock.json').read_text())['packages']['']['license'] == 'MIT'
+    assert 'GNU AFFERO GENERAL PUBLIC LICENSE' in (root/'LICENSE').read_text(encoding='utf-8')
+    assert 'Copyright (c) 2026 JKL Thinking' in (root/'NOTICE').read_text(encoding='utf-8')
+    assert 'license = {text = "AGPL-3.0-only"}' in (root/'pyproject.toml').read_text(encoding='utf-8')
+    assert json.loads((root/'webui/package.json').read_text())['license'] == 'AGPL-3.0-only'
+    assert json.loads((root/'webui/package-lock.json').read_text())['packages']['']['license'] == 'AGPL-3.0-only'
 
 def test_loopback_does_not_hide_another_address_on_same_line(tmp_path):
     write(tmp_path,'source.txt','localhost 127.0.0.1 and '+'8.8.'+'4.4')

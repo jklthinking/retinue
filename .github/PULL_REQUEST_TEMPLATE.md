@@ -11,7 +11,9 @@
 
 ## Contribution license
 
-- [ ] I have the right to submit this work under the project’s MIT License and
+- [ ] I have the right to submit this work under AGPL-3.0-only and [CLA v1](../CLA.md), and
       have retained any required third-party notices.
 
 Do not paste tokens, private cards, or transcripts into this description.
+
+- [ ] CLA v1 acceptance and any required corporate authorization are recorded before merge (this checkbox is not a signature).

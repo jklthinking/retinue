@@ -212,11 +212,11 @@ export default function Admin() {
       {status && (
         <section className="admin-section">
           <h2>{t("版本与支持证书")}</h2>
-          <p><span className="chip chip-low">{t("MIT 开源版")}</span> {t("允许个人与商业使用，无需激活（服务端 v")}{status.version}）。</p>
+          <p><span className="chip chip-low">{t("AGPL 开源版")}</span> {t("允许个人与商业使用，无需激活（服务端 v")}{status.version}）。</p>
           {status.license.valid ? (
             <p><span className="chip chip-low">{t("支持证书有效")}</span> {status.license.customer} · {status.license.edition} · {status.license.seats} {t("席 · 有效期至")} {status.license.expires_at}{t("；证书仅提供支持信息。")}</p>
           ) : (
-            <p className="muted">{status.license.error ? t("可选支持证书异常：{v0}", { v0: status.license.error }) : t("未安装可选支持证书。")} {t("不影响 MIT 版的功能或使用权。")}</p>
+            <p className="muted">{status.license.error ? t("可选支持证书异常：{v0}", { v0: status.license.error }) : t("未安装可选支持证书。")} {t("不影响 AGPL 版的功能或使用权。")}</p>
           )}
         </section>
       )}

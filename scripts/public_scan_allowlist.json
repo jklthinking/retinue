@@ -714,7 +714,7 @@
       "review_note": "Reviewed login fixture: explicitly synthetic password used only by the temporary database test operator."
     },
     {
-      "file": "docs/demo/assets/index--qGG73dT.js",
+      "file": "docs/demo/assets/index-Crs6yN8y.js",
       "line": 175,
       "category": "address",
       "line_sha256": "fda18cf14577bbd5fd95be68678743c88faa93da94dc22b73579c942e16e6f0e",
@@ -723,7 +723,7 @@
       "review_note": "Individually reviewed the exact Lucide SVG icon drawing constant in this bundle; the matched sequence is coordinate data, not a host address."
     },
     {
-      "file": "docs/demo-en/assets/index-DyRw71Rw.js",
+      "file": "docs/demo-en/assets/index-d-kEmF78.js",
       "line": 175,
       "category": "address",
       "line_sha256": "fda18cf14577bbd5fd95be68678743c88faa93da94dc22b73579c942e16e6f0e",

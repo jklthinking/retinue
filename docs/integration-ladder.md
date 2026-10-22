@@ -113,4 +113,4 @@ L3 does not replace L1. Native coordination is the control path; exporters are t
 
 ## Contribution boundary
 
-An exporter or plugin contribution should include a synthetic fixture, a real read-only smoke test when possible, documented token accounting, and proof that it does not write to the runtime's source directory. Respect every upstream license. Design study does not authorize copying source into an Apache-2.0 integration.
+An exporter or plugin contribution should include a synthetic fixture, a real read-only smoke test when possible, documented token accounting, and proof that it does not write to the runtime's source directory. Respect every upstream license. Design study does not authorize copying source into an AGPL-3.0-only integration.

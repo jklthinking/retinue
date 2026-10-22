@@ -1,0 +1,89 @@
+# Retinue license reference
+
+## Current source license
+
+Copyright (c) 2026 JKL Thinking. The current source tree uses
+**AGPL-3.0-only**, with a separate commercial licensing option.
+
+- Personal use and internal company use are free, including commercial use.
+- If you modify Retinue and provide it to outside users over a network, you
+  must offer those users the modified version's Corresponding Source under AGPL.
+- If you do not want to meet those requirements, you can buy a commercial license.
+- **Versions 0.3.0a4 and earlier released under MIT remain MIT forever.**
+
+Distribution and other uses must also meet the applicable AGPL requirements.
+This applies to the development tree after that cutoff; old releases and tags
+are unchanged. See [LICENSE](LICENSE), [NOTICE](NOTICE),
+[commercial terms](COMMERCIAL.md), [contributor agreement](CLA.md) and
+[trademarks](TRADEMARKS.md). Third-party dependencies retain their own terms;
+see [THIRD_PARTY_NOTICES](docs/THIRD_PARTY_NOTICES.md).
+
+## Commercial licensing
+
+
+Retinue's core is available under **AGPL-3.0-only**, with a separate commercial
+license offered by JKL Thinking. Personal use, internal company use, and
+commercial use that complies with AGPL are free. Charging money, being a
+company, or hosting a service does not by itself require a paid license.
+See [LICENSE](LICENSE) for the complete terms.
+
+### When to obtain a commercial license
+
+Obtain one before a use for which you cannot or do not wish to meet AGPL's
+applicable requirements, such as:
+
+- Distributing a modified version or a derivative product while keeping the
+  covered source closed.
+- Modifying Retinue and offering it to external users over a network without
+  offering those users the Corresponding Source required by AGPL section 13,
+  including modifications and necessary build and installation materials.
+- Embedding Retinue into a proprietary product that forms a covered combined work.
+- Working under a company policy that prohibits AGPL software.
+
+Calling an independent interface does not automatically create a derivative
+work; the integration must be assessed on its facts. Hosting an unmodified
+copy alone does not trigger section 13's modified-version requirement.
+Distribution of software or clients still carries the applicable AGPL duties.
+
+### What the commercial license includes
+
+A signed contract specifies the covered versions, legal entities, term,
+deployments and distribution scope. Within that scope, it permits use,
+modification, integration or distribution of code that JKL Thinking has the
+right to license commercially without that code's AGPL source-disclosure
+requirements. Support, SLAs, hosting, enterprise features, upgrades and pricing
+are included only when expressly agreed. Hosted offerings and enterprise
+features may be supplied from private repositories; the open core grants no
+automatic access to them.
+
+Third-party license obligations remain separate. Trademark and logo rights
+are not included automatically. This document describes options; it is not an
+executed commercial contract. Without such a license, AGPL applies.
+
+Contact: <商业授权联系方式：待女王提供>
+
+**Versions 0.3.0a4 and earlier released under MIT remain MIT forever.**
+This change is not retroactive.
+
+## Trademarks
+
+
+The names Retinue, RETINUE and 众卿, and the project logo, are marks reserved by
+JKL Thinking. **AGPL-3.0-only for the code does not grant trademark rights in
+these names or logos.**
+
+You may refer to the project accurately (for example, “a fork of Retinue” or
+“compatible with Retinue”), link to the official repository, and retain the
+name and logo when running an unmodified official release. Required copyright,
+origin and license notices must remain.
+
+Forks, redistributions and third-party hosted services must not impersonate
+Retinue or use its marks in domains, store listings, document titles or
+marketing to imply official status, endorsement or affiliation. Use your own
+product name and marks for a derivative version. An altered logo must not be
+presented as the official mark either. Accurate, necessary attribution remains
+permitted. A commercial code license does not automatically include trademarks.
+
+This policy addresses marks and confusion; it adds no restriction to AGPL's
+rights to use, modify and distribute the code.
+Official project: https://github.com/jklthinking/retinue .

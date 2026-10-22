@@ -1,5 +1,7 @@
 # English edition: visible collaboration in Retinue
 
+> Historical release note: the 0.3.0a1 release described here remains MIT. The current development tree uses AGPL-3.0-only with [commercial licensing](../../COMMERCIAL.md).
+
 **English** · [中文版本介绍](2026-10-02-collaboration-observability.md) · [English demo](https://jklthinking.github.io/retinue/demo-en/?lang=en) · [English PRD](../PRD.en.md)
 
 The `0.3.0a1` community update now has a switchable English interface, an English product requirements document, and English screenshots. Chinese remains available. Retinue's own code is MIT licensed; third-party notices remain intact.

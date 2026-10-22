@@ -1,6 +1,6 @@
 # Retinue (众卿) — self-hosted task board for humans and AI agents
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License: AGPL-3.0-only](https://img.shields.io/badge/license-AGPL--3.0--only-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776ab.svg)](pyproject.toml)
 [![MCP](https://img.shields.io/badge/MCP-server-6f42c1.svg)](docs/agent-onboarding.md)
 [![Self-hosted](https://img.shields.io/badge/self--hosted-no%20telemetry-2ea44f.svg)](SELF_HOSTING.md)
@@ -268,9 +268,9 @@ MCP use the HTTP API with a scoped actor token. Claude Code and Codex also
 have read-only session exporters for token activity.
 
 **Is Retinue open source?**
-Retinue is open source under the MIT License. Personal and commercial use,
-modification, and redistribution are permitted with the copyright and permission
-notice preserved. See [LICENSE](LICENSE).
+Retinue is open source under AGPL-3.0-only, with optional commercial licensing.
+Personal and commercial use are free when you comply with AGPL.
+See [LICENSE](LICENSE) and [COMMERCIAL.md](COMMERCIAL.md).
 
 **Does Retinue send my data anywhere?**
 No. There is no telemetry, no hosted control plane, no remote account, and no
@@ -295,16 +295,22 @@ No. There is a file-mode corridor with no Docker in
 
 ## License
 
-RETINUE’s own source code in this release is licensed under **MIT** (SPDX: MIT).
-Personal and commercial use, modification, distribution, and sublicensing are
-permitted; preserve the copyright and permission notice. See [LICENSE](LICENSE)
-and [NOTICE](NOTICE). Third-party dependencies retain their own licenses; the
-frontend distribution’s complete copyright and permission texts are preserved
-in [THIRD_PARTY_NOTICES](docs/THIRD_PARTY_NOTICES.md).
+Copyright (c) 2026 JKL Thinking. The current source tree uses
+**AGPL-3.0-only**, with a separate commercial licensing option.
 
-Historical releases retain the license published with them; historical tags
-are not rewritten. RETINUE and 众卿 marks remain with JKL Thinking. Forks and
-third-party services must not represent themselves as official RETINUE.
+- Personal use and internal company use are free, including commercial use.
+- If you modify Retinue and provide it to outside users over a network, you
+  must offer those users the modified version's Corresponding Source under AGPL.
+- If you do not want to meet those requirements, you can buy a commercial license.
+- **Versions 0.3.0a4 and earlier released under MIT remain MIT forever.**
+
+Distribution and other uses must also meet the applicable AGPL requirements.
+This applies to the development tree after that cutoff; old releases and tags
+are unchanged. See [LICENSE](LICENSE), [NOTICE](NOTICE),
+[commercial terms](COMMERCIAL.md), [contributor agreement](CLA.md) and
+[trademarks](TRADEMARKS.md). Third-party dependencies retain their own terms;
+see [THIRD_PARTY_NOTICES](docs/THIRD_PARTY_NOTICES.md).
+
 
 ---
 
@@ -341,7 +347,7 @@ cc-connect 原生会话观察以只读方式接入，用量按实际消息模型
 
 上方配图均为固定种子的**合成演示**；协作图、泳道、模块和分支详情展示同一固定
 任务，时间来自分阶段演示时钟。图片不包含真实业务记录，不声称真实模型闭环
-已全部通过验收。自有代码采用 MIT，第三方声明保留，历史标签许可不改写。
+已全部通过验收。当前自有代码采用 AGPL-3.0-only，第三方声明保留，历史标签许可不改写。
 
 查看 [完整版本说明](docs/releases/2026-10-02-collaboration-observability.md)、
 [PRD](docs/PRD.md)、[小红书草稿](docs/sharing/xiaohongshu.md)；
@@ -475,8 +481,8 @@ agent 的令牌会得到 `403 holder-only-writes`。
 受限 actor 令牌。Claude Code 和 Codex 另有只读会话 exporter 统计 token。
 
 **它是开源软件吗？**
-是，当前版本自有源码采用 **MIT 开源许可证**。允许个人与商业使用、修改、
-分发及再许可，分发时须保留版权与许可声明。详见 [LICENSE](LICENSE)。
+是，当前源码采用 **AGPL-3.0-only**，遵守 AGPL 可免费商用，也可另购商业授权。
+详见 [LICENSE](LICENSE) 和 [COMMERCIAL.md](COMMERCIAL.md)。
 
 **会把我的数据传到哪里去吗？**
 不会。没有遥测、没有托管控制面、没有远程账号、没有强制外呼。核心、面板、
@@ -498,12 +504,20 @@ hook（hook 只来自运营者的 `org.yaml`）、写权限只归持有人、回
 
 ## 许可证
 
-当前版本的 RETINUE 自有源码采用 **MIT**（SPDX: MIT），允许个人与商业使用、
-修改、分发和再许可，无需另行取得商业授权；分发时保留版权与许可声明。
-见 [LICENSE](LICENSE) 与 [NOTICE](NOTICE)。第三方依赖继续遵循各自许可证。
+Copyright (c) 2026 JKL Thinking。当前源码树采用 **AGPL-3.0-only**，
+同时提供单独的商业授权。
 
-历史版本仍遵循各版本发布时的许可证，历史标签不改写。RETINUE 与「众卿」
-名称、标识由 JKL Thinking 保留，第三方 fork、镜像与服务不得冒充官方。
+- 个人和公司内部使用都免费，包括商用。
+- 修改后通过网络对外提供服务，必须按 AGPL 向这些用户提供修改版本的对应源码。
+- 不想履行这些要求，可以购买商业授权。
+- **已按 MIT 发布的 0.3.0a4 及以前版本永远是 MIT，不追溯。**
+
+分发和其他使用场景也须履行适用的 AGPL 条款。此说明针对该分界后的开发源码，
+不改写旧发行版或标签。详见 [LICENSE](LICENSE)、[NOTICE](NOTICE)、
+[商业授权](COMMERCIAL.md)、[贡献者协议](CLA.md) 和 [商标说明](TRADEMARKS.md)。
+第三方依赖继续遵循各自许可证，声明见
+[THIRD_PARTY_NOTICES](docs/THIRD_PARTY_NOTICES.md)。
+
 
 ## 社区
 
