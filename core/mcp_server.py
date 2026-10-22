@@ -13,6 +13,7 @@ except ModuleNotFoundError as exc:  # the mcp extra is not installed
         raise
     FastMCP = None
 
+from core.mcp_tool_hints import READ, WRITE, WRITE_ADDITIVE
 from core.protocol.task import (
     ProtocolError,
     add_dependency,
@@ -116,7 +117,7 @@ def create_server(root: Path | str, agent_id: str | None = None) -> FastMCP:
         json_response=True,
     )
 
-    @server.tool(name="task_list")
+    @server.tool(name="task_list", annotations=READ)
     def task_list(status: TaskStatus | None = None, holder: str | None = None) -> list[dict[str, Any]]:
         """List task cards, optionally filtered by status and/or holder."""
         tasks: list[dict[str, Any]] = []
@@ -129,7 +130,7 @@ def create_server(root: Path | str, agent_id: str | None = None) -> FastMCP:
             tasks.append(_summary(task, cards))
         return tasks
 
-    @server.tool(name="ready_work")
+    @server.tool(name="ready_work", annotations=READ)
     def ready_work(holder: str | None = None) -> list[dict[str, Any]]:
         """List queued cards whose prerequisite cards are all done."""
         cards = _cards(workspace)
@@ -139,7 +140,7 @@ def create_server(root: Path | str, agent_id: str | None = None) -> FastMCP:
             if holder is None or task["holder"] == holder
         ]
 
-    @server.tool(name="my_tasks")
+    @server.tool(name="my_tasks", annotations=READ)
     def my_tasks(include_terminal: bool = False) -> list[dict[str, Any]]:
         """List cards held by this MCP server's configured agent identity."""
         if not identity:
@@ -151,7 +152,7 @@ def create_server(root: Path | str, agent_id: str | None = None) -> FastMCP:
             if include_terminal or item["status"] not in terminal
         ]
 
-    @server.tool(name="task_new")
+    @server.tool(name="task_new", annotations=WRITE_ADDITIVE)
     def task_new(
         task_id: str,
         title: str,
@@ -181,7 +182,7 @@ def create_server(root: Path | str, agent_id: str | None = None) -> FastMCP:
         cards = _cards(workspace)
         return {**_summary(task, cards), "receipt": render_receipt(task)}
 
-    @server.tool(name="task_dependency_add")
+    @server.tool(name="task_dependency_add", annotations=WRITE_ADDITIVE)
     def task_dependency_add(
         task_id: str,
         prerequisite_id: str,
@@ -201,7 +202,7 @@ def create_server(root: Path | str, agent_id: str | None = None) -> FastMCP:
         )
         return _summary(task, _cards(workspace))
 
-    @server.tool(name="task_dependency_remove")
+    @server.tool(name="task_dependency_remove", annotations=WRITE)
     def task_dependency_remove(
         task_id: str,
         prerequisite_id: str,
@@ -219,7 +220,7 @@ def create_server(root: Path | str, agent_id: str | None = None) -> FastMCP:
         task = remove_dependency(path, prerequisite_id, note=note, who=identity)
         return _summary(task, _cards(workspace))
 
-    @server.tool(name="task_update")
+    @server.tool(name="task_update", annotations=WRITE)
     def task_update(
         task_id: str,
         status: TaskStatus | None = None,
@@ -257,7 +258,7 @@ def create_server(root: Path | str, agent_id: str | None = None) -> FastMCP:
             "receipt": render_receipt(task),
         }
 
-    @server.tool(name="task_receipt")
+    @server.tool(name="task_receipt", annotations=READ)
     def task_receipt(task_id: str) -> dict[str, str]:
         """Render the latest canonical two-line receipt for a card."""
         task = load_task(_task_path(workspace, task_id))

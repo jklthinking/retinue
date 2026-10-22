@@ -35,6 +35,15 @@ except ModuleNotFoundError as exc:  # the mcp extra is not installed
         raise
     FastMCP = None
 
+from core.mcp_tool_hints import (
+    LIVE_CONTROL,
+    LIVE_INTERRUPT,
+    READ,
+    WRITE,
+    WRITE_ADDITIVE,
+    WRITE_IDEMPOTENT,
+)
+
 from .http_client import RequestClass, open_url
 
 _MCP_MISSING = (
@@ -183,12 +192,12 @@ def create_server() -> FastMCP:
         json_response=True,
     )
 
-    @server.tool(name="whoami")
+    @server.tool(name="whoami", annotations=READ)
     def whoami() -> dict[str, Any]:
         """Show which Retinue actor this bridge writes as."""
         return _call("GET", "/api/auth/me")
 
-    @server.tool(name="live_sessions")
+    @server.tool(name="live_sessions", annotations=READ)
     def live_sessions() -> list[dict[str, Any]]:
         """List live Agent endpoints visible to this identity.
 
@@ -198,7 +207,7 @@ def create_server() -> FastMCP:
         """
         return list(_call("GET", "/api/live-sessions"))
 
-    @server.tool(name="live_tell")
+    @server.tool(name="live_tell", annotations=LIVE_CONTROL)
     def live_tell(
         live_session_id: str,
         message: str,
@@ -219,7 +228,7 @@ def create_server() -> FastMCP:
             },
         )
 
-    @server.tool(name="live_peek")
+    @server.tool(name="live_peek", annotations=LIVE_CONTROL)
     def live_peek(
         live_session_id: str,
         idempotency_key: str,
@@ -236,7 +245,7 @@ def create_server() -> FastMCP:
             },
         )
 
-    @server.tool(name="live_interrupt")
+    @server.tool(name="live_interrupt", annotations=LIVE_INTERRUPT)
     def live_interrupt(
         live_session_id: str,
         idempotency_key: str,
@@ -248,17 +257,17 @@ def create_server() -> FastMCP:
             {"verb": "interrupt", "idempotency_key": idempotency_key},
         )
 
-    @server.tool(name="live_control_status")
+    @server.tool(name="live_control_status", annotations=READ)
     def live_control_status(envelope_id: str) -> dict[str, Any]:
         """Read delivery status and any bounded result for one control envelope."""
         return _call("GET", f"/api/live-sessions/control/{envelope_id}")
 
-    @server.tool(name="orientation")
+    @server.tool(name="orientation", annotations=READ)
     def orientation() -> dict[str, Any]:
         """Read organisation rules, roster and current task summaries without private chats."""
         return _call("GET", "/api/orientation/context")
 
-    @server.tool(name="task_context")
+    @server.tool(name="task_context", annotations=READ)
     def task_context(task_id: str) -> dict[str, Any]:
         """Read a versioned task handoff packet before resuming work.
 
@@ -270,7 +279,7 @@ def create_server() -> FastMCP:
         """
         return _call("GET", f"/api/tasks/{task_id}/context")
 
-    @server.tool(name="task_list")
+    @server.tool(name="task_list", annotations=READ)
     def task_list(status: TaskStatus | None = None, holder: str | None = None) -> list[dict[str, Any]]:
         """List task cards, optionally filtered by status and/or holder."""
         query = []
@@ -281,7 +290,7 @@ def create_server() -> FastMCP:
         path = "/api/tasks" + ("?" + "&".join(query) if query else "")
         return [_summary(task) for task in _call("GET", path)]
 
-    @server.tool(name="my_tasks")
+    @server.tool(name="my_tasks", annotations=READ)
     def my_tasks(include_terminal: bool = False) -> list[dict[str, Any]]:
         """List cards currently held by this agent."""
         me = _call("GET", "/api/auth/me")
@@ -290,7 +299,7 @@ def create_server() -> FastMCP:
             tasks = [t for t in tasks if t["status"] not in ("done", "cancelled")]
         return [_summary(task) for task in tasks]
 
-    @server.tool(name="ready_work")
+    @server.tool(name="ready_work", annotations=READ)
     def ready_work(holder: str | None = None) -> list[dict[str, Any]]:
         """List queued cards whose prerequisite cards are all done."""
         path = "/api/tasks/ready"
@@ -298,12 +307,12 @@ def create_server() -> FastMCP:
             path += f"?holder={holder}"
         return [_summary(task) for task in _call("GET", path)]
 
-    @server.tool(name="task_show")
+    @server.tool(name="task_show", annotations=READ)
     def task_show(task_id: str) -> dict[str, Any]:
         """Read one full task card including its event chain and acceptance."""
         return _call("GET", f"/api/tasks/{task_id}")
 
-    @server.tool(name="open_tasks")
+    @server.tool(name="open_tasks", annotations=READ)
     def open_tasks() -> list[dict[str, Any]]:
         """List cards on the dispatch hall waiting to be claimed."""
         return [
@@ -312,12 +321,12 @@ def create_server() -> FastMCP:
             if task.get("open_dispatch")
         ]
 
-    @server.tool(name="task_claim")
+    @server.tool(name="task_claim", annotations=WRITE)
     def task_claim(task_id: str, note: str = "接单") -> dict[str, Any]:
         """Claim an open card from the dispatch hall; the baton moves to you."""
         return _summary(_call("POST", f"/api/tasks/{task_id}/claim", {"note": note}))
 
-    @server.tool(name="dispatch_intent")
+    @server.tool(name="dispatch_intent", annotations=WRITE_IDEMPOTENT)
     def dispatch(
         intent: str,
         idempotency_key: str,
@@ -344,7 +353,7 @@ def create_server() -> FastMCP:
             )
         )
 
-    @server.tool(name="task_dependency_add")
+    @server.tool(name="task_dependency_add", annotations=WRITE_ADDITIVE)
     def task_dependency_add(
         task_id: str,
         prerequisite_id: str,
@@ -362,7 +371,7 @@ def create_server() -> FastMCP:
         )
         return _summary(result["task"])
 
-    @server.tool(name="task_dependency_remove")
+    @server.tool(name="task_dependency_remove", annotations=WRITE)
     def task_dependency_remove(
         task_id: str,
         prerequisite_id: str,
@@ -376,21 +385,21 @@ def create_server() -> FastMCP:
         )
         return _summary(result["task"])
 
-    @server.tool(name="task_start")
+    @server.tool(name="task_start", annotations=WRITE)
     def task_start(task_id: str, note: str = "接棒开工") -> dict[str, Any]:
         """Start or resume the current pipeline stage on a card you hold."""
         return _summary(
             _call("POST", f"/api/tasks/{task_id}/update", {"status": "doing", "note": note})
         )
 
-    @server.tool(name="task_progress")
+    @server.tool(name="task_progress", annotations=WRITE_ADDITIVE)
     def task_progress(task_id: str, percent: int, note: str) -> dict[str, Any]:
         """Report progress (0-100) on a card you hold, with a receipt note."""
         return _summary(
             _call("POST", f"/api/tasks/{task_id}/update", {"progress": percent, "note": note})
         )
 
-    @server.tool(name="task_new")
+    @server.tool(name="task_new", annotations=WRITE_ADDITIVE)
     def task_new(
         title: str,
         holder: str | None = None,
@@ -423,7 +432,7 @@ def create_server() -> FastMCP:
             )
         )
 
-    @server.tool(name="task_update")
+    @server.tool(name="task_update", annotations=WRITE)
     def task_update(
         task_id: str,
         note: str,
@@ -444,7 +453,7 @@ def create_server() -> FastMCP:
             body["refs"] = refs
         return _summary(_call("POST", f"/api/tasks/{task_id}/update", body))
 
-    @server.tool(name="task_attempt")
+    @server.tool(name="task_attempt", annotations=WRITE_IDEMPOTENT)
     def task_attempt(
         task_id: str,
         outcome: AttemptOutcome,
@@ -479,7 +488,7 @@ def create_server() -> FastMCP:
             },
         )
 
-    @server.tool(name="task_collaboration")
+    @server.tool(name="task_collaboration", annotations=READ)
     def task_collaboration(task_id: str) -> dict[str, Any]:
         """Read the recorded delegation tree, runs, waiting owners and retry capabilities.
 
@@ -488,7 +497,7 @@ def create_server() -> FastMCP:
         """
         return _call("GET", f"/api/tasks/{task_id}/collaboration")
 
-    @server.tool(name="task_delegate")
+    @server.tool(name="task_delegate", annotations=WRITE_IDEMPOTENT)
     def task_delegate(task_id: str, delegated_to: str, title: str, instruction: str,
                       acceptance: list[str], idempotency_key: str,
                       parent_run_id: str | None = None,
@@ -508,7 +517,7 @@ def create_server() -> FastMCP:
             "parent_run_id": parent_run_id, "lease_term": lease_term,
         })
 
-    @server.tool(name="task_run_start")
+    @server.tool(name="task_run_start", annotations=WRITE_IDEMPOTENT)
     def task_run_start(task_id: str, title: str, idempotency_key: str,
                        model: str | None = None, session_ref: str | None = None,
                        lease_term: int | None = None,
@@ -533,7 +542,7 @@ def create_server() -> FastMCP:
             "execution_state": execution_state,
         })
 
-    @server.tool(name="task_run_report")
+    @server.tool(name="task_run_report", annotations=WRITE_IDEMPOTENT)
     def task_run_report(task_id: str, run_id: str,
                         status: Literal["running", "waiting", "succeeded", "failed", "cancelled"],
                         note: str, idempotency_key: str,
@@ -569,7 +578,7 @@ def create_server() -> FastMCP:
             "execution_state": execution_state,
         })
 
-    @server.tool(name="task_prepare_retry")
+    @server.tool(name="task_prepare_retry", annotations=WRITE)
     def task_prepare_retry(task_id: str, note: str) -> dict[str, Any]:
         """Prepare the existing retry lease for one blocked card you hold.
 
@@ -579,7 +588,7 @@ def create_server() -> FastMCP:
         """
         return _call("POST", f"/api/tasks/{task_id}/collaboration/retry", {"note": note})
 
-    @server.tool(name="stage_done")
+    @server.tool(name="stage_done", annotations=WRITE)
     def stage_done(task_id: str, note: str, confidence: float | None = None) -> dict[str, Any]:
         """Finish your pipeline node and pass the baton (queen gates open a
         decision card automatically). Requires the card to be doing."""
@@ -588,12 +597,12 @@ def create_server() -> FastMCP:
             body["confidence"] = confidence
         return _summary(_call("POST", f"/api/tasks/{task_id}/stage-done", body))
 
-    @server.tool(name="stage_reject")
+    @server.tool(name="stage_reject", annotations=WRITE)
     def stage_reject(task_id: str, note: str) -> dict[str, Any]:
         """On a review node: send the baton back to the previous stage."""
         return _summary(_call("POST", f"/api/tasks/{task_id}/stage-reject", {"note": note}))
 
-    @server.tool(name="task_receipt")
+    @server.tool(name="task_receipt", annotations=READ)
     def task_receipt(task_id: str) -> str:
         """Render the latest event of a card as a two-line IM receipt."""
         task = _call("GET", f"/api/tasks/{task_id}")
@@ -607,7 +616,7 @@ def create_server() -> FastMCP:
             f"备注:{event['did']}"
         )
 
-    @server.tool(name="todo_propose")
+    @server.tool(name="todo_propose", annotations=WRITE_IDEMPOTENT)
     def todo_propose(
         title: str,
         owner_username: str,
@@ -654,7 +663,7 @@ def create_server() -> FastMCP:
             body["source_backlink"] = source_backlink
         return _call("POST", "/api/todos/proposals", body)
 
-    @server.tool(name="todo_progress")
+    @server.tool(name="todo_progress", annotations=WRITE_ADDITIVE)
     def todo_progress(item_id: str, percent: int, note: str) -> dict[str, Any]:
         """Report 0-100 progress on a confirmed private agenda item.
 
