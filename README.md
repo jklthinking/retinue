@@ -4,6 +4,7 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776ab.svg)](pyproject.toml)
 [![MCP](https://img.shields.io/badge/MCP-server-6f42c1.svg)](docs/agent-onboarding.md)
 [![Self-hosted](https://img.shields.io/badge/self--hosted-no%20telemetry-2ea44f.svg)](SELF_HOSTING.md)
+[![M8ven Score](https://m8ven.ai/badge/mcp/jklthinking/retinue)](https://m8ven.ai/mcp/jklthinking/retinue?s=readme)
 
 **English** · [简体中文](#众卿-retinue简体中文) · [English demo](https://jklthinking.github.io/retinue/demo-en/?lang=en) · [中文演示](https://jklthinking.github.io/retinue/demo/?lang=zh-CN)
 
