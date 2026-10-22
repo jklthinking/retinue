@@ -1,11 +1,21 @@
+## 0.3.0a5 (2026-10-22)
+
+### License transition / 许可证变更
+
+- First AGPL-3.0-only release, with optional commercial licensing from
+  JKL Thinking. Commercial licensing contact: jklthinking@foxmail.com.
+- Previously released 0.3.0 alpha versions through 0.3.0a4 retain MIT;
+  the 0.2.0 alpha series retains FSL. Existing licenses are not changed
+  retroactively; old tags and releases are unchanged.
+- Contributors agree to CLA v1 by checking the bilingual PR checkbox.
+  Corporate contributors must separately sign the corporate agreement.
+  The CLA bot draft has been removed; no CLA bot is used.
+- 首个 AGPL-3.0-only 版本，可另购商业授权（jklthinking@foxmail.com）。
+  0.3.0a4 及以前按 MIT 发布的版本仍为 MIT，0.2.0 alpha 系列仍为 FSL，
+  旧版许可不追溯，旧 tag 和 Release 保持不变。
+- CLA v1 在 PR 勾选即视为同意；机构贡献者另行签署机构版，不使用 CLA 机器人。
+
 ## Unreleased
-
-### License transition
-
-- Current development source: AGPL-3.0-only with optional commercial licensing,
-  CLA v1 (individual and corporate), and separate trademark guidance.
-- Versions 0.3.0a4 and earlier released under MIT retain MIT; tags are unchanged.
-- CLA automation remains disabled pending maintainer approval.
 
 ### 0.3.0a2: Home model quota (2026-10-07)
 

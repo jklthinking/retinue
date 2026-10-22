@@ -748,6 +748,141 @@
       "match_sha256": "2918e43f2f5af33a994ebca0b3645b9949d887c60e1ec1ea9ef82807cb3493e8",
       "reason": "synthetic-test",
       "review_note": "Bearer synthetic- is a deliberately fictional fixture credential followed by a synthetic actor name."
+    },
+    {
+      "file": "COMMERCIAL.md",
+      "line": 34,
+      "category": "email",
+      "line_sha256": "e56dc13937aaa2607c5342ce2662c4a976bee0c79030f1a088748540b0949056",
+      "match_sha256": "58f92978e8fba94377f52f4acc107c9611603a8f50ea204656ba9c396db1c984",
+      "reason": "approved-public-contact",
+      "review_note": "Approved commercial licensing address in the LC3 publication brief; only this exact candidate on this exact source line is public."
+    },
+    {
+      "file": "COMMERCIAL.md",
+      "line": 79,
+      "category": "email",
+      "line_sha256": "219ff0df7fda647e32f3db856b0dbb64dfc01b0ba81b70048c8a2e89150cf8eb",
+      "match_sha256": "58f92978e8fba94377f52f4acc107c9611603a8f50ea204656ba9c396db1c984",
+      "reason": "approved-public-contact",
+      "review_note": "Approved commercial licensing address in the LC3 publication brief; only this exact candidate on this exact source line is public."
+    },
+    {
+      "file": "README.md",
+      "line": 305,
+      "category": "email",
+      "line_sha256": "c0724ab32c6d36bbe90d2b000ea4b73e54904b22945470e8d10d066f3c3b503d",
+      "match_sha256": "58f92978e8fba94377f52f4acc107c9611603a8f50ea204656ba9c396db1c984",
+      "reason": "approved-public-contact",
+      "review_note": "Approved commercial licensing address in the LC3 publication brief; only this exact candidate on this exact source line is public."
+    },
+    {
+      "file": "README.md",
+      "line": 514,
+      "category": "email",
+      "line_sha256": "6575eb09583c02c153ef526defe6d3cbf3a7adc1ed8f2ad52abeb45bd564fe7e",
+      "match_sha256": "58f92978e8fba94377f52f4acc107c9611603a8f50ea204656ba9c396db1c984",
+      "reason": "approved-public-contact",
+      "review_note": "Approved commercial licensing address in the LC3 publication brief; only this exact candidate on this exact source line is public."
+    },
+    {
+      "file": "README.en.md",
+      "line": 305,
+      "category": "email",
+      "line_sha256": "c0724ab32c6d36bbe90d2b000ea4b73e54904b22945470e8d10d066f3c3b503d",
+      "match_sha256": "58f92978e8fba94377f52f4acc107c9611603a8f50ea204656ba9c396db1c984",
+      "reason": "approved-public-contact",
+      "review_note": "Approved commercial licensing address in the LC3 publication brief; only this exact candidate on this exact source line is public."
+    },
+    {
+      "file": "README.en.md",
+      "line": 514,
+      "category": "email",
+      "line_sha256": "6575eb09583c02c153ef526defe6d3cbf3a7adc1ed8f2ad52abeb45bd564fe7e",
+      "match_sha256": "58f92978e8fba94377f52f4acc107c9611603a8f50ea204656ba9c396db1c984",
+      "reason": "approved-public-contact",
+      "review_note": "Approved commercial licensing address in the LC3 publication brief; only this exact candidate on this exact source line is public."
+    },
+    {
+      "file": "README.zh-CN.md",
+      "line": 138,
+      "category": "email",
+      "line_sha256": "6575eb09583c02c153ef526defe6d3cbf3a7adc1ed8f2ad52abeb45bd564fe7e",
+      "match_sha256": "58f92978e8fba94377f52f4acc107c9611603a8f50ea204656ba9c396db1c984",
+      "reason": "approved-public-contact",
+      "review_note": "Approved commercial licensing address in the LC3 publication brief; only this exact candidate on this exact source line is public."
+    },
+    {
+      "file": "README.community.md",
+      "line": 238,
+      "category": "email",
+      "line_sha256": "c0724ab32c6d36bbe90d2b000ea4b73e54904b22945470e8d10d066f3c3b503d",
+      "match_sha256": "58f92978e8fba94377f52f4acc107c9611603a8f50ea204656ba9c396db1c984",
+      "reason": "approved-public-contact",
+      "review_note": "Approved commercial licensing address in the LC3 publication brief; only this exact candidate on this exact source line is public."
+    },
+    {
+      "file": "README.community.md",
+      "line": 419,
+      "category": "email",
+      "line_sha256": "6575eb09583c02c153ef526defe6d3cbf3a7adc1ed8f2ad52abeb45bd564fe7e",
+      "match_sha256": "58f92978e8fba94377f52f4acc107c9611603a8f50ea204656ba9c396db1c984",
+      "reason": "approved-public-contact",
+      "review_note": "Approved commercial licensing address in the LC3 publication brief; only this exact candidate on this exact source line is public."
+    },
+    {
+      "file": "llms-full.txt",
+      "line": 12,
+      "category": "email",
+      "line_sha256": "c0724ab32c6d36bbe90d2b000ea4b73e54904b22945470e8d10d066f3c3b503d",
+      "match_sha256": "58f92978e8fba94377f52f4acc107c9611603a8f50ea204656ba9c396db1c984",
+      "reason": "approved-public-contact",
+      "review_note": "Approved commercial licensing address in the LC3 publication brief; only this exact candidate on this exact source line is public."
+    },
+    {
+      "file": "llms-full.txt",
+      "line": 64,
+      "category": "email",
+      "line_sha256": "219ff0df7fda647e32f3db856b0dbb64dfc01b0ba81b70048c8a2e89150cf8eb",
+      "match_sha256": "58f92978e8fba94377f52f4acc107c9611603a8f50ea204656ba9c396db1c984",
+      "reason": "approved-public-contact",
+      "review_note": "Approved commercial licensing address in the LC3 publication brief; only this exact candidate on this exact source line is public."
+    },
+    {
+      "file": "docs/llms-full.txt",
+      "line": 12,
+      "category": "email",
+      "line_sha256": "c0724ab32c6d36bbe90d2b000ea4b73e54904b22945470e8d10d066f3c3b503d",
+      "match_sha256": "58f92978e8fba94377f52f4acc107c9611603a8f50ea204656ba9c396db1c984",
+      "reason": "approved-public-contact",
+      "review_note": "Approved commercial licensing address in the LC3 publication brief; only this exact candidate on this exact source line is public."
+    },
+    {
+      "file": "docs/llms-full.txt",
+      "line": 64,
+      "category": "email",
+      "line_sha256": "219ff0df7fda647e32f3db856b0dbb64dfc01b0ba81b70048c8a2e89150cf8eb",
+      "match_sha256": "58f92978e8fba94377f52f4acc107c9611603a8f50ea204656ba9c396db1c984",
+      "reason": "approved-public-contact",
+      "review_note": "Approved commercial licensing address in the LC3 publication brief; only this exact candidate on this exact source line is public."
+    },
+    {
+      "file": "CHANGELOG.md",
+      "line": 6,
+      "category": "email",
+      "line_sha256": "30005aab15d0b89cbc4c314b88354d5874ee1c48b0b14d5a8729e5ebe6bd8992",
+      "match_sha256": "58f92978e8fba94377f52f4acc107c9611603a8f50ea204656ba9c396db1c984",
+      "reason": "approved-public-contact",
+      "review_note": "Approved commercial licensing address in the LC3 publication brief; only this exact candidate on this exact source line is public."
+    },
+    {
+      "file": "CHANGELOG.md",
+      "line": 13,
+      "category": "email",
+      "line_sha256": "4b664c53547c99ae4c683e07c247e2e2941da603c8d8517f70f96839091a2ed6",
+      "match_sha256": "58f92978e8fba94377f52f4acc107c9611603a8f50ea204656ba9c396db1c984",
+      "reason": "approved-public-contact",
+      "review_note": "Approved commercial licensing address in the LC3 publication brief; only this exact candidate on this exact source line is public."
     }
   ]
 }

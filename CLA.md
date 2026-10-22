@@ -33,9 +33,9 @@
 签署人以个人身份接受共同条款。如贡献涉及雇主或其他权利人，你确认已经获得
 其许可或该权利人已经放弃相关权利；不能代表雇主授予自己不持有的权利。
 
-签署记录：姓名或可追溯身份、GitHub 用户名、协议版本、日期、签名或明确电子
-同意。CLA 机器人启用后，指定 PR 评论仅用于个人版电子同意。维护者应在合并前
-核验权利；需要雇主授权的贡献另需机构版或书面证明。
+如何签署：在 PR 中勾选「我已阅读并同意 CLA.md（个人或机构版）」即视为
+同意 CLA v1。PR 的提交者身份、协议版本及勾选记录作为电子同意记录，由维护者
+在合并前核验并保留。机构贡献者另行签署下述机构版；不使用 CLA 机器人。
 
 ### B. 机构版（CCLA）
 
@@ -51,9 +51,9 @@
 - 额外纳入的既有贡献标识（可选附件 B；空白则不追溯）：________________
 - 协议版本 CLA v1、签字与日期：________________
 
-机器人中的个人签名不能代替机构代表签署与权限审核。启用前请按
-[CONTRIBUTING](CONTRIBUTING.md) 进行人工核验；不要在公共评论写地址、邮箱或
-其他私人资料。
+PR 勾选同意不能代替机构代表另行签署与权限审核。机构贡献者须通过维护者指定
+的非公开渠道另行签署机构版，按 [CONTRIBUTING](CONTRIBUTING.md) 核验；不要
+在公共评论写地址、邮箱或其他私人资料。
 
 ## English
 
@@ -101,11 +101,11 @@ An individual signer accepts the common terms personally. If an employer or
 another party holds rights, you have obtained permission or a waiver. You
 cannot grant employer-owned rights you do not hold.
 
-Record your name or traceable identity, GitHub username, agreement version,
-date and signature or explicit electronic consent. After the CLA bot is
-activated, its designated PR comment records individual consent only.
-Maintainers verify authority before merging; employer-owned work also needs
-a corporate agreement or written proof of permission.
+How to sign: check “I have read and agree to CLA.md (individual or corporate
+agreement)” in your pull request. Checking the box records agreement to CLA v1.
+Maintainers verify and retain the PR author identity, agreement version and
+checkbox record before merging. Corporate contributors must also separately
+sign the corporate agreement below. No CLA bot is used.
 
 ### B. Corporate agreement (CCLA)
 
@@ -124,8 +124,9 @@ never as private details in a public PR):
 - Additional existing contributions, if any (Schedule B; blank means no retroactivity): ________________
 - Agreement version CLA v1, signature and date: ________________
 
-An individual bot signature does not replace corporate execution or authority
-review. Until activation, use manual verification in
+PR checkbox agreement does not replace separate corporate execution or
+authority review. Corporate contributors must separately sign through a
+maintainer-designated private channel; follow the verification procedure in
 [CONTRIBUTING](CONTRIBUTING.md). Do not publish addresses, emails or other
 private details in PR comments.
 

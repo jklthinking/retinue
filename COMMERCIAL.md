@@ -31,7 +31,7 @@ Retinue 核心采用 **AGPL-3.0-only**，同时由 JKL Thinking 提供单独的�
 商业授权不覆盖第三方代码的独立义务，也不自动授予商标、Logo 使用权。
 本文是授权选项说明，不是已生效的商业合同。未取得商业授权时适用 AGPL。
 
-联系方式：<商业授权联系方式：待女王提供>
+联系方式：jklthinking@foxmail.com
 
 已按 MIT 发布的 **0.3.0a4 及以前版本永远保留 MIT 许可，不追溯**。
 
@@ -76,7 +76,7 @@ Third-party license obligations remain separate. Trademark and logo rights
 are not included automatically. This document describes options; it is not an
 executed commercial contract. Without such a license, AGPL applies.
 
-Contact: <商业授权联系方式：待女王提供>
+Contact: jklthinking@foxmail.com
 
 **Versions 0.3.0a4 and earlier released under MIT remain MIT forever.**
 This change is not retroactive.

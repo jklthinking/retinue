@@ -16,4 +16,7 @@
 
 Do not paste tokens, private cards, or transcripts into this description.
 
-- [ ] CLA v1 acceptance and any required corporate authorization are recorded before merge (this checkbox is not a signature).
+- [ ] 我已阅读并同意 [CLA.md](../CLA.md)（个人或机构版） / I have read and agree to [CLA.md](../CLA.md) (individual or corporate agreement).
+
+勾选即视为同意 CLA v1；机构贡献者须另行签署机构版。
+Checking this box records agreement to CLA v1; corporate contributors must also separately sign the corporate agreement.

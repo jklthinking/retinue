@@ -87,9 +87,9 @@ Wait until the logs show the hub listening, then:
 curl -fsS http://127.0.0.1:9219/api/health
 ```
 
-That returns JSON like `{"status":"ok","version":"0.3.0a1"}` with no
+That returns JSON like `{"status":"ok","version":"0.3.0a5"}` with no
 authentication. `version` is the PEP 440 string from `pyproject.toml` (the
-same spelling as the wheel name and the next git tag, `v0.3.0a1`). Open
+same spelling as the wheel name and the next git tag, `v0.3.0a5`). Open
 <http://127.0.0.1:9219/> and sign in as `operator` with that password. The
 image is the authenticated v0.2 hub, not the old read-only panel.
 
@@ -235,6 +235,7 @@ Copyright (c) 2026 JKL Thinking. The current source tree uses
 - If you modify Retinue and provide it to outside users over a network, you
   must offer those users the modified version's Corresponding Source under AGPL.
 - If you do not want to meet those requirements, you can buy a commercial license.
+  Contact: [jklthinking@foxmail.com](mailto:jklthinking@foxmail.com).
 - **Versions 0.3.0a4 and earlier released under MIT remain MIT forever.**
 
 Distribution and other uses must also meet the applicable AGPL requirements.
@@ -308,8 +309,8 @@ docker compose up --build
 curl -fsS http://127.0.0.1:9219/api/health
 ```
 
-应返回类似 `{"status":"ok","version":"0.3.0a1"}`，无需登录。`version`
-与 `pyproject.toml`、wheel 文件名、下次 git tag（`v0.3.0a1`）是同一串。
+应返回类似 `{"status":"ok","version":"0.3.0a5"}`，无需登录。`version`
+与 `pyproject.toml`、wheel 文件名、下次 git tag（`v0.3.0a5`）是同一串。
 打开 <http://127.0.0.1:9219/>，用 `operator` 和上面的密码登录。默认镜像
 是带登录的 v0.2 中枢，不再是旧只读面板。
 
@@ -415,6 +416,7 @@ Copyright (c) 2026 JKL Thinking。当前源码树采用 **AGPL-3.0-only**，
 - 个人和公司内部使用都免费，包括商用。
 - 修改后通过网络对外提供服务，必须按 AGPL 向这些用户提供修改版本的对应源码。
 - 不想履行这些要求，可以购买商业授权。
+  联系邮箱：[jklthinking@foxmail.com](mailto:jklthinking@foxmail.com)。
 - **已按 MIT 发布的 0.3.0a4 及以前版本永远是 MIT，不追溯。**
 
 分发和其他使用场景也须履行适用的 AGPL 条款。此说明针对该分界后的开发源码，

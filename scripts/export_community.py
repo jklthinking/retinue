@@ -46,7 +46,7 @@ _CLOUD='tencent'
 FINGERPRINT_RE=re.compile(rf'{_CLOUD}yun|{_CLOUD}cloudcr|mirrors\.cloud\.{_CLOUD}\.com',re.I)
 ALLOWLIST_CATEGORIES = frozenset({'address','machine-path','email','credential'})
 ALLOWLIST_REASONS = frozenset({'synthetic-test','negative-test','sanitizer-rule',
-    'public-third-party-notice','synthetic-demo','version-constant','svg-path-constant'})
+    'public-third-party-notice','approved-public-contact','synthetic-demo','version-constant','svg-path-constant'})
 
 def reviewed_allowlist(root: Path) -> set[tuple[str,str,str,str]]:
     """Exact matches only; invalid/unknown manifests provide no exceptions.

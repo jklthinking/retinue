@@ -9,6 +9,7 @@ Copyright (c) 2026 JKL Thinking. The current source tree uses
 - If you modify Retinue and provide it to outside users over a network, you
   must offer those users the modified version's Corresponding Source under AGPL.
 - If you do not want to meet those requirements, you can buy a commercial license.
+  Contact: [jklthinking@foxmail.com](mailto:jklthinking@foxmail.com).
 - **Versions 0.3.0a4 and earlier released under MIT remain MIT forever.**
 
 Distribution and other uses must also meet the applicable AGPL requirements.
@@ -60,7 +61,7 @@ Third-party license obligations remain separate. Trademark and logo rights
 are not included automatically. This document describes options; it is not an
 executed commercial contract. Without such a license, AGPL applies.
 
-Contact: <商业授权联系方式：待女王提供>
+Contact: jklthinking@foxmail.com
 
 **Versions 0.3.0a4 and earlier released under MIT remain MIT forever.**
 This change is not retroactive.

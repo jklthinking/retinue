@@ -1,3 +1,5 @@
+2026-10-22 更新：首个 AGPL-3.0-only 版本 **0.3.0a5**，可另购商业授权；旧版许可不追溯，CLA 通过 PR 勾选同意。见 [CHANGELOG](CHANGELOG.md)。
+
 2026-10-08 更新：任务工作台新增「沟通记录」，可查看明确关联的 Codex/Claude 可见消息（`0.3.0a4`）。默认关闭，启用前停写、备份并迁移到 schema 28。[更新说明](docs/releases/2026-10-08-task-conversations.md)。首页额度的手动「刷新查询」保持可用。
 
 **[免安装查看 seed-42 静态演示 →](docs/demo/index.html)** · [English README](README.en.md) · [英文演示](https://jklthinking.github.io/retinue/demo-en/?lang=en) · [英文 PRD](docs/PRD.en.md) · [英文截图与版本介绍](docs/releases/2026-10-03-english-edition.md)
@@ -133,6 +135,7 @@ Copyright (c) 2026 JKL Thinking。当前源码树采用 **AGPL-3.0-only**，
 - 个人和公司内部使用都免费，包括商用。
 - 修改后通过网络对外提供服务，必须按 AGPL 向这些用户提供修改版本的对应源码。
 - 不想履行这些要求，可以购买商业授权。
+  联系邮箱：[jklthinking@foxmail.com](mailto:jklthinking@foxmail.com)。
 - **已按 MIT 发布的 0.3.0a4 及以前版本永远是 MIT，不追溯。**
 
 分发和其他使用场景也须履行适用的 AGPL 条款。此说明针对该分界后的开发源码，
